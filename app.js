@@ -5,7 +5,7 @@ import { getDatabase, ref, set, get, onValue, runTransaction } from "https://www
 // Public Firebase Web App configuration for this game.
 // Realtime Database is hosted in asia-southeast1 (Singapore).
 const DEFAULT_FIREBASE_CONFIG = {
-  apiKey: "AIzaSyAECssZ_j6yvb9aYagqw6yh9kFFadIJFW8",
+  apiKey: "AIzaSyAECssZ_j6yvb9aYAgqw6yh9kFFadIJFW8",
   authDomain: "cotyphuonline-8f536.firebaseapp.com",
   databaseURL: "https://cotyphuonline-8f536-default-rtdb.asia-southeast1.firebasedatabase.app",
   projectId: "cotyphuonline-8f536",
@@ -571,7 +571,7 @@ $("settingsButton").addEventListener("click", () => {
 });
 $("saveConfigButton").addEventListener("click", async () => {
   try {
-    const config = parseFirebaseConfig($("firebaseConfigInput").value);
+    const config = { ...DEFAULT_FIREBASE_CONFIG, ...parseFirebaseConfig($("firebaseConfigInput").value), apiKey: DEFAULT_FIREBASE_CONFIG.apiKey };
     localStorage.setItem("ctp-firebase-config", JSON.stringify(config));
     setMessage("settingsMessage","Đang kết nối Firebase...");
     await connectFirebase(config);
@@ -595,11 +595,11 @@ $("settingsDialog").addEventListener("click", e => {
 async function boot() {
   const stored = localStorage.getItem("ctp-firebase-config");
   try {
-    const config = stored ? parseFirebaseConfig(stored) : DEFAULT_FIREBASE_CONFIG;
+    const savedConfig = stored ? parseFirebaseConfig(stored) : {};
+    // Keep saved project settings, but always use the verified API key bundled with this game.
+    const config = { ...DEFAULT_FIREBASE_CONFIG, ...savedConfig, apiKey: DEFAULT_FIREBASE_CONFIG.apiKey };
+    localStorage.setItem("ctp-firebase-config", JSON.stringify(config));
     await connectFirebase(config);
-    if (!stored) {
-      localStorage.setItem("ctp-firebase-config", JSON.stringify(DEFAULT_FIREBASE_CONFIG));
-    }
     setMessage("lobbyMessage","Đã kết nối Firebase. Bạn có thể tạo hoặc tham gia phòng.");
   } catch (error) {
     setConnection(false,"Lỗi kết nối");
