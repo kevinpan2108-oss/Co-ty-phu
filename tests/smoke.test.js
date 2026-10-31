@@ -36,8 +36,19 @@ test("room creation reserves a code with a transaction", () => {
   assert.ok(!body.includes("await set(ref(db, `${ROOM_ROOT}/${code}`)"));
 });
 
-test("the lobby and game load the same Firebase module entry point", () => {
-  assert.ok(html.includes('<script type="module" src="./app.js"></script>'));
+test("the lobby loads the versioned Firebase module entry point", () => {
+  assert.ok(html.includes('<script type="module" src="./app.js?v='));
+  assert.ok(html.includes("</script>"));
+});
+
+test("players do not need to paste Firebase JSON", () => {
+  const match = app.match(/const DEFAULT_FIREBASE_CONFIG = (\{[\s\S]*?\n\});/);
+  assert.ok(match, "DEFAULT_FIREBASE_CONFIG should exist");
+  const config = Function("return (" + match[1] + ")")();
+  assert.equal(config.apiKey, "AIzaSyAECssZ_j6yvb9aYagqw6yh9kFFadIJFw8");
+  assert.ok(!html.includes("settingsDialog"));
+  assert.ok(!html.includes("firebaseConfigInput"));
+  assert.ok(!app.includes("parseFirebaseConfig"));
 });
 
 test("database rules are valid and do not use unsupported numChildren()", () => {
