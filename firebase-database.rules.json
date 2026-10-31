@@ -2,7 +2,7 @@
   "rules": {
     "rooms": {
       "$roomId": {
-        ".read": "auth != null && data.child('players').hasChild(auth.uid)",
+        ".read": "auth != null && (data.child('players').hasChild(auth.uid) || data.child('status').val() == 'waiting')",
         ".write": "auth != null && (( !data.exists() && newData.child('status').val() == 'waiting' && newData.child('creatorUid').val() == auth.uid && newData.child('players').hasChild(auth.uid)) || (data.exists() && data.child('status').val() == 'waiting' && !data.child('joinerUid').exists() && newData.child('creatorUid').val() == data.child('creatorUid').val() && newData.child('joinerUid').val() == auth.uid && newData.child('players').hasChild(auth.uid) && !data.child('players').hasChild(auth.uid)) || (data.exists() && data.child('players').hasChild(auth.uid) && newData.child('players').hasChild(auth.uid)))",
         ".validate": "newData.hasChildren(['status', 'creatorUid', 'players', 'turnUid', 'turnNumber'])"
       }
