@@ -20,17 +20,18 @@ Web game giao dịch bất động sản bằng tiếng Việt, dành cho **2 ng
 
 Mở `index.html` bằng VS Code Live Server hoặc một static web server. Đây là ứng dụng JavaScript thuần, Firebase SDK được tải qua CDN.
 
-## Bật chế độ online (cần Firebase)
+## Chơi online hai người
 
-1. Vào [Firebase Console](https://console.firebase.google.com/) và tạo một project.
-2. Trong **Authentication → Sign-in method**, bật **Anonymous**.
-3. Vào **Realtime Database → Create Database** và tạo database.
-4. Mở tab **Rules** của Realtime Database, thay nội dung bằng file [firebase-database.rules.json](./firebase-database.rules.json), sau đó bấm **Publish**.
-5. Vào **Project settings → General → Your apps**, đăng ký một Web App nếu chưa có, rồi sao chép Firebase Web App config.
-6. Game đã được cấu hình sẵn Firebase Web App config trong `app.js`; khi mở trang, game tự kết nối và đăng nhập Anonymous. Không cần dán config thủ công.
-7. Cả hai người chơi cần sử dụng cùng Firebase config; mỗi người tạo tài khoản Anonymous riêng tự động khi mở game.
+Firebase đã được cấu hình sẵn trong game. Người chơi **không cần nhập Firebase Web App JSON**.
 
-**Lưu ý:** cấu hình Firebase Web App là thông tin client-side, không phải service-account key. Tuy nhiên database rules vẫn rất quan trọng. Rules hiện tại giới hạn thao tác ghi vào các phòng theo trạng thái thành viên, nhưng cả hai người chơi đều có thể sửa trạng thái phòng từ trình duyệt. Đây là MVP chơi vui với bạn bè, chưa phải hệ thống chống gian lận.
+1. Mở link game trên cả hai thiết bị.
+2. Người thứ nhất nhập tên và bấm **Tạo phòng mới**.
+3. Chia sẻ mã phòng 6 ký tự cho người thứ hai.
+4. Người thứ hai nhập mã đó và bấm **Tham gia**.
+
+Game tự đăng nhập Anonymous và kết nối Realtime Database khi tải trang. Nếu không kết nối được, trạng thái lỗi sẽ hiện ngay trên màn hình chính; không có hộp thoại cấu hình thủ công.
+
+**Quản trị dự án:** Authentication → Anonymous phải được bật và Realtime Database phải được tạo. Rules đang dùng nằm trong [firebase-database.rules.json](./firebase-database.rules.json); cần Publish file này trong Firebase Console. Đây là MVP chơi với bạn bè, chưa phải hệ thống chống gian lận.
 
 ## Deploy lên GitHub Pages
 
