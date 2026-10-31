@@ -922,8 +922,10 @@ async function playComputerTurn() {
     }
   }
 }
-\n$("createRoomButton").addEventListener("click", createRoom);
-$("joinRoomButton").addEventListener("click", joinRoom);\n$("playComputerButton").addEventListener("click", startComputerGame);
+
+$("createRoomButton").addEventListener("click", createRoom);
+$("joinRoomButton").addEventListener("click", joinRoom);
+$("playComputerButton").addEventListener("click", startComputerGame);
 $("rollButton").addEventListener("click", rollDice);
 $("endTurnButton").addEventListener("click", endTurn);
 $("leaveRoomButton").addEventListener("click", () => leaveRoom());
