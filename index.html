@@ -22,7 +22,6 @@
       </a>
       <div class="topbar-right">
         <span id="connectionBadge" class="connection-badge offline"><i></i> Chưa kết nối</span>
-        <button id="settingsButton" class="icon-button" type="button" title="Cài đặt Firebase" aria-label="Cài đặt Firebase">⚙</button>
       </div>
     </header>
 
@@ -114,16 +113,6 @@
     <footer class="footer"><span>© 2026 CỜ TỶ PHÚ ONLINE</span><span>MADE FOR FRIENDS <b>♥</b></span></footer>
   </main>
 
-  <dialog id="settingsDialog" class="settings-dialog">
-    <form method="dialog" class="dialog-top"><div><span class="section-kicker">KẾT NỐI TRỰC TUYẾN</span><h2>Cấu hình Firebase</h2></div><button class="icon-button" value="cancel" aria-label="Đóng">×</button></form>
-    <p class="dialog-description">Dán Firebase Web App config và Database URL để bật phòng chơi online. Cùng một cấu hình cần được dùng trên cả hai thiết bị.</p>
-    <label class="field-label" for="firebaseConfigInput">Firebase Web App config (JSON)</label>
-    <textarea id="firebaseConfigInput" class="config-input" rows="7" spellcheck="false" placeholder='{"apiKey":"...","authDomain":"...","databaseURL":"https://...","projectId":"...","appId":"..."}'></textarea>
-    <div class="dialog-help">Bật <b>Anonymous</b> trong Authentication và tạo Realtime Database trong Firebase Console. Không dán service-account key vào đây.</div>
-    <div id="settingsMessage" class="inline-message"></div>
-    <div class="dialog-actions"><button id="clearConfigButton" class="soft-button" type="button">Xóa cấu hình</button><button id="saveConfigButton" class="primary-button" type="button">Lưu & kết nối</button></div>
-  </dialog>
-
-  <script type="module" src="./app.js"></script>
+  <script type="module" src="./app.js?v=69d9d27"></script>
 </body>
 </html>
