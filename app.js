@@ -175,6 +175,8 @@ async function createRoom() {
     const uid = currentUser.uid;
     const room = {
       status:"waiting",
+      creatorUid:uid,
+      joinerUid:null,
       players:{
         [uid]:{uid,name,color:TOKEN_COLORS[0],cash:START_CASH,position:0,jailTurns:0}
       },
@@ -210,9 +212,11 @@ async function joinRoom() {
       if (!room) return;
       const uid = currentUser.uid;
       if (room.players?.[uid]) return room;
-      if (room.status !== "waiting" || Object.keys(room.players || {}).length >= 2) return;
+      if (room.status !== "waiting" || room.joinerUid) return;
+      if (!room.creatorUid || room.creatorUid === uid) return;
       room.players = room.players || {};
       room.players[uid] = {uid,name,color:TOKEN_COLORS[1],cash:START_CASH,position:0,jailTurns:0};
+      room.joinerUid = uid;
       room.status = "playing";
       room.message = name+" đã tham gia. Cuộc chơi bắt đầu!";
       room.updatedAt = Date.now();
