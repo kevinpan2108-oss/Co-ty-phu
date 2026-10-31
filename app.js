@@ -162,7 +162,7 @@ function explainFirebaseError(error) {
     "auth/invalid-api-key": "apiKey Firebase không đúng. Hãy sao chép lại apiKey từ Firebase Console → Project settings → Your apps.",
     "auth/operation-not-allowed": "Chưa bật đăng nhập Ẩn danh: Firebase Console → Authentication → Sign-in method → Anonymous → Enable.",
     "auth/admin-restricted-operation": "Chưa bật đăng nhập Ẩn danh: Firebase Console → Authentication → Sign-in method → Anonymous → Enable.",
-    "auth/network-request-failed": "Không kết nối được tới Firebase. Hãy kiểm tra mạng rồi thử lại.",
+    "auth/network-request-failed": "Không nhận được phản hồi từ máy chủ đăng nhập của Firebase.",
     "auth/too-many-requests": "Firebase tạm khóa do thử quá nhiều lần. Hãy đợi vài phút.",
     "auth/requests-from-referer-" : ""
   }[code];
@@ -663,14 +663,35 @@ function getFirebaseConfig() {
   const override = new URLSearchParams(location.search).get("apiKey");
   return /^AIza[\w-]{35}$/.test(override || "") ? {...DEFAULT_FIREBASE_CONFIG, apiKey: override} : DEFAULT_FIREBASE_CONFIG;
 }
+// auth/network-request-failed nghĩa là yêu cầu không tới được máy chủ (VPN, ứng dụng chặn quảng cáo,
+// Private DNS, mạng công ty/trường chặn googleapis.com...). Dò từng máy chủ để chỉ đúng chỗ bị chặn.
+async function probeFirebaseHosts() {
+  const urls = ["https://identitytoolkit.googleapis.com/", "https://securetoken.googleapis.com/", DEFAULT_FIREBASE_CONFIG.databaseURL];
+  const blocked = [];
+  await Promise.all(urls.map(async (url) => {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 6000);
+    try { await fetch(url, {mode:"no-cors", cache:"no-store", signal:controller.signal}); }
+    catch { blocked.push(new URL(url).host); }
+    finally { clearTimeout(timer); }
+  }));
+  return blocked;
+}
+async function explainNetworkFailure() {
+  const blocked = await probeFirebaseHosts();
+  return blocked.length
+    ? " Thiết bị này không truy cập được: " + blocked.join(", ") + ". Hãy tắt VPN / ứng dụng chặn quảng cáo / DNS riêng (Private DNS), hoặc đổi sang Wi-Fi/4G khác rồi bấm vào chữ \"Chưa kết nối\" để thử lại."
+    : " Các máy chủ Firebase vẫn truy cập được, hãy tải lại trang hoặc thử trình duyệt khác.";
+}
 async function connectGame() {
   if (connectionPromise) return connectionPromise;
   setConnection(false, "Đang kết nối...");
   connectionPromise = connectFirebase(getFirebaseConfig()).then(() => {
     firebaseError = "";
     setMessage("lobbyMessage", "Đã kết nối máy chủ. Bạn có thể tạo phòng hoặc nhập mã phòng.");
-  }).catch((error) => {
+  }).catch(async (error) => {
     firebaseError = explainFirebaseError(error);
+    if (error?.code === "auth/network-request-failed") firebaseError += await explainNetworkFailure();
     setConnection(false, "Chưa kết nối");
     setMessage("lobbyMessage", "Máy chủ online chưa kết nối được: " + firebaseError, true);
     console.error("Firebase connect failed:", error);
