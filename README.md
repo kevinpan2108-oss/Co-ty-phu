@@ -12,6 +12,7 @@ Web game giao dịch bất động sản bằng tiếng Việt, dành cho **2 ng
 - [x] Bàn cờ 40 ô, xúc xắc, nhận lương khi qua Xuất phát.
 - [x] Mua đất, trả tiền thuê, thuế, thẻ Cơ hội, nhà tù.
 - [x] Workflow triển khai GitHub Pages.
+- [x] Chế độ chơi đơn với máy: máy tự tung xúc xắc, xử lý lượt và cân nhắc mua tài sản.
 - [ ] Kiểm thử thực tế hai thiết bị với Firebase project.
 - [ ] Cân bằng luật, hoàn thiện giao dịch và xử lý tình huống phá sản.
 - [ ] Review độc lập trước khi merge vào `main`.
