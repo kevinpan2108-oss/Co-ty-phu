@@ -112,12 +112,11 @@ function notify(text) {
 
 function parseFirebaseConfig(raw) {
   let text = String(raw || "").trim();
-  text = text.replace(/^.*?=\\s*(?=\\{)/s, "").replace(/;\\s*$/, "");
-  text = text.replace(/([{,]\\s*)([A-Za-z_$][\\w$]*)\\s*:/g, '$1"$2":');
-  text = text.replace(/,\\s*([}\\]])/g, "$1");
+  text = text.replace(/^.*?=\s*(?=\{)/s, "").replace(/;\s*$/, "");
+  text = text.replace(/([{,]\s*)([A-Za-z_$][\w$]*)\s*:/g, '$1"$2":');
+  text = text.replace(/,\s*([}\]])/g, "$1");
   return JSON.parse(text);
 }
-
 async function connectFirebase(config) {
   if (!config?.apiKey || !config?.databaseURL || !config?.projectId || !config?.appId) {
     throw new Error("Thiếu apiKey, databaseURL, projectId hoặc appId trong Firebase config.");
