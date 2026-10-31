@@ -217,7 +217,7 @@ async function createRoom() {
     if (!code) throw new Error("Chưa tạo được mã phòng trống. Vui lòng thử lại.");
     openRoom(code);
   } catch (error) {
-    setMessage("lobbyMessage", "Không tạo được phòng: " + error.message, true);
+    setMessage("lobbyMessage", /PERMISSION_DENIED|permission_denied/i.test(error?.message || "") ? "Firebase đang chặn quyền tạo phòng. Hãy Publish Security Rules mới trong Realtime Database." : "Không tạo được phòng: " + (error?.message || error), true);
   } finally {
     setBusy(false);
   }
@@ -253,7 +253,7 @@ async function joinRoom() {
     }
     openRoom(code);
   } catch (error) {
-    setMessage("lobbyMessage", error.message, true);
+    setMessage("lobbyMessage", /PERMISSION_DENIED|permission_denied/i.test(error?.message || "") ? "Firebase đang chặn quyền tham gia phòng. Hãy Publish Security Rules mới trong Realtime Database." : (error?.message || String(error)), true);
   } finally {
     setBusy(false);
   }
