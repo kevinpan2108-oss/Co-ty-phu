@@ -149,6 +149,8 @@ async function connectFirebase(config) {
 }
 async function requireConnection() {
   if (db && currentUser) return true;
+  const stored = localStorage.getItem("ctp-firebase-config");
+  $("firebaseConfigInput").value = stored || JSON.stringify(DEFAULT_FIREBASE_CONFIG, null, 2);
   $("settingsDialog").showModal();
   setMessage("settingsMessage", "Cần cấu hình Firebase trước khi tạo hoặc tham gia phòng.");
   return false;
