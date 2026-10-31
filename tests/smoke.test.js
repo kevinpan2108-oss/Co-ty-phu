@@ -64,3 +64,11 @@ test("the game does not depend on Firebase Authentication", () => {
   assert.ok(!app.includes("firebase-auth.js"));
   assert.ok(!app.includes("signInAnonymously"));
 });
+
+test("lobby exposes a local computer opponent mode", () => {
+  assert.ok(html.includes('id="playComputerButton"'));
+  assert.ok(app.includes("function startComputerGame()"));
+  assert.ok(app.includes("async function playComputerTurn()"));
+  assert.ok(app.includes("function updateCurrentRoom("));
+});
+
