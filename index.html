@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#102820" />
+  <meta name="description" content="Cờ Tỷ Phú Online — chơi cùng bạn bè trong phòng riêng." />
+  <title>Cờ Tỷ Phú Online</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+  <div class="ambient ambient-one"></div>
+  <div class="ambient ambient-two"></div>
+  <main class="app-shell">
+    <header class="topbar">
+      <a class="brand" href="./" aria-label="Cờ Tỷ Phú Online">
+        <span class="brand-mark">₫</span>
+        <span><strong>CỜ TỶ PHÚ</strong><small>ONLINE EDITION</small></span>
+      </a>
+      <div class="topbar-right">
+        <span id="connectionBadge" class="connection-badge offline"><i></i> Chưa kết nối</span>
+        <button id="settingsButton" class="icon-button" type="button" title="Cài đặt Firebase" aria-label="Cài đặt Firebase">⚙</button>
+      </div>
+    </header>
+
+    <section id="lobbyView" class="lobby-layout">
+      <div class="hero-copy">
+        <div class="eyebrow"><span></span> BÀN CỜ CỦA BẠN, CUỘC CHƠI CỦA BẠN</div>
+        <h1>Mua đất.<br><em>Đầu tư.</em> Thắng lớn.</h1>
+        <p class="hero-subtitle">Rủ một người bạn, gieo xúc xắc và xem ai sẽ trở thành ông trùm bất động sản.</p>
+        <div class="hero-stats">
+          <div><strong>02</strong><span>Người chơi</span></div>
+          <div><strong>40</strong><span>Ô bàn cờ</span></div>
+          <div><strong>∞</strong><span>Cuộc vui</span></div>
+        </div>
+      </div>
+
+      <div class="lobby-card">
+        <div class="card-heading">
+          <div><span class="section-kicker">BẮT ĐẦU CUỘC CHƠI</span><h2>Vào bàn thôi!</h2></div>
+          <span class="dice-illustration">⚄</span>
+        </div>
+        <label class="field-label" for="playerName">Tên người chơi</label>
+        <input id="playerName" class="text-input" maxlength="18" placeholder="Nhập tên của bạn" value="Người chơi 1" />
+        <button id="createRoomButton" class="primary-button" type="button"><span>＋</span> Tạo phòng mới</button>
+        <div class="or-divider"><span>HOẶC THAM GIA PHÒNG</span></div>
+        <label class="field-label" for="roomCodeInput">Mã phòng 6 ký tự</label>
+        <div class="join-row">
+          <input id="roomCodeInput" class="text-input room-input" maxlength="6" placeholder="VD: A2B4C6" autocomplete="off" />
+          <button id="joinRoomButton" class="secondary-button" type="button">Tham gia <span>→</span></button>
+        </div>
+        <p class="card-footnote"><span>✦</span> Chỉ cần chia sẻ mã phòng với một người bạn.</p>
+        <p id="lobbyMessage" class="inline-message" role="status"></p>
+      </div>
+      <div class="lobby-bottom-note"><span>✧</span> CHƠI VUI LÀ CHÍNH · ĐẤU TRÍ LÀ MƯỜI</div>
+    </section>
+
+    <section id="gameView" class="game-layout hidden">
+      <div class="game-heading">
+        <div><span class="section-kicker">PHÒNG CHƠI <b id="roomCodeLabel">------</b></span><h2>Đại chiến bất động sản</h2></div>
+        <div class="game-heading-actions">
+          <button id="copyRoomButton" class="soft-button" type="button">▣ Sao chép mã</button>
+          <button id="leaveRoomButton" class="soft-button leave-button" type="button">Rời phòng</button>
+        </div>
+      </div>
+
+      <div class="game-content">
+        <aside class="side-panel">
+          <div class="panel-title">BẢNG TÀI SẢN</div>
+          <div id="playersPanel" class="players-panel"></div>
+          <div class="turn-card">
+            <span class="turn-pulse"></span>
+            <div><small>ĐANG ĐẾN LƯỢT</small><strong id="turnName">Chờ đối thủ...</strong></div>
+          </div>
+          <div class="action-card">
+            <span class="section-kicker">HÀNH ĐỘNG</span>
+            <div id="actionMessage" class="action-message">Tạo phòng hoặc tham gia để bắt đầu.</div>
+            <div id="pendingActions" class="pending-actions"></div>
+            <div class="dice-result" id="diceResult"><span>⚄</span><span>⚄</span></div>
+            <button id="rollButton" class="primary-button roll-button" type="button" disabled>🎲 Tung xúc xắc</button>
+            <button id="endTurnButton" class="secondary-button full-button" type="button" disabled>Kết thúc lượt →</button>
+          </div>
+          <div class="legend-card"><span>●</span> Vị trí của bạn <b>●</b> Vị trí đối thủ</div>
+        </aside>
+
+        <div class="board-wrap">
+          <div class="board" id="board">
+            <div class="board-center">
+              <div class="center-sun">✦</div>
+              <div class="center-title">CỜ<br><em>TỶ PHÚ</em></div>
+              <div class="center-subtitle">PROPERTY · STRATEGY · FUN</div>
+              <div id="centerStatus" class="center-status">ĐANG CHỜ NGƯỜI CHƠI...</div>
+            </div>
+          </div>
+        </div>
+
+        <aside class="right-panel">
+          <div class="panel-title">SỔ ĐẤT</div>
+          <div id="propertyList" class="property-list"><div class="empty-properties">Chưa có bất động sản nào được mua.</div></div>
+          <div class="rules-mini">
+            <span class="section-kicker">MẸO NHỎ</span>
+            <p>💡 Đi qua ô XUẤT PHÁT nhận <b>$200</b>.</p>
+            <p>🏡 Sở hữu càng nhiều đất, tiền thuê càng cao.</p>
+            <p>🤝 Để ý túi tiền trước khi quyết định mua!</p>
+          </div>
+        </aside>
+      </div>
+      <div id="gameNotice" class="game-notice" role="status"></div>
+    </section>
+
+    <footer class="footer"><span>© 2026 CỜ TỶ PHÚ ONLINE</span><span>MADE FOR FRIENDS <b>♥</b></span></footer>
+  </main>
+
+  <dialog id="settingsDialog" class="settings-dialog">
+    <form method="dialog" class="dialog-top"><div><span class="section-kicker">KẾT NỐI TRỰC TUYẾN</span><h2>Cấu hình Firebase</h2></div><button class="icon-button" value="cancel" aria-label="Đóng">×</button></form>
+    <p class="dialog-description">Dán Firebase Web App config và Database URL để bật phòng chơi online. Cùng một cấu hình cần được dùng trên cả hai thiết bị.</p>
+    <label class="field-label" for="firebaseConfigInput">Firebase Web App config (JSON)</label>
+    <textarea id="firebaseConfigInput" class="config-input" rows="7" spellcheck="false" placeholder='{"apiKey":"...","authDomain":"...","databaseURL":"https://...","projectId":"...","appId":"..."}'></textarea>
+    <div class="dialog-help">Bật <b>Anonymous</b> trong Authentication và tạo Realtime Database trong Firebase Console. Không dán service-account key vào đây.</div>
+    <div id="settingsMessage" class="inline-message"></div>
+    <div class="dialog-actions"><button id="clearConfigButton" class="soft-button" type="button">Xóa cấu hình</button><button id="saveConfigButton" class="primary-button" type="button">Lưu & kết nối</button></div>
+  </dialog>
+
+  <script type="module" src="./app.js"></script>
+</body>
+</html>
