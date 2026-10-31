@@ -243,7 +243,9 @@ function openRoom(code) {
       leaveRoom("Phòng không còn tồn tại.");
       return;
     }
+    const previous = roomState;
     roomState = snapshot.val();
+    runEffects(previous, roomState);
     renderRoom();
   }, (error) => {
     notify("Không thể đọc phòng: " + explainFirebaseError(error));
@@ -343,6 +345,7 @@ async function joinRoom() {
   }
 }
 function leaveRoom(message) {
+  resetEffects();
   if (unsubscribeRoom) unsubscribeRoom();
   unsubscribeRoom = null;
   currentRoomCode = null;
@@ -380,9 +383,8 @@ function renderBoard() {
     const [row,col] = getBoardCoords(index);
     const ownerUid = roomState?.propertyOwners?.[getSpaceId(index)];
     const owner = ownerUid ? roomState?.players?.[ownerUid] : null;
-    const tokens = getPlayerEntries(roomState).filter(([,p]) => Number(p.position) === index);
     const div = document.createElement("div");
-    div.className = "space" + (space.corner ? " corner" : "") + (owner ? " owned" : "");
+    div.className = "space" + (space.corner ? " corner" : "") + (owner ? " owned" : "") + (stampUntil[index] > Date.now() ? " stamp" : "");
     if (owner) div.style.setProperty("--owner", safeColor(owner.color));
     div.style.gridRow = String(row+1);
     div.style.gridColumn = String(col+1);
@@ -398,7 +400,7 @@ function renderBoard() {
       ${icon ? `<span class="space-icon">${icon}</span>` : ""}
       <span class="space-name">${escapeHtml(space.name)}</span>
       ${price && !space.corner ? `<span class="space-price">${price}</span>` : ""}
-      <span class="space-players">${tokens.map(([,p])=>`<i class="token" title="${escapeHtml(p.name)}" style="background:${safeColor(p.color)}"></i>`).join("")}</span>
+      <span class="space-players">${tokensHtml(index)}</span>
     `;
     board.insertBefore(div, center);
   });
@@ -410,7 +412,7 @@ function renderPlayers() {
     const isTurn = roomState.turnUid === uid;
     const isMe = uid === currentUser.uid;
     const space = SPACE_DATA[Number(p.position)]?.name || "—";
-    return `<div class="player-card ${isTurn?"active":""}">
+    return `<div class="player-card ${isTurn?"active":""}" data-uid="${escapeHtml(uid)}">
       <div class="player-head"><i class="player-dot" style="background:${safeColor(p.color)}"></i><span class="player-name">${escapeHtml(p.name)}</span>${isMe?'<span class="you-label">Bạn</span>':""}</div>
       <div class="player-cash">${money(p.cash)}</div>
       <p class="player-position">${escapeHtml(space)} ${p.jailTurns ? "· Đang ở tù" : ""}</p>
@@ -445,7 +447,7 @@ function renderActions() {
   const playing = roomState.status === "playing" && getPlayerEntries(roomState).length === 2;
   const pending = roomState.pending;
   const dice = roomState.lastRoll;
-  $("diceResult").innerHTML = dice ? `<span>${Number(dice[0]) || 0}</span><span>${Number(dice[1]) || 0}</span>` : "<span>⚄</span><span>⚄</span>";
+  if (!diceAnimating) $("diceResult").innerHTML = dice ? `<span>${Number(dice[0]) || 0}</span><span>${Number(dice[1]) || 0}</span>` : "<span>⚄</span><span>⚄</span>";
   $("actionMessage").textContent = roomState.message || (roomState.status === "waiting" ? "Đang chờ người chơi thứ hai..." : "Đến lượt bạn!");
   const buttons = $("pendingActions");
   buttons.innerHTML = "";
@@ -469,6 +471,7 @@ function renderActions() {
   $("rollButton").textContent = canPayJail ? "🔓 Nộp " + money(JAIL_FEE) + " để ra tù" : "🎲 Tung xúc xắc";
   $("rollButton").disabled = busy || !playing || !isMyTurn || !!pending || !!dice || roomState.status === "finished";
   $("endTurnButton").disabled = busy || !playing || !isMyTurn || !!pending || !dice || roomState.status === "finished";
+  document.title = roomState.status === "playing" && isMyTurn ? "● Đến lượt bạn - Cờ Tỷ Phú Online" : "Cờ Tỷ Phú Online";
   if (roomState.status === "waiting") {
     $("centerStatus").textContent = "Chờ người chơi thứ hai";
   } else if (roomState.status === "finished") {
@@ -480,6 +483,137 @@ function renderActions() {
     $("actionMessage").textContent = "🏆 " + (roomState.players?.[roomState.winner]?.name || "Người chơi") + " chiến thắng!";
   }
 }
+// ===== Hiệu ứng (chỉ là hiển thị phía trình duyệt, không ghi gì lên database) =====
+const reduceMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches === true;
+const displayPos = {};            // uid -> ô đang hiển thị khi quân đang nhảy
+const moveTimers = {};            // uid -> timer của bước nhảy
+const stampUntil = {};            // chỉ số ô -> thời điểm hết hiệu ứng "vừa mua"
+let movingUid = null;
+let diceAnimating = false;
+let diceTimer = null;
+const DICE_MS = 650;
+const HOP_MS = 150;
+
+function tokensHtml(index) {
+  return getPlayerEntries(roomState)
+    .filter(([uid, p]) => (displayPos[uid] ?? Number(p.position)) === index)
+    .map(([uid, p]) => `<i class="token${movingUid === uid ? " moving" : ""}" title="${escapeHtml(p.name)}" style="background:${safeColor(p.color)}"></i>`)
+    .join("");
+}
+function renderTokens() {
+  document.querySelectorAll("#board .space").forEach((cell) => {
+    const holder = cell.querySelector(".space-players");
+    if (holder) holder.innerHTML = tokensHtml(Number(cell.dataset.index));
+  });
+}
+function resetEffects() {
+  clearInterval(diceTimer);
+  diceAnimating = false;
+  movingUid = null;
+  for (const uid of Object.keys(moveTimers)) { clearTimeout(moveTimers[uid]); delete moveTimers[uid]; }
+  for (const uid of Object.keys(displayPos)) delete displayPos[uid];
+  for (const key of Object.keys(stampUntil)) delete stampUntil[key];
+  document.title = "Cờ Tỷ Phú Online";
+}
+// Quân cờ nhảy từng ô tới đích. Đi quá xa (vào tù) thì dịch chuyển thẳng.
+function animateMove(uid, from, to, delay) {
+  const dist = (to - from + 40) % 40;
+  if (reduceMotion || dist === 0 || dist > 12) return 0;
+  displayPos[uid] = from;
+  let step = 0;
+  const tick = () => {
+    step++;
+    movingUid = uid;
+    displayPos[uid] = (from + step) % 40;
+    if (step >= dist) {
+      delete displayPos[uid];
+      delete moveTimers[uid];
+      movingUid = null;
+      renderTokens();
+      return;
+    }
+    renderTokens();
+    moveTimers[uid] = setTimeout(tick, HOP_MS);
+  };
+  moveTimers[uid] = setTimeout(tick, delay);
+  return delay + dist * HOP_MS;
+}
+function animateDice(finalDice) {
+  const box = $("diceResult");
+  const finish = () => {
+    clearInterval(diceTimer);
+    diceAnimating = false;
+    box.classList.remove("rolling");
+    box.innerHTML = `<span>${Number(finalDice[0]) || 0}</span><span>${Number(finalDice[1]) || 0}</span>`;
+  };
+  if (reduceMotion) return;
+  diceAnimating = true;
+  box.classList.add("rolling");
+  const face = () => 1 + Math.floor(Math.random() * 6);
+  box.innerHTML = `<span>${face()}</span><span>${face()}</span>`;
+  clearInterval(diceTimer);
+  diceTimer = setInterval(() => { box.innerHTML = `<span>${face()}</span><span>${face()}</span>`; }, 80);
+  setTimeout(finish, DICE_MS);
+}
+function floatDelta(uid, delta, delay) {
+  if (!delta) return;
+  setTimeout(() => {
+    const card = document.querySelector(`.player-card[data-uid="${CSS.escape(uid)}"]`);
+    if (!card) return;
+    const rect = card.getBoundingClientRect();
+    const el = document.createElement("span");
+    el.className = "float-delta " + (delta > 0 ? "gain" : "loss");
+    el.textContent = (delta > 0 ? "+" : "−") + money(Math.abs(delta));
+    el.style.left = Math.max(8, rect.right - 12) + "px";
+    el.style.top = (rect.top + 10) + "px";
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 1800);
+  }, delay);
+}
+const CONFETTI = ["🌾", "🪷", "🥥", "🎉", "🍍", "✨"];
+function confetti() {
+  if (reduceMotion) return;
+  const layer = document.createElement("div");
+  layer.className = "confetti";
+  layer.setAttribute("aria-hidden", "true");
+  for (let i = 0; i < 40; i++) {
+    const bit = document.createElement("span");
+    bit.textContent = CONFETTI[i % CONFETTI.length];
+    bit.style.left = Math.random() * 100 + "%";
+    bit.style.animationDuration = 2.6 + Math.random() * 2.4 + "s";
+    bit.style.animationDelay = Math.random() * 0.9 + "s";
+    bit.style.fontSize = 18 + Math.random() * 16 + "px";
+    layer.appendChild(bit);
+  }
+  document.body.appendChild(layer);
+  setTimeout(() => layer.remove(), 6500);
+}
+// So sánh trạng thái cũ và mới của phòng để chọn hiệu ứng. Lần nhận dữ liệu đầu tiên (previous = null,
+// ví dụ tải lại trang) không chạy hiệu ứng nào.
+function runEffects(previous, next) {
+  if (!previous || !next) return;
+  const rolled = !previous.lastRoll && next.lastRoll;
+  if (rolled) animateDice(next.lastRoll);
+  for (const [uid, now] of getPlayerEntries(next)) {
+    const before = previous.players?.[uid];
+    if (!before) continue;
+    let delay = rolled ? DICE_MS : 0;
+    if (Number(before.position) !== Number(now.position)) {
+      delay = animateMove(uid, Number(before.position), Number(now.position), delay) || delay;
+    }
+    if (Number(before.cash) !== Number(now.cash)) floatDelta(uid, Number(now.cash) - Number(before.cash), delay);
+  }
+  for (const key of Object.keys(next.propertyOwners || {})) {
+    if (previous.propertyOwners?.[key]) continue;
+    const index = Number(key.slice(1));
+    stampUntil[index] = Date.now() + 1000;
+  }
+  if (next.status === "finished" && previous.status !== "finished") confetti();
+  if (next.status === "playing" && next.turnUid === currentUser?.uid && previous.turnUid !== currentUser?.uid) {
+    try { navigator.vibrate?.(80); } catch { /* không hỗ trợ rung */ }
+  }
+}
+
 function renderRoom() {
   if (!roomState || !currentUser) return;
   $("roomCodeLabel").textContent = currentRoomCode;

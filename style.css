@@ -231,3 +231,26 @@ h1,h2,.brand strong,.center-title,.player-cash,.dice-illustration{font-family:va
 .space.owned{box-shadow:inset 0 -6px 0 var(--owner)}
 .space-price{font-size:clamp(6px,.7vw,10px);font-weight:800;color:#5b5a45}
 @media(max-width:800px){.hero-copy h1{font-size:clamp(32px,8.6vw,48px)}}
+
+/* ===== Hiệu ứng chơi game ===== */
+.dice-result span{transition:transform .2s}
+.dice-result.rolling span{animation:diceTumble .32s linear infinite;box-shadow:0 8px 16px rgba(0,0,0,.28)}
+.dice-result.rolling span:nth-child(2){animation-direction:reverse}
+@keyframes diceTumble{0%{transform:rotate(0) translateY(0)}50%{transform:rotate(180deg) translateY(-7px)}100%{transform:rotate(360deg) translateY(0)}}
+.token{transition:transform .15s}
+.token.moving{animation:tokenHop .15s ease-out;transform:scale(1.35)}
+@keyframes tokenHop{0%{transform:translateY(0) scale(1)}50%{transform:translateY(-9px) scale(1.5)}100%{transform:translateY(0) scale(1.35)}}
+.space.stamp{animation:cellStamp .9s ease-out;z-index:2}
+@keyframes cellStamp{0%{transform:scale(1)}25%{transform:scale(1.28);box-shadow:inset 0 -14px 0 var(--owner),0 0 0 3px #f2b632,0 8px 22px rgba(0,0,0,.4)}100%{transform:scale(1)}}
+.float-delta{position:fixed;z-index:60;transform:translateX(-100%);padding:4px 10px;border-radius:99px;font-family:var(--display);font-weight:800;font-size:15px;pointer-events:none;white-space:nowrap;box-shadow:0 6px 18px rgba(0,0,0,.35);animation:floatUp 1.7s ease-out forwards}
+.float-delta.gain{background:#f2b632;color:#2b1d05}
+.float-delta.loss{background:#e8402a;color:#fff}
+@keyframes floatUp{0%{opacity:0;transform:translate(-100%,8px) scale(.8)}12%{opacity:1;transform:translate(-100%,0) scale(1.08)}75%{opacity:1}100%{opacity:0;transform:translate(-100%,-46px) scale(1)}}
+.player-card.active{animation:turnGlow 2.4s ease-in-out infinite}
+@keyframes turnGlow{0%,100%{box-shadow:0 0 0 0 rgba(242,182,50,0)}50%{box-shadow:0 0 0 4px rgba(242,182,50,.22)}}
+.confetti{position:fixed;inset:0;z-index:70;pointer-events:none;overflow:hidden}
+.confetti span{position:absolute;top:-8%;animation:confettiFall linear forwards}
+@keyframes confettiFall{0%{transform:translateY(0) rotate(0);opacity:1}100%{transform:translateY(112vh) rotate(540deg);opacity:.9}}
+@media(prefers-reduced-motion:reduce){
+  .player-card.active,.space.stamp,.token.moving,.dice-result.rolling span{animation:none}
+}
