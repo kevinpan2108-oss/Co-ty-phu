@@ -33,6 +33,28 @@ Game tự đăng nhập Anonymous và kết nối Realtime Database khi tải tr
 
 **Quản trị dự án:** Authentication → Anonymous phải được bật và Realtime Database phải được tạo. Rules đang dùng nằm trong [firebase-database.rules.json](./firebase-database.rules.json); cần Publish file này trong Firebase Console. Đây là MVP chơi với bạn bè, chưa phải hệ thống chống gian lận.
 
+### Khắc phục lỗi kết nối
+
+Khi mở game, góc trên phải phải hiện **Đã kết nối**. Nếu không, thông báo ở sảnh nêu nguyên nhân kèm mã lỗi Firebase (bấm vào huy hiệu kết nối hoặc nút Tạo/Tham gia để thử lại):
+
+| Thông báo | Cách xử lý |
+| --- | --- |
+| `apiKey Firebase không đúng` (`auth/api-key-not-valid`) | `apiKey` trong `DEFAULT_FIREBASE_CONFIG` (`app.js`) sai ký tự. **Sao chép dạng văn bản** từ Firebase Console → Project settings → General → Your apps; không gõ lại từ ảnh chụp vì dễ nhầm `I`/`l`, `w`/`W`, `q`/`g`, `f`/`F`. |
+| `Chưa bật đăng nhập Ẩn danh` (`auth/operation-not-allowed`) | Authentication → Sign-in method → **Anonymous** → Enable. |
+| `Firebase Rules từ chối thao tác` | Realtime Database → Rules → dán nội dung `firebase-database.rules.json` → **Publish**. |
+| `apiKey đang bị giới hạn tên miền` | Google Cloud Console → APIs & Services → Credentials → API key → thêm tên miền GitHub Pages của game vào *Website restrictions*. |
+
+Để thử nhanh một `apiKey` khác mà không sửa code, mở game với `?apiKey=AIza...` ở cuối địa chỉ trang.
+
+## Kiểm thử
+
+```
+npm run check   # kiểm tra cú pháp app.js
+npm test        # smoke test + kiểm tra hành vi Firebase Rules (bộ mô phỏng tối giản)
+```
+
+Bộ mô phỏng Rules **không** thay thế Firebase Emulator / Rules Playground: hãy chạy thêm một trong hai trước khi phát hành.
+
 ## Deploy lên GitHub Pages
 
 Workflow `.github/workflows/deploy.yml` tự deploy khi có push/merge vào `main`.
