@@ -110,6 +110,14 @@ function notify(text) {
   setTimeout(() => { if ($("gameNotice").textContent === text) $("gameNotice").textContent = ""; }, 5500);
 }
 
+function parseFirebaseConfig(raw) {
+  let text = String(raw || "").trim();
+  text = text.replace(/^.*?=\\s*(?=\\{)/s, "").replace(/;\\s*$/, "");
+  text = text.replace(/([{,]\\s*)([A-Za-z_$][\\w$]*)\\s*:/g, '$1"$2":');
+  text = text.replace(/,\\s*([}\\]])/g, "$1");
+  return JSON.parse(text);
+}
+
 async function connectFirebase(config) {
   if (!config?.apiKey || !config?.databaseURL || !config?.projectId || !config?.appId) {
     throw new Error("Thiếu apiKey, databaseURL, projectId hoặc appId trong Firebase config.");
@@ -527,7 +535,7 @@ $("settingsButton").addEventListener("click", () => {
 });
 $("saveConfigButton").addEventListener("click", async () => {
   try {
-    const config = JSON.parse($("firebaseConfigInput").value.trim());
+    const config = parseFirebaseConfig($("firebaseConfigInput").value);
     localStorage.setItem("ctp-firebase-config", JSON.stringify(config));
     setMessage("settingsMessage","Đang kết nối Firebase...");
     await connectFirebase(config);
@@ -555,7 +563,7 @@ async function boot() {
     return;
   }
   try {
-    await connectFirebase(JSON.parse(stored));
+    await connectFirebase(parseFirebaseConfig(stored));
   } catch (error) {
     setConnection(false,"Lỗi kết nối");
     setMessage("lobbyMessage","Firebase chưa kết nối được: "+error.message,true);
