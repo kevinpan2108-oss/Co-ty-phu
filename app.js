@@ -5,7 +5,7 @@ import { getDatabase, ref, set, get, onValue, runTransaction } from "https://www
 // Public Firebase Web App configuration for this game.
 // Realtime Database is hosted in asia-southeast1 (Singapore).
 const DEFAULT_FIREBASE_CONFIG = {
-  apiKey: "AIzaSyAECssZ_j6yvb9aYaqgw6yh9kFFadIJFw8",
+  apiKey: "AIzaSyAECssZ_j6yvb9aYagqw6yh9kFFadIJFw8",
   authDomain: "cotyphuonline-8f536.firebaseapp.com",
   databaseURL: "https://cotyphuonline-8f536-default-rtdb.asia-southeast1.firebasedatabase.app",
   projectId: "cotyphuonline-8f536",
@@ -114,7 +114,10 @@ function setBusy(value) {
   busy = value;
   ["createRoomButton","joinRoomButton","rollButton","endTurnButton"].forEach((id) => {
     const el = $(id);
-    if (el) el.dataset.busy = value ? "1" : "0";
+    if (el) {
+      el.disabled = value;
+      el.dataset.busy = value ? "1" : "0";
+    }
   });
   if (roomState) renderRoom();
 }
@@ -175,34 +178,45 @@ function generateRoomCode() {
   return Array.from({length:6}, () => alphabet[Math.floor(Math.random()*alphabet.length)]).join("");
 }
 async function createRoom() {
-  if (!(await requireConnection())) return;
-  const name = $("playerName").value.trim().slice(0,18) || "Người chơi 1";
+  if (busy) return;
   setBusy(true);
   try {
-    let code = generateRoomCode();
-    for (let i=0;i<4;i++) {
-      const existing = await get(ref(db, `${ROOM_ROOT}/${code}`));
-      if (!existing.exists()) break;
-      code = generateRoomCode();
-    }
+    if (!(await requireConnection())) return;
+    const name = $("playerName").value.trim().slice(0,18) || "Người chơi 1";
     const uid = currentUser.uid;
-    const room = {
-      status:"waiting",
-      creatorUid:uid,
-      joinerUid:null,
-      players:{
-        [uid]:{uid,name,color:TOKEN_COLORS[0],cash:START_CASH,position:0,jailTurns:0}
-      },
-      propertyOwners:{},
-      turnUid:uid,
-      turnNumber:1,
-      lastRoll:null,
-      pending:null,
-      message:name+" đã tạo phòng. Đang chờ người chơi thứ hai...",
-      createdAt:Date.now(),
-      updatedAt:Date.now()
-    };
-    await set(ref(db, `${ROOM_ROOT}/${code}`), room);
+    let code = null;
+
+    // Reserve the room atomically so a generated code can never overwrite another room.
+    for (let attempt = 0; attempt < 10; attempt++) {
+      const candidate = generateRoomCode();
+      const room = {
+        status:"waiting",
+        creatorUid:uid,
+        joinerUid:null,
+        players:{
+          [uid]:{uid,name,color:TOKEN_COLORS[0],cash:START_CASH,position:0,jailTurns:0}
+        },
+        propertyOwners:{},
+        turnUid:uid,
+        turnNumber:1,
+        lastRoll:null,
+        pending:null,
+        message:name+" đã tạo phòng. Đang chờ người chơi thứ hai...",
+        createdAt:Date.now(),
+        updatedAt:Date.now()
+      };
+      const roomRef = ref(db, `${ROOM_ROOT}/${candidate}`);
+      const result = await runTransaction(roomRef, (existing) => {
+        if (existing !== null) return;
+        return room;
+      }, {applyLocally:false});
+      if (result.committed) {
+        code = candidate;
+        break;
+      }
+    }
+
+    if (!code) throw new Error("Chưa tạo được mã phòng trống. Vui lòng thử lại.");
     openRoom(code);
   } catch (error) {
     setMessage("lobbyMessage", "Không tạo được phòng: " + error.message, true);
@@ -211,15 +225,16 @@ async function createRoom() {
   }
 }
 async function joinRoom() {
-  if (!(await requireConnection())) return;
-  const code = $("roomCodeInput").value.trim().toUpperCase();
-  if (!/^[A-HJ-NP-Z2-9]{6}$/.test(code)) {
-    setMessage("lobbyMessage", "Mã phòng cần có 6 ký tự (không gồm I, O, 0, 1).", true);
-    return;
-  }
-  const name = $("playerName").value.trim().slice(0,18) || "Người chơi 2";
+  if (busy) return;
   setBusy(true);
   try {
+    if (!(await requireConnection())) return;
+    const code = $("roomCodeInput").value.trim().toUpperCase();
+    if (!/^[A-HJ-NP-Z2-9]{6}$/.test(code)) {
+      setMessage("lobbyMessage", "Mã phòng cần có 6 ký tự (không gồm I, O, 0, 1).", true);
+      return;
+    }
+    const name = $("playerName").value.trim().slice(0,18) || "Người chơi 2";
     const roomRef = ref(db, `${ROOM_ROOT}/${code}`);
     const result = await runTransaction(roomRef, (room) => {
       if (!room) return;
@@ -454,6 +469,7 @@ async function rollDice() {
   }
 }
 async function releaseFromJail() {
+  if (busy) return;
   setBusy(true);
   try {
     const uid = currentUser.uid;
@@ -479,7 +495,7 @@ async function releaseFromJail() {
   finally { setBusy(false); }
 }
 async function buyProperty() {
-  if (!roomState?.pending) return;
+  if (busy || !roomState?.pending) return;
   setBusy(true);
   try {
     const uid = currentUser.uid;
@@ -501,6 +517,7 @@ async function buyProperty() {
   finally { setBusy(false); }
 }
 async function passProperty() {
+  if (busy) return;
   setBusy(true);
   try {
     await runTransaction(ref(db, `${ROOM_ROOT}/${currentRoomCode}`), (room) => {
@@ -514,6 +531,7 @@ async function passProperty() {
   finally { setBusy(false); }
 }
 async function endTurn() {
+  if (busy) return;
   setBusy(true);
   try {
     const uid = currentUser.uid;
