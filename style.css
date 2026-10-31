@@ -254,3 +254,18 @@ h1,h2,.brand strong,.center-title,.player-cash,.dice-illustration{font-family:va
 @media(prefers-reduced-motion:reduce){
   .player-card.active,.space.stamp,.token.moving,.dice-result.rolling span{animation:none}
 }
+\n
+/* Chế độ chơi đơn với đối thủ máy */
+.lobby-card > .computer-button {
+  width: 100%;
+  min-height: 48px;
+  margin-top: 0;
+  justify-content: center;
+  border-color: rgba(242,182,50,.28);
+  background: rgba(242,182,50,.10);
+}
+.lobby-card > .computer-button:hover:not(:disabled) {
+  background: rgba(242,182,50,.18);
+  transform: translateY(-1px);
+}
+.soft-button[hidden] { display: none !important; }
