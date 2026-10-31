@@ -973,7 +973,7 @@ async function connectGame() {
   }).finally(() => { connectionPromise = null; });
   return connectionPromise;
 }
-$("connectionBadge").addEventListener("click", () => { if (!db) connectGame().catch(() => {}); });
+$("connectionBadge").addEventListener("click", () => { if (!db && !computerGame) connectGame().catch(() => {}); });
 async function boot() {
   try { await connectGame(); } catch { return; }
   await resumeLastRoom();
