@@ -1,0 +1,11 @@
+{
+  "rules": {
+    "rooms": {
+      "$roomId": {
+        ".read": "auth != null",
+        ".write": "auth != null && ((!data.exists() && newData.child('players').child(auth.uid).exists() && newData.child('players').numChildren() == 1) || (data.exists() && (data.child('players').child(auth.uid).exists() || (data.child('status').val() == 'waiting' && data.child('players').numChildren() == 1 && newData.child('players').numChildren() == 2 && newData.child('players').child(auth.uid).exists()))))",
+        ".validate": "newData.hasChildren(['status', 'players', 'turnUid', 'turnNumber'])"
+      }
+    }
+  }
+}
