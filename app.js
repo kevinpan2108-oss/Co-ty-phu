@@ -1,4 +1,5 @@
 import { initializeApp, deleteApp } from "https://www.gstatic.com/firebasejs/13.1.0/firebase-app.js";
+import { shouldComputerBuy } from "./computer-player.js?v=1";
 import { getDatabase, ref, set, get, onValue, runTransaction } from "https://www.gstatic.com/firebasejs/13.1.0/firebase-database.js";
 
 // Public Firebase Web App configuration for this game.
@@ -87,6 +88,10 @@ let currentRoomCode = null;
 let roomState = null;
 let unsubscribeRoom = null;
 let busy = false;
+const COMPUTER_UID = "computer-opponent";
+let computerGame = false;
+let computerBusy = false;
+let computerTimer = null;
 
 function setMessage(id, message, isError = false) {
   const el = $(id);
@@ -158,8 +163,11 @@ function otherPlayerUid(room = roomState) {
 }
 function setBusy(value) {
   busy = value;
-  ["createRoomButton","joinRoomButton"].forEach((id) => { $(id).disabled = value; });
-  if (roomState) renderRoom();
+  ["createRoomButton","joinRoomButton","playComputerButton"].forEach((id) => {
+    const button = $(id);
+    if (button) button.disabled = value;
+  });
+  if (roomState && !(computerGame && computerBusy)) renderRoom();
 }
 function notify(text) {
   $("gameNotice").textContent = text || "";
@@ -185,7 +193,7 @@ function getPlayerId() {
   return id;
 }
 async function disconnectFirebase() {
-  if (currentRoomCode) leaveRoom();
+  if (currentRoomCode && !computerGame) leaveRoom();
   const app = firebaseApp;
   firebaseApp = null; db = null; currentUser = null;
   if (app) { try { await deleteApp(app); } catch { /* app đã bị đóng */ } }
@@ -229,6 +237,11 @@ async function requireConnection() {
   return false;
 }
 function openRoom(code) {
+  computerGame = false;
+  computerBusy = false;
+  if (computerTimer) clearTimeout(computerTimer);
+  computerTimer = null;
+  $("copyRoomButton").hidden = false;
   if (unsubscribeRoom) unsubscribeRoom();
   currentRoomCode = code;
   store("set", LAST_ROOM_KEY, code);
@@ -250,6 +263,22 @@ function openRoom(code) {
   }, (error) => {
     notify("Không thể đọc phòng: " + explainFirebaseError(error));
   });
+}
+async function updateCurrentRoom(updater) {
+  if (!computerGame) {
+    return runTransaction(ref(db, `${ROOM_ROOT}/${currentRoomCode}`), updater, {applyLocally:false});
+  }
+  if (!roomState) return {committed:false};
+  const previous = roomState;
+  const draft = JSON.parse(JSON.stringify(roomState));
+  const next = updater(draft);
+  if (!next) return {committed:false};
+  roomState = next;
+  if (!computerBusy) {
+    runEffects(previous, roomState);
+    renderRoom();
+  }
+  return {committed:true,snapshot:{exists:()=>true,val:()=>roomState}};
 }
 function generateRoomCode() {
   const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -345,6 +374,11 @@ async function joinRoom() {
   }
 }
 function leaveRoom(message) {
+  if (computerTimer) clearTimeout(computerTimer);
+  computerTimer = null;
+  computerBusy = false;
+  computerGame = false;
+  $("copyRoomButton").hidden = false;
   resetEffects();
   if (unsubscribeRoom) unsubscribeRoom();
   unsubscribeRoom = null;
@@ -476,6 +510,8 @@ function renderActions() {
     $("centerStatus").textContent = "Chờ người chơi thứ hai";
   } else if (roomState.status === "finished") {
     $("centerStatus").textContent = "Ván đấu kết thúc";
+  } else if (computerGame && roomState.turnUid === COMPUTER_UID) {
+    $("centerStatus").textContent = "Máy đang suy nghĩ...";
   } else {
     $("centerStatus").textContent = isMyTurn ? "Đến lượt bạn" : "Đợi đối thủ...";
   }
@@ -616,7 +652,10 @@ function runEffects(previous, next) {
 
 function renderRoom() {
   if (!roomState || !currentUser) return;
-  $("roomCodeLabel").textContent = currentRoomCode;
+  $("roomCodeLabel").textContent = computerGame ? "VỚI MÁY" : currentRoomCode;
+  $("gameModeLabel").textContent = computerGame ? "Chế độ đơn" : "Phòng";
+  $("gameTitle").textContent = computerGame ? "Đại chiến với máy" : "Đại chiến bất động sản";
+  $("copyRoomButton").hidden = computerGame;
   renderPlayers();
   renderBoard();
   renderProperties();
@@ -631,7 +670,7 @@ async function rollDice() {
   try {
     const dice = [1+Math.floor(Math.random()*6),1+Math.floor(Math.random()*6)];
     const uid = currentUser.uid;
-    const result = await runTransaction(ref(db, `${ROOM_ROOT}/${currentRoomCode}`), (room) => {
+    const result = await updateCurrentRoom((room) => {
       if (room === null) return room; // SDK chưa có dữ liệu: yêu cầu nạp từ server rồi gọi lại
       if (!room || room.status !== "playing" || room.turnUid !== uid || room.pending || room.lastRoll) return;
       const player = room.players?.[uid];
@@ -699,7 +738,7 @@ async function rollDice() {
       room.message = text;
       room.updatedAt = Date.now();
       return room;
-    }, {applyLocally:false});
+    });
     if (!result.committed) notify("Chưa thể tung xúc xắc. Hãy kiểm tra lượt chơi.");
   } catch (error) {
     notify("Lỗi khi tung xúc xắc: " + explainFirebaseError(error));
@@ -711,7 +750,7 @@ async function releaseFromJail() {
   setBusy(true);
   try {
     const uid = currentUser.uid;
-    await runTransaction(ref(db, `${ROOM_ROOT}/${currentRoomCode}`), (room) => {
+    await updateCurrentRoom((room) => {
       if (room === null) return room; // SDK chưa có dữ liệu: yêu cầu nạp từ server rồi gọi lại
       // lastRoll != null nghĩa là người chơi vừa bị đưa vào tù ngay trong lượt này: chưa được nộp phạt.
       if (!room || room.turnUid !== uid || room.status !== "playing" || room.lastRoll || room.pending) return;
@@ -730,16 +769,17 @@ async function releaseFromJail() {
       room.lastRoll = null;
       room.updatedAt = Date.now();
       return room;
-    }, {applyLocally:false});
+    });
   } catch (error) { notify("Không thể xử lý ra tù: "+explainFirebaseError(error)); }
   finally { setBusy(false); }
+  if (computerGame && !computerBusy) scheduleComputerTurn();
 }
 async function buyProperty() {
   if (!roomState?.pending) return;
   setBusy(true);
   try {
     const uid = currentUser.uid;
-    await runTransaction(ref(db, `${ROOM_ROOT}/${currentRoomCode}`), (room) => {
+    await updateCurrentRoom((room) => {
       if (room === null) return room; // SDK chưa có dữ liệu: yêu cầu nạp từ server rồi gọi lại
       if (!room || room.turnUid !== uid || room.pending?.uid !== uid) return;
       const space = SPACE_DATA[room.pending.index];
@@ -753,21 +793,21 @@ async function buyProperty() {
       room.message = player.name + " đã mua " + space.name + " với giá " + money(space.price) + ".";
       room.updatedAt = Date.now();
       return room;
-    }, {applyLocally:false});
+    });
   } catch (error) { notify("Không mua được đất: "+explainFirebaseError(error)); }
   finally { setBusy(false); }
 }
 async function passProperty() {
   setBusy(true);
   try {
-    await runTransaction(ref(db, `${ROOM_ROOT}/${currentRoomCode}`), (room) => {
+    await updateCurrentRoom((room) => {
       if (room === null) return room; // SDK chưa có dữ liệu: yêu cầu nạp từ server rồi gọi lại
       if (!room || room.turnUid !== currentUser.uid || room.pending?.uid !== currentUser.uid) return;
       room.pending = null;
       room.message = room.players[currentUser.uid].name + " quyết định không mua mảnh đất này.";
       room.updatedAt = Date.now();
       return room;
-    }, {applyLocally:false});
+    });
   } catch (error) { notify("Không thể bỏ qua: "+explainFirebaseError(error)); }
   finally { setBusy(false); }
 }
@@ -775,7 +815,7 @@ async function endTurn() {
   setBusy(true);
   try {
     const uid = currentUser.uid;
-    await runTransaction(ref(db, `${ROOM_ROOT}/${currentRoomCode}`), (room) => {
+    await updateCurrentRoom((room) => {
       if (room === null) return room; // SDK chưa có dữ liệu: yêu cầu nạp từ server rồi gọi lại
       if (!room || room.status !== "playing" || room.turnUid !== uid || room.pending || !room.lastRoll) return;
       const player = room.players?.[uid];
@@ -786,13 +826,104 @@ async function endTurn() {
       room.message = "Đến lượt " + (room.players?.[nextUid]?.name || "người chơi tiếp theo") + ".";
       room.updatedAt = Date.now();
       return room;
-    }, {applyLocally:false});
+    });
   } catch (error) { notify("Không thể kết thúc lượt: "+explainFirebaseError(error)); }
   finally { setBusy(false); }
+  if (computerGame && !computerBusy) scheduleComputerTurn();
 }
 
-$("createRoomButton").addEventListener("click", createRoom);
-$("joinRoomButton").addEventListener("click", joinRoom);
+function startComputerGame() {
+  if (busy) return;
+  const humanUid = getPlayerId();
+  currentUser = {uid:humanUid};
+  computerGame = true;
+  computerBusy = false;
+  if (computerTimer) clearTimeout(computerTimer);
+  computerTimer = null;
+  if (unsubscribeRoom) unsubscribeRoom();
+  unsubscribeRoom = null;
+  currentRoomCode = "LOCAL-VS-COMPUTER";
+  roomState = {
+    status:"playing",
+    creatorUid:humanUid,
+    joinerUid:COMPUTER_UID,
+    players:{
+      [humanUid]:{uid:humanUid,name:cleanName($("playerName").value,"Bạn"),color:TOKEN_COLORS[0],cash:START_CASH,position:0,jailTurns:0},
+      [COMPUTER_UID]:{uid:COMPUTER_UID,name:"Máy Miền Tây",color:TOKEN_COLORS[1],cash:START_CASH,position:0,jailTurns:0,isComputer:true}
+    },
+    propertyOwners:{},
+    turnUid:humanUid,
+    turnNumber:1,
+    lastRoll:null,
+    pending:null,
+    message:"Bạn đi trước. Chúc bạn may mắn!",
+    createdAt:Date.now(),
+    updatedAt:Date.now()
+  };
+  store("remove", LAST_ROOM_KEY);
+  $("lobbyView").classList.add("hidden");
+  $("gameView").classList.remove("hidden");
+  $("copyRoomButton").hidden = true;
+  $("roomCodeLabel").textContent = "VỚI MÁY";
+  renderRoom();
+  document.title = "Đấu với máy - Cờ Tỷ Phú";
+}
+function computerShouldBuy(index) {
+  const computer = roomState?.players?.[COMPUTER_UID];
+  if (!computer) return false;
+  const ownedSpaces = Object.entries(roomState.propertyOwners || {})
+    .filter(([,ownerUid]) => ownerUid === COMPUTER_UID)
+    .map(([key]) => SPACE_DATA[Number(key.slice(1))])
+    .filter(Boolean);
+  return shouldComputerBuy(SPACE_DATA[index], computer.cash, ownedSpaces);
+}
+function scheduleComputerTurn() {
+  if (!computerGame || computerBusy || computerTimer ||
+      roomState?.status !== "playing" || roomState.turnUid !== COMPUTER_UID) return;
+  roomState.message = "Máy Miền Tây đang suy nghĩ nước đi...";
+  renderRoom();
+  computerTimer = setTimeout(() => {
+    computerTimer = null;
+    playComputerTurn().catch((error) => notify("Máy chưa đi được: " + (error?.message || error)));
+  }, 750);
+}
+async function playComputerTurn() {
+  if (!computerGame || computerBusy || roomState?.status !== "playing" ||
+      roomState.turnUid !== COMPUTER_UID || !currentUser) return;
+  const humanUid = currentUser.uid;
+  const before = JSON.parse(JSON.stringify(roomState));
+  computerBusy = true;
+  currentUser.uid = COMPUTER_UID;
+  try {
+    await new Promise((resolve) => setTimeout(resolve, 650));
+    await rollDice();
+    if (!roomState || roomState.status !== "playing" || roomState.turnUid !== COMPUTER_UID) return;
+
+    if (roomState.pending?.uid === COMPUTER_UID) {
+      await new Promise((resolve) => setTimeout(resolve, 450));
+      const index = Number(roomState.pending.index);
+      if (computerShouldBuy(index)) await buyProperty();
+      else await passProperty();
+    }
+
+    if (roomState && roomState.status === "playing" &&
+        roomState.turnUid === COMPUTER_UID && roomState.lastRoll && !roomState.pending) {
+      await new Promise((resolve) => setTimeout(resolve, 550));
+      await endTurn();
+    }
+  } catch (error) {
+    notify("Máy gặp trục trặc khi đi lượt: " + (error?.message || error));
+  } finally {
+    currentUser.uid = humanUid;
+    computerBusy = false;
+    if (roomState) {
+      runEffects(before, roomState);
+      renderRoom();
+    }
+  }
+}
+\n$("createRoomButton").addEventListener("click", createRoom);
+$("joinRoomButton").addEventListener("click", joinRoom);\n$("playComputerButton").addEventListener("click", startComputerGame);
 $("rollButton").addEventListener("click", rollDice);
 $("endTurnButton").addEventListener("click", endTurn);
 $("leaveRoomButton").addEventListener("click", () => leaveRoom());
