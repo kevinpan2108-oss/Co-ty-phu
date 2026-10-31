@@ -5,7 +5,7 @@ import { getDatabase, ref, set, get, onValue, runTransaction } from "https://www
 // Public Firebase Web App configuration for this game.
 // Realtime Database is hosted in asia-southeast1 (Singapore).
 const DEFAULT_FIREBASE_CONFIG = {
-  apiKey: "AIzaSyAECssZ_j6yvb9aYAgqw6yh9kFFadIJFW8",
+  apiKey: "AIzaSyAECssZ_j6yvb9aYagqw6yh9kFFadIJFw8",
   authDomain: "cotyphuonline-8f536.firebaseapp.com",
   databaseURL: "https://cotyphuonline-8f536-default-rtdb.asia-southeast1.firebasedatabase.app",
   projectId: "cotyphuonline-8f536",
@@ -79,6 +79,8 @@ let currentRoomCode = null;
 let roomState = null;
 let unsubscribeRoom = null;
 let busy = false;
+let connectionPromise = null;
+let firebaseError = "";
 
 function setMessage(id, message, isError = false) {
   const el = $(id);
@@ -126,13 +128,6 @@ function notify(text) {
   setTimeout(() => { if ($("gameNotice").textContent === text) $("gameNotice").textContent = ""; }, 5500);
 }
 
-function parseFirebaseConfig(raw) {
-  let text = String(raw || "").trim();
-  text = text.replace(/^.*?=\s*(?=\{)/s, "").replace(/;\s*$/, "");
-  text = text.replace(/([{,]\s*)([A-Za-z_$][\w$]*)\s*:/g, '$1"$2":');
-  text = text.replace(/,\s*([}\]])/g, "$1");
-  return JSON.parse(text);
-}
 async function connectFirebase(config) {
   if (!config?.apiKey || !config?.databaseURL || !config?.projectId || !config?.appId) {
     throw new Error("Thiếu apiKey, databaseURL, projectId hoặc appId trong Firebase config.");
@@ -149,10 +144,11 @@ async function connectFirebase(config) {
 }
 async function requireConnection() {
   if (db && currentUser) return true;
-  const stored = localStorage.getItem("ctp-firebase-config");
-  $("firebaseConfigInput").value = stored || JSON.stringify(DEFAULT_FIREBASE_CONFIG, null, 2);
-  $("settingsDialog").showModal();
-  setMessage("settingsMessage", "Cần cấu hình Firebase trước khi tạo hoặc tham gia phòng.");
+  if (connectionPromise) {
+    try { await connectionPromise; } catch {}
+  }
+  if (db && currentUser) return true;
+  setMessage("lobbyMessage", "Chưa kết nối được máy chủ online" + (firebaseError ? ": " + firebaseError : ". Vui lòng tải lại trang sau ít giây."), true);
   return false;
 }
 function openRoom(code) {
@@ -564,46 +560,21 @@ $("copyRoomButton").addEventListener("click", async () => {
   } catch { notify("Mã phòng của bạn: " + currentRoomCode); }
 });
 $("roomCodeInput").addEventListener("input", e => { e.target.value = e.target.value.toUpperCase().replace(/[^A-HJ-NP-Z2-9]/g,"").slice(0,6); });
-$("settingsButton").addEventListener("click", () => {
-  const stored = localStorage.getItem("ctp-firebase-config");
-  $("firebaseConfigInput").value = stored || JSON.stringify(DEFAULT_FIREBASE_CONFIG, null, 2);
-  $("settingsDialog").showModal();
-});
-$("saveConfigButton").addEventListener("click", async () => {
-  try {
-    const config = { ...DEFAULT_FIREBASE_CONFIG, ...parseFirebaseConfig($("firebaseConfigInput").value), apiKey: DEFAULT_FIREBASE_CONFIG.apiKey };
-    localStorage.setItem("ctp-firebase-config", JSON.stringify(config));
-    setMessage("settingsMessage","Đang kết nối Firebase...");
-    await connectFirebase(config);
-    $("settingsDialog").close();
-    setMessage("lobbyMessage","Đã kết nối Firebase. Bạn có thể tạo hoặc tham gia phòng.");
-  } catch (error) {
-    setMessage("settingsMessage",error.message,true);
-  }
-});
-$("clearConfigButton").addEventListener("click", () => {
-  localStorage.removeItem("ctp-firebase-config");
-  $("firebaseConfigInput").value = "";
-  db = null; auth = null; currentUser = null;
-  setConnection(false,"Chưa cấu hình");
-  setMessage("settingsMessage","Đã xóa cấu hình trên thiết bị này.");
-});
-$("settingsDialog").addEventListener("click", e => {
-  if (e.target === $("settingsDialog")) $("settingsDialog").close();
-});
-
 async function boot() {
-  const stored = localStorage.getItem("ctp-firebase-config");
+  // Firebase is preconfigured in the game: players only create a room or enter its code.
+  localStorage.removeItem("ctp-firebase-config");
+  setConnection(false, "Đang kết nối...");
+  connectionPromise = connectFirebase(DEFAULT_FIREBASE_CONFIG);
   try {
-    const savedConfig = stored ? parseFirebaseConfig(stored) : {};
-    // Keep saved project settings, but always use the verified API key bundled with this game.
-    const config = { ...DEFAULT_FIREBASE_CONFIG, ...savedConfig, apiKey: DEFAULT_FIREBASE_CONFIG.apiKey };
-    localStorage.setItem("ctp-firebase-config", JSON.stringify(config));
-    await connectFirebase(config);
-    setMessage("lobbyMessage","Đã kết nối Firebase. Bạn có thể tạo hoặc tham gia phòng.");
+    await connectionPromise;
+    firebaseError = "";
+    setMessage("lobbyMessage", "Đã kết nối máy chủ. Bạn có thể tạo phòng hoặc nhập mã phòng.");
   } catch (error) {
-    setConnection(false,"Lỗi kết nối");
-    setMessage("lobbyMessage","Firebase chưa kết nối được: "+error.message,true);
+    firebaseError = error?.message || String(error);
+    setConnection(false, "Chưa kết nối");
+    setMessage("lobbyMessage", "Máy chủ online chưa kết nối được: " + firebaseError, true);
+  } finally {
+    connectionPromise = null;
   }
 }
 boot();
