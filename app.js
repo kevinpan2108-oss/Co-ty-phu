@@ -564,7 +564,7 @@ $("copyRoomButton").addEventListener("click", async () => {
 $("roomCodeInput").addEventListener("input", e => { e.target.value = e.target.value.toUpperCase().replace(/[^A-HJ-NP-Z2-9]/g,"").slice(0,6); });
 $("settingsButton").addEventListener("click", () => {
   const stored = localStorage.getItem("ctp-firebase-config");
-  $("firebaseConfigInput").value = stored || "";
+  $("firebaseConfigInput").value = stored || JSON.stringify(DEFAULT_FIREBASE_CONFIG, null, 2);
   $("settingsDialog").showModal();
 });
 $("saveConfigButton").addEventListener("click", async () => {
