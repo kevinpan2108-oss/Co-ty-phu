@@ -1,29 +1,50 @@
-# Co Ty Phu Online
+# Cờ Tỷ Phú Online
 
-A Vietnamese two-player online property-trading board game.
+Web game giao dịch bất động sản bằng tiếng Việt, dành cho **2 người chơi online trong cùng một phòng**.
 
-## Current status
-- MVP interface and game logic are under development on `feat/online-mvp`.
-- Online rooms use Firebase Realtime Database. Each player needs the same Firebase web app configuration.
-- The GitHub Pages workflow publishes the game when changes are merged/pushed to `main`.
+## Trạng thái MVP
 
-## Local preview
-Open `index.html` with a local web server (for example, VS Code Live Server). Firebase modules are loaded from the browser via CDN.
+Đang phát triển trên nhánh `feat/online-mvp`.
 
-## Firebase setup (required for online rooms)
-1. Create a Firebase project and register a Web app.
-2. Enable **Authentication → Anonymous**.
-3. Create a **Realtime Database**.
-4. Set the Realtime Database rules from `firebase-database.rules.json`.
-5. Paste the Firebase web config into the game's setup screen on each device. The config is saved only in that browser's local storage.
+- [x] Giao diện responsive cho màn hình máy tính và điện thoại.
+- [x] Tạo phòng 6 ký tự / tham gia phòng bằng mã.
+- [x] Đồng bộ phòng và trạng thái lượt chơi bằng Firebase Realtime Database.
+- [x] Bàn cờ 40 ô, xúc xắc, nhận lương khi qua Xuất phát.
+- [x] Mua đất, trả tiền thuê, thuế, thẻ Cơ hội, nhà tù.
+- [x] Workflow triển khai GitHub Pages.
+- [ ] Kiểm thử thực tế hai thiết bị với Firebase project.
+- [ ] Cân bằng luật, hoàn thiện giao dịch và xử lý tình huống phá sản.
+- [ ] Review độc lập trước khi merge vào `main`.
 
-The Firebase web config is not a password. Restrict the database with the included rules and do not put service-account keys in the browser.
+## Chạy thử giao diện
 
-## Game scope (MVP)
-- 2 players, room code, join room.
-- 40-space board, dice, turn order.
-- Buy properties, pay rent, collect salary, Chance events, Jail and bankruptcy.
-- Shared room state synchronized through Firebase Realtime Database.
+Mở `index.html` bằng VS Code Live Server hoặc một static web server. Đây là ứng dụng JavaScript thuần, Firebase SDK được tải qua CDN.
 
-## Deployment
-GitHub Actions deploys the site to GitHub Pages on pushes to `main`. In the repository settings, set **Pages → Build and deployment → Source: GitHub Actions**.
+## Bật chế độ online (cần Firebase)
+
+1. Vào [Firebase Console](https://console.firebase.google.com/) và tạo một project.
+2. Trong **Authentication → Sign-in method**, bật **Anonymous**.
+3. Vào **Realtime Database → Create Database** và tạo database.
+4. Mở tab **Rules** của Realtime Database, thay nội dung bằng file [firebase-database.rules.json](./firebase-database.rules.json), sau đó bấm **Publish**.
+5. Vào **Project settings → General → Your apps**, đăng ký một Web App nếu chưa có, rồi sao chép Firebase Web App config.
+6. Trên trang game, bấm biểu tượng ⚙ và dán config vào ô. Có thể dán object từ Firebase Console (dạng `const firebaseConfig = { ... }`) hoặc JSON. Cấu hình được lưu trong local storage của trình duyệt.
+7. Cả hai người chơi cần sử dụng cùng Firebase config; mỗi người tạo tài khoản Anonymous riêng tự động khi mở game.
+
+**Lưu ý:** cấu hình Firebase Web App là thông tin client-side, không phải service-account key. Tuy nhiên database rules vẫn rất quan trọng. Rules hiện tại giới hạn thao tác ghi vào các phòng theo trạng thái thành viên, nhưng cả hai người chơi đều có thể sửa trạng thái phòng từ trình duyệt. Đây là MVP chơi vui với bạn bè, chưa phải hệ thống chống gian lận.
+
+## Deploy lên GitHub Pages
+
+Workflow `.github/workflows/deploy.yml` tự deploy khi có push/merge vào `main`.
+
+Sau khi merge nhánh tính năng:
+1. Mở **Settings → Pages** trong repo.
+2. Chọn **Source: GitHub Actions**.
+3. Chờ workflow **Deploy Co Ty Phu Online to GitHub Pages** chạy thành công.
+4. Mở URL Pages được GitHub hiển thị ở mục Pages hoặc trong workflow deployment.
+
+## Công nghệ
+
+- HTML, CSS, JavaScript ES Modules
+- Firebase Authentication (Anonymous)
+- Firebase Realtime Database
+- GitHub Actions + GitHub Pages
