@@ -24,7 +24,7 @@ const FALLBACK_COLOR = "#b9b59b";
 const START_CASH = 1500;
 const SALARY = 200;
 const JAIL_FEE = 50;
-const TOKEN_COLORS = ["#d6f06b", "#f18e72"];
+const TOKEN_COLORS = ["#0e7c86", "#e8402a"];
 // Dữ liệu bàn cờ lưu theo "đơn vị": 1 đơn vị = UNIT_VND đồng (xem money()). Giữ nguyên thang số
 // để dữ liệu trong database và Firebase Rules không phải đổi khi đổi cách hiển thị tiền.
 const SPACE_DATA = [
@@ -237,7 +237,7 @@ function openRoom(code) {
   $("lobbyView").classList.add("hidden");
   $("gameView").classList.remove("hidden");
   $("roomCodeLabel").textContent = code;
-  $("centerStatus").textContent = "ĐANG KẾT NỐI PHÒNG...";
+  $("centerStatus").textContent = "Đang kết nối phòng...";
   unsubscribeRoom = onValue(ref(db, `${ROOM_ROOT}/${code}`), (snapshot) => {
     if (!snapshot.exists()) {
       leaveRoom("Phòng không còn tồn tại.");
@@ -382,10 +382,11 @@ function renderBoard() {
     const owner = ownerUid ? roomState?.players?.[ownerUid] : null;
     const tokens = getPlayerEntries(roomState).filter(([,p]) => Number(p.position) === index);
     const div = document.createElement("div");
-    div.className = "space" + (space.corner ? " corner" : "");
+    div.className = "space" + (space.corner ? " corner" : "") + (owner ? " owned" : "");
+    if (owner) div.style.setProperty("--owner", safeColor(owner.color));
     div.style.gridRow = String(row+1);
     div.style.gridColumn = String(col+1);
-    const icon = space.icon || (space.type === "property" ? "🏠" : space.type === "station" ? "🚉" : space.type === "utility" ? "⚡" : "");
+    const icon = space.icon || "";  // ô đất thường không có biểu tượng để chừa chỗ cho giá tiền
     const colorBar = space.color || (space.type === "property" ? "#9b8067" : "transparent");
     const price = space.price ? moneyShort(space.price) : space.amount ? moneyShort(space.amount) : "";
     const description = describeSpace(index);
@@ -397,7 +398,6 @@ function renderBoard() {
       ${icon ? `<span class="space-icon">${icon}</span>` : ""}
       <span class="space-name">${escapeHtml(space.name)}</span>
       ${price && !space.corner ? `<span class="space-price">${price}</span>` : ""}
-      ${owner ? `<span class="owned-mark" style="background:${safeColor(owner.color)}"></span>` : ""}
       <span class="space-players">${tokens.map(([,p])=>`<i class="token" title="${escapeHtml(p.name)}" style="background:${safeColor(p.color)}"></i>`).join("")}</span>
     `;
     board.insertBefore(div, center);
@@ -411,7 +411,7 @@ function renderPlayers() {
     const isMe = uid === currentUser.uid;
     const space = SPACE_DATA[Number(p.position)]?.name || "—";
     return `<div class="player-card ${isTurn?"active":""}">
-      <div class="player-head"><i class="player-dot" style="background:${safeColor(p.color)}"></i><span class="player-name">${escapeHtml(p.name)}</span>${isMe?'<span class="you-label">BẠN</span>':""}</div>
+      <div class="player-head"><i class="player-dot" style="background:${safeColor(p.color)}"></i><span class="player-name">${escapeHtml(p.name)}</span>${isMe?'<span class="you-label">Bạn</span>':""}</div>
       <div class="player-cash">${money(p.cash)}</div>
       <p class="player-position">${escapeHtml(space)} ${p.jailTurns ? "· Đang ở tù" : ""}</p>
     </div>`;
@@ -470,11 +470,11 @@ function renderActions() {
   $("rollButton").disabled = busy || !playing || !isMyTurn || !!pending || !!dice || roomState.status === "finished";
   $("endTurnButton").disabled = busy || !playing || !isMyTurn || !!pending || !dice || roomState.status === "finished";
   if (roomState.status === "waiting") {
-    $("centerStatus").textContent = "CHỜ NGƯỜI CHƠI THỨ HAI";
+    $("centerStatus").textContent = "Chờ người chơi thứ hai";
   } else if (roomState.status === "finished") {
-    $("centerStatus").textContent = "VÁN ĐẤU KẾT THÚC";
+    $("centerStatus").textContent = "Ván đấu kết thúc";
   } else {
-    $("centerStatus").textContent = isMyTurn ? "ĐẾN LƯỢT BẠN" : "ĐỢI ĐỐI THỦ...";
+    $("centerStatus").textContent = isMyTurn ? "Đến lượt bạn" : "Đợi đối thủ...";
   }
   if (roomState.status === "finished" && roomState.winner) {
     $("actionMessage").textContent = "🏆 " + (roomState.players?.[roomState.winner]?.name || "Người chơi") + " chiến thắng!";
