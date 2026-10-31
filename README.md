@@ -27,7 +27,7 @@ Mở `index.html` bằng VS Code Live Server hoặc một static web server. Đ�
 3. Vào **Realtime Database → Create Database** và tạo database.
 4. Mở tab **Rules** của Realtime Database, thay nội dung bằng file [firebase-database.rules.json](./firebase-database.rules.json), sau đó bấm **Publish**.
 5. Vào **Project settings → General → Your apps**, đăng ký một Web App nếu chưa có, rồi sao chép Firebase Web App config.
-6. Trên trang game, bấm biểu tượng ⚙ và dán config vào ô. Có thể dán object từ Firebase Console (dạng `const firebaseConfig = { ... }`) hoặc JSON. Cấu hình được lưu trong local storage của trình duyệt.
+6. Game đã được cấu hình sẵn Firebase Web App config trong `app.js`; khi mở trang, game tự kết nối và đăng nhập Anonymous. Không cần dán config thủ công.
 7. Cả hai người chơi cần sử dụng cùng Firebase config; mỗi người tạo tài khoản Anonymous riêng tự động khi mở game.
 
 **Lưu ý:** cấu hình Firebase Web App là thông tin client-side, không phải service-account key. Tuy nhiên database rules vẫn rất quan trọng. Rules hiện tại giới hạn thao tác ghi vào các phòng theo trạng thái thành viên, nhưng cả hai người chơi đều có thể sửa trạng thái phòng từ trình duyệt. Đây là MVP chơi vui với bạn bè, chưa phải hệ thống chống gian lận.
