@@ -29,9 +29,28 @@ Firebase đã được cấu hình sẵn trong game. Người chơi **không c�
 3. Chia sẻ mã phòng 6 ký tự cho người thứ hai.
 4. Người thứ hai nhập mã đó và bấm **Tham gia**.
 
-Game tự đăng nhập Anonymous và kết nối Realtime Database khi tải trang. Nếu không kết nối được, trạng thái lỗi sẽ hiện ngay trên màn hình chính; không có hộp thoại cấu hình thủ công.
+Game **không cần đăng nhập và không cần bật Authentication**: mỗi trình duyệt tự sinh một mã người chơi lưu trên máy và chỉ kết nối tới Realtime Database. Khi mở trang, góc trên phải phải hiện **Đã kết nối**.
 
-**Quản trị dự án:** Authentication → Anonymous phải được bật và Realtime Database phải được tạo. Rules đang dùng nằm trong [firebase-database.rules.json](./firebase-database.rules.json); cần Publish file này trong Firebase Console. Đây là MVP chơi với bạn bè, chưa phải hệ thống chống gian lận.
+**Quản trị dự án:** chỉ cần Realtime Database đã được tạo và Rules đã được Publish. Rules nằm trong [firebase-database.rules.json](./firebase-database.rules.json): vào Realtime Database → Rules → dán nội dung file → **Publish**. Phải Publish lại mỗi khi file này thay đổi, nếu không game báo "Firebase Rules từ chối thao tác".
+
+**Giới hạn bảo mật (MVP chơi với bạn bè):** vì không đăng nhập nên Rules không biết ai đang ghi. Ai biết mã phòng 6 ký tự đều có thể đọc và sửa dữ liệu phòng đó (không liệt kê được danh sách phòng). Rules vẫn chặn: đổi người tạo/người vào, người thứ ba chiếm chỗ, mở lại ván đã kết thúc, giá trị ngoài phạm vi, mã HTML trong tên/màu. Không phải hệ thống chống gian lận.
+
+### Khắc phục lỗi kết nối
+
+| Thông báo | Cách xử lý |
+| --- | --- |
+| `Không kết nối được tới cơ sở dữ liệu của game` kèm tên máy chủ không truy cập được | Điện thoại/mạng đang chặn máy chủ database. Tắt VPN, ứng dụng chặn quảng cáo, DNS riêng (Cài đặt → Mạng → DNS riêng → Tắt/Tự động) hoặc đổi Wi-Fi/4G, rồi bấm vào chữ "Chưa kết nối" để thử lại. |
+| `Firebase Rules từ chối thao tác` | Publish lại `firebase-database.rules.json` (xem trên). |
+| `Không tìm thấy phòng` / `đã đủ 2 người` | Kiểm tra lại mã phòng; mỗi phòng chỉ nhận đúng 2 người. |
+
+## Kiểm thử
+
+```
+npm run check   # kiểm tra cú pháp app.js
+npm test        # smoke test + kiểm tra hành vi Firebase Rules (bộ mô phỏng tối giản)
+```
+
+Bộ mô phỏng Rules **không** thay thế Firebase Emulator / Rules Playground: hãy chạy thêm một trong hai trước khi phát hành.
 
 ## Deploy lên GitHub Pages
 

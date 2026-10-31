@@ -45,18 +45,22 @@ test("players do not need to paste Firebase JSON", () => {
   const match = app.match(/const DEFAULT_FIREBASE_CONFIG = (\{[\s\S]*?\n\});/);
   assert.ok(match, "DEFAULT_FIREBASE_CONFIG should exist");
   const config = Function("return (" + match[1] + ")")();
-  assert.equal(config.apiKey, "AIzaSyAECssZ_j6yvb9aYagqw6yh9kFfadIJFw8");
+  assert.match(config.apiKey, /^AIza[\w-]{35}$/);
   assert.ok(!html.includes("settingsDialog"));
   assert.ok(!html.includes("firebaseConfigInput"));
   assert.ok(!app.includes("parseFirebaseConfig"));
 });
 
-test("database rules are valid and do not use unsupported numChildren()", () => {
+test("database rules are valid, do not use unsupported numChildren() and need no sign-in", () => {
   const room = rules.rules.rooms["$roomId"];
   assert.ok(room);
-  assert.equal(room[".read"], "auth != null");
-  assert.ok(!room[".write"].includes("numChildren"));
-  assert.ok(room[".write"].includes("newData.child('players').hasChild(data.child('creatorUid').val())"));
-  assert.ok(room[".write"].includes("newData.child('players').hasChild(data.child('joinerUid').val())"));
-  assert.ok(room[".validate"].includes("creatorUid"));
+  assert.ok(!rulesText.includes("numChildren"));
+  assert.ok(!rulesText.includes("auth"), "game does not use Firebase Authentication");
+  assert.ok(room[".validate"].includes("$roomId.matches("), "room code must be validated");
+  assert.equal(rules.rules.rooms[".read"], undefined, "rooms must not be listable");
+});
+
+test("the game does not depend on Firebase Authentication", () => {
+  assert.ok(!app.includes("firebase-auth.js"));
+  assert.ok(!app.includes("signInAnonymously"));
 });

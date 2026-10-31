@@ -123,7 +123,7 @@ button:disabled{opacity:.45;cursor:not-allowed;transform:none!important}
 .rules-mini{margin-top:auto;padding-top:18px}
 .rules-mini p{font-size:8px;line-height:1.5;color:var(--muted);margin:10px 0}
 .rules-mini p b{color:var(--lime)}
-.game-notice{min-height:16px;font-size:10px;color:var(--gold);text-align:center;margin-top:10px}
+.game-notice{min-height:18px;font-size:12px;color:var(--gold);text-align:center;margin:0 0 12px}
 .settings-dialog{width:min(520px,calc(100% - 28px));border:1px solid rgba(214,240,220,.2);border-radius:20px;background:#17372d;color:var(--cream);padding:25px;box-shadow:0 30px 90px rgba(0,0,0,.5)}
 .settings-dialog::backdrop{background:rgba(5,16,12,.72);backdrop-filter:blur(6px)}
 .dialog-top{display:flex;justify-content:space-between;align-items:flex-start}
@@ -143,4 +143,41 @@ button:disabled{opacity:.45;cursor:not-allowed;transform:none!important}
 }
 @media(max-width:430px){
  .topbar{padding-bottom:14px}.brand-mark{width:36px;height:36px}.brand strong{font-size:12px}.connection-badge{font-size:8px;padding:7px 9px}.game-heading h2{font-size:21px}.game-heading-actions{width:100%}.game-heading-actions button{flex:1}.side-panel{padding:12px}.player-card{padding:9px}.player-cash{font-size:16px}.property-list{grid-template-columns:1fr 1fr}.dialog-actions{flex-direction:column-reverse}.dialog-actions button{width:100%}
+}
+
+/* ===== Sửa lỗi giao diện điện thoại (audit) ===== */
+.pending-actions:empty{display:none}
+@media(max-width:800px){
+ /* iOS Safari tự phóng to trang khi ô nhập có cỡ chữ nhỏ hơn 16px */
+ .text-input,.config-input{font-size:16px}
+ /* Đưa bảng điều khiển lên trên bàn cờ: nút Tung xúc xắc từng nằm dưới màn hình điện thoại */
+ .side-panel{order:1;padding:12px}
+ .board-wrap{order:2}
+ .right-panel{order:3}
+ .side-panel .panel-title{display:none}
+ .players-panel{gap:8px}
+ .turn-card{order:2}
+ .legend-card{order:3;margin:0;align-self:center}
+ .action-card{order:4;display:grid;grid-template-columns:auto 1fr 1fr;gap:8px;align-items:center;padding:12px}
+ .action-card .section-kicker{display:none}
+ .action-message{grid-column:1/-1;min-height:0;margin:0;font-size:12px}
+ .pending-actions{grid-column:1/-1}
+ .pending-actions button{min-height:44px;font-size:12px}
+ .dice-result{margin:0}
+ .roll-button,.full-button{margin:0;min-height:44px;font-size:12px;padding:8px 6px}
+ /* Chữ phụ quá nhỏ (7-9px) khó đọc trên điện thoại */
+ .player-name{font-size:12px}.player-position{font-size:10px}.you-label{font-size:9px}
+ .turn-card small{font-size:9px}.turn-card strong{font-size:12px}
+ .property-row strong{font-size:10px}.property-row small{font-size:9px}
+ .rules-mini p,.legend-card,.empty-properties{font-size:11px}
+ .soft-button,.icon-button{min-height:40px}
+ .footer{font-size:9px}
+}
+@media(max-width:560px){
+ /* Ô cờ chỉ rộng ~30px: tên ô không đọc được, giữ màu + biểu tượng + giá, chạm vào ô để xem chi tiết */
+ .space-name{display:none}
+ .space .space-icon{font-size:15px;margin-top:6px}
+ .space.corner .space-icon{font-size:18px;margin:0}
+ .space-price{font-size:7px;margin-top:2px}
+ .token{width:8px;height:8px}
 }
