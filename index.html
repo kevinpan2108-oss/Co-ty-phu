@@ -28,7 +28,7 @@
     <section id="lobbyView" class="lobby-layout">
       <div class="hero-copy">
         <h1>Sông nước miền Tây,<br>ai mua được nhiều đất hơn?</h1>
-        <p class="hero-subtitle">Hai người chơi, một bàn cờ chạy từ chợ nổi Cái Bè đến mũi Cà Mau. Tung xúc xắc, mua đất, thu tiền thuê bằng tiền Việt.</p>
+        <p class="hero-subtitle">Rủ bạn bè cùng đấu online hoặc thử sức với đối thủ máy. Tung xúc xắc, mua đất và làm chủ miền Tây sông nước!</p>
         <ul class="province-chips" aria-label="Các tỉnh trên bàn cờ">
           <li><i style="background:#8a6a4b"></i>Tiền Giang</li>
           <li><i style="background:#6fb7c4"></i>Bến Tre</li>
@@ -55,14 +55,16 @@
           <input id="roomCodeInput" class="text-input room-input" maxlength="6" placeholder="VD: A2B4C6" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" />
           <button id="joinRoomButton" class="secondary-button" type="button">Tham gia</button>
         </div>
-        <p class="card-footnote">Tạo phòng xong, gửi mã phòng cho bạn của bạn.</p>
+        <div class="or-divider"><span>hoặc chơi một mình</span></div>
+        <button id="playComputerButton" class="secondary-button computer-button" type="button">🤖 Chơi với máy</button>
+        <p class="card-footnote">Chọn chơi online với bạn bè hoặc đấu với máy ngay trên thiết bị.</p>
         <p id="lobbyMessage" class="inline-message" role="status"></p>
       </div>
     </section>
 
     <section id="gameView" class="game-layout hidden">
       <div class="game-heading">
-        <div><span class="section-kicker">Phòng <b id="roomCodeLabel">------</b></span><h2>Đại chiến bất động sản</h2></div>
+        <div><span class="section-kicker"><span id="gameModeLabel">Phòng</span> <b id="roomCodeLabel">------</b></span><h2 id="gameTitle">Đại chiến bất động sản</h2></div>
         <div class="game-heading-actions">
           <button id="copyRoomButton" class="soft-button" type="button">Sao chép mã</button>
           <button id="leaveRoomButton" class="soft-button leave-button" type="button">Rời phòng</button>
@@ -162,6 +164,6 @@
     <footer class="footer"><span>© 2026 Cờ Tỷ Phú Online</span><span>Làm để chơi với bạn bè</span></footer>
   </main>
 
-  <script type="module" src="./app.js?v=mekong3"></script>
+  <script type="module" src="./app.js?v=computer1"></script>
 </body>
 </html>
