@@ -5,7 +5,7 @@ import { getDatabase, ref, set, get, onValue, runTransaction } from "https://www
 // Public Firebase Web App configuration for this game.
 // Realtime Database is hosted in asia-southeast1 (Singapore).
 const DEFAULT_FIREBASE_CONFIG = {
-  apiKey: "AIzaSyAECssZ_j6yvb9aYagqw6yh9kFFadIJFw8",
+  apiKey: "AIzaSyAECssZ_j6yvb9aYagqw6yh9kFFadIJFW8",
   authDomain: "cotyphuonline-8f536.firebaseapp.com",
   databaseURL: "https://cotyphuonline-8f536-default-rtdb.asia-southeast1.firebasedatabase.app",
   projectId: "cotyphuonline-8f536",
