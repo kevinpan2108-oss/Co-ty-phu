@@ -90,6 +90,7 @@ export function loadRules(file) {
   }
 
   return {
+    raw: { rules },
     canRead(uid) { return evaluate(roomRule[".read"], { auth: uid ? { uid } : null, data: new Snap(null), newData: new Snap(null), vars: {} }); },
     // Trả về { ok, reason } cho thao tác ghi cả phòng rooms/<roomId> = newRoom (null = xóa phòng)
     write(uid, roomId, oldRoom, newRoom) {

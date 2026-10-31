@@ -1,5 +1,4 @@
 import { initializeApp, deleteApp } from "https://www.gstatic.com/firebasejs/13.1.0/firebase-app.js";
-import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/13.1.0/firebase-auth.js";
 import { getDatabase, ref, set, get, onValue, runTransaction } from "https://www.gstatic.com/firebasejs/13.1.0/firebase-database.js";
 
 // Public Firebase Web App configuration for this game.
@@ -19,6 +18,7 @@ const $ = (id) => document.getElementById(id);
 const ROOM_ROOT = "rooms";
 const APP_NAME = "co-ty-phu";
 const LAST_ROOM_KEY = "ctp-last-room";
+const PLAYER_ID_KEY = "ctp-player-id";
 const ROOM_CODE_PATTERN = /^[A-HJ-NP-Z2-9]{6}$/;
 const FALLBACK_COLOR = "#b9b59b";
 const START_CASH = 1500;
@@ -77,7 +77,6 @@ const CHANCE_CARDS = [
 ];
 
 let firebaseApp = null;
-let auth = null;
 let db = null;
 let currentUser = null;
 let currentRoomCode = null;
@@ -157,45 +156,52 @@ function notify(text) {
 function explainFirebaseError(error) {
   const code = String(error?.code || "");
   const message = String(error?.message || error || "");
-  const hint = {
-    "auth/api-key-not-valid.-please-pass-a-valid-api-key.": "apiKey Firebase không đúng (sai ký tự hoặc sai hoa/thường). Hãy sao chép lại apiKey từ Firebase Console → Project settings → Your apps.",
-    "auth/invalid-api-key": "apiKey Firebase không đúng. Hãy sao chép lại apiKey từ Firebase Console → Project settings → Your apps.",
-    "auth/operation-not-allowed": "Chưa bật đăng nhập Ẩn danh: Firebase Console → Authentication → Sign-in method → Anonymous → Enable.",
-    "auth/admin-restricted-operation": "Chưa bật đăng nhập Ẩn danh: Firebase Console → Authentication → Sign-in method → Anonymous → Enable.",
-    "auth/network-request-failed": "Không nhận được phản hồi từ máy chủ đăng nhập của Firebase.",
-    "auth/too-many-requests": "Firebase tạm khóa do thử quá nhiều lần. Hãy đợi vài phút.",
-    "auth/requests-from-referer-" : ""
-  }[code];
-  if (hint) return hint + " (" + code + ")";
-  if (/referer|referrer/i.test(code + message)) return "apiKey đang bị giới hạn tên miền. Hãy thêm tên miền của game vào Google Cloud → APIs & Services → Credentials → API key → Website restrictions. (" + code + ")";
+  if (code === "database/unreachable") return "Không kết nối được tới cơ sở dữ liệu của game.";
   if (/permission[_ ]denied/i.test(code + message)) return "Firebase Rules từ chối thao tác. Hãy Publish file firebase-database.rules.json trong Realtime Database → Rules.";
   return (code ? "[" + code + "] " : "") + message;
+}
+// Không dùng đăng nhập Firebase: mỗi trình duyệt tự sinh một mã người chơi và lưu trên máy.
+// Nhờ vậy game chỉ cần đúng một kết nối (tới Realtime Database) và không cần bật Authentication.
+function getPlayerId() {
+  let id = store("get", PLAYER_ID_KEY);
+  if (!/^p[a-z0-9]{23}$/.test(id || "")) {
+    const bytes = crypto.getRandomValues(new Uint8Array(23));
+    id = "p" + Array.from(bytes, (b) => (b % 36).toString(36)).join("");
+    store("set", PLAYER_ID_KEY, id);
+  }
+  return id;
 }
 async function disconnectFirebase() {
   if (currentRoomCode) leaveRoom();
   const app = firebaseApp;
-  firebaseApp = null; auth = null; db = null; currentUser = null;
+  firebaseApp = null; db = null; currentUser = null;
   if (app) { try { await deleteApp(app); } catch { /* app đã bị đóng */ } }
 }
 async function connectFirebase(config) {
-  if (!config?.apiKey || !config?.databaseURL || !config?.projectId || !config?.appId) {
-    throw new Error("Thiếu apiKey, databaseURL, projectId hoặc appId trong Firebase config.");
+  if (!config?.databaseURL || !config?.projectId) {
+    throw new Error("Thiếu databaseURL hoặc projectId trong Firebase config.");
   }
   await disconnectFirebase();
   setConnection(false, "Đang kết nối...");
-  // Tên app CỐ ĐỊNH: Firebase Auth lưu tài khoản ẩn danh theo tên app. Nếu tên đổi mỗi lần tải
-  // trang thì mỗi lần F5 sẽ thành một uid mới và người chơi mất chỗ trong phòng.
   firebaseApp = initializeApp(config, APP_NAME);
-  auth = getAuth(firebaseApp);
   db = getDatabase(firebaseApp);
-  const credential = await signInAnonymously(auth);
-  currentUser = credential.user;
   let everConnected = false;
-  onValue(ref(db, ".info/connected"), (snapshot) => {
-    const online = snapshot.val() === true;
-    everConnected = everConnected || online;
-    setConnection(online, online ? "Đã kết nối" : everConnected ? "Mất kết nối, đang thử lại..." : "Đang kết nối...");
+  // Chờ tới khi Realtime Database báo đã kết nối (tối đa 10 giây), sau đó vẫn theo dõi online/offline.
+  await new Promise((resolve, reject) => {
+    let settled = false;
+    const timer = setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      reject(Object.assign(new Error("Hết thời gian chờ kết nối cơ sở dữ liệu."), {code:"database/unreachable"}));
+    }, 10000);
+    onValue(ref(db, ".info/connected"), (snapshot) => {
+      const online = snapshot.val() === true;
+      everConnected = everConnected || online;
+      setConnection(online, online ? "Đã kết nối" : everConnected ? "Mất kết nối, đang thử lại..." : "Đang kết nối...");
+      if (online && !settled) { settled = true; clearTimeout(timer); resolve(); }
+    });
   });
+  currentUser = {uid:getPlayerId()};
   return currentUser;
 }
 async function requireConnection() {
@@ -657,41 +663,31 @@ $("copyRoomButton").addEventListener("click", async () => {
 $("roomCodeInput").addEventListener("input", e => { e.target.value = e.target.value.toUpperCase().replace(/[^A-HJ-NP-Z2-9]/g,"").slice(0,6); });
 let connectionPromise = null;
 let firebaseError = "";
-// apiKey của Firebase Web App là thông tin công khai (không phải khóa bí mật). Cho phép thử khóa khác
-// bằng ?apiKey=... trên địa chỉ trang để kiểm tra nhanh mà không cần sửa code.
-function getFirebaseConfig() {
-  const override = new URLSearchParams(location.search).get("apiKey");
-  return /^AIza[\w-]{35}$/.test(override || "") ? {...DEFAULT_FIREBASE_CONFIG, apiKey: override} : DEFAULT_FIREBASE_CONFIG;
-}
-// auth/network-request-failed nghĩa là yêu cầu không tới được máy chủ (VPN, ứng dụng chặn quảng cáo,
-// Private DNS, mạng công ty/trường chặn googleapis.com...). Dò từng máy chủ để chỉ đúng chỗ bị chặn.
+// "database/unreachable" nghĩa là điện thoại không nhận được phản hồi từ máy chủ database (VPN, ứng dụng chặn
+// quảng cáo, Private DNS, mạng công ty/trường...). Dò thử để nói rõ máy chủ nào bị chặn.
 async function probeFirebaseHosts() {
-  const urls = ["https://identitytoolkit.googleapis.com/", "https://securetoken.googleapis.com/", DEFAULT_FIREBASE_CONFIG.databaseURL];
-  const blocked = [];
-  await Promise.all(urls.map(async (url) => {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 6000);
-    try { await fetch(url, {mode:"no-cors", cache:"no-store", signal:controller.signal}); }
-    catch { blocked.push(new URL(url).host); }
-    finally { clearTimeout(timer); }
-  }));
-  return blocked;
+  const url = DEFAULT_FIREBASE_CONFIG.databaseURL;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 6000);
+  try { await fetch(url, {mode:"no-cors", cache:"no-store", signal:controller.signal}); return []; }
+  catch { return [new URL(url).host]; }
+  finally { clearTimeout(timer); }
 }
 async function explainNetworkFailure() {
   const blocked = await probeFirebaseHosts();
   return blocked.length
     ? " Thiết bị này không truy cập được: " + blocked.join(", ") + ". Hãy tắt VPN / ứng dụng chặn quảng cáo / DNS riêng (Private DNS), hoặc đổi sang Wi-Fi/4G khác rồi bấm vào chữ \"Chưa kết nối\" để thử lại."
-    : " Các máy chủ Firebase vẫn truy cập được, hãy tải lại trang hoặc thử trình duyệt khác.";
+    : " Máy chủ database vẫn truy cập được nhưng kết nối realtime bị chặn (thường do VPN hoặc mạng chặn WebSocket). Hãy thử mạng khác hoặc trình duyệt khác.";
 }
 async function connectGame() {
   if (connectionPromise) return connectionPromise;
   setConnection(false, "Đang kết nối...");
-  connectionPromise = connectFirebase(getFirebaseConfig()).then(() => {
+  connectionPromise = connectFirebase(DEFAULT_FIREBASE_CONFIG).then(() => {
     firebaseError = "";
     setMessage("lobbyMessage", "Đã kết nối máy chủ. Bạn có thể tạo phòng hoặc nhập mã phòng.");
   }).catch(async (error) => {
     firebaseError = explainFirebaseError(error);
-    if (error?.code === "auth/network-request-failed") firebaseError += await explainNetworkFailure();
+    if (error?.code === "database/unreachable") firebaseError += await explainNetworkFailure();
     setConnection(false, "Chưa kết nối");
     setMessage("lobbyMessage", "Máy chủ online chưa kết nối được: " + firebaseError, true);
     console.error("Firebase connect failed:", error);
