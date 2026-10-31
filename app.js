@@ -24,56 +24,60 @@ const FALLBACK_COLOR = "#b9b59b";
 const START_CASH = 1500;
 const SALARY = 200;
 const JAIL_FEE = 50;
-const TOKEN_COLORS = ["#d6f06b", "#f18e72"];
+const TOKEN_COLORS = ["#0e7c86", "#e8402a"];
+// Dữ liệu bàn cờ lưu theo "đơn vị": 1 đơn vị = UNIT_VND đồng (xem money()). Giữ nguyên thang số
+// để dữ liệu trong database và Firebase Rules không phải đổi khi đổi cách hiển thị tiền.
 const SPACE_DATA = [
   {name:"XUẤT PHÁT",type:"start",icon:"🏁",corner:true},
-  {name:"Đường Lê Lợi",type:"property",price:60,rent:10,color:"#9b8067",group:"Nâu"},
-  {name:"CƠ HỘI",type:"chance",icon:"🎴"},
-  {name:"Đường Đồng Khởi",type:"property",price:60,rent:20,color:"#9b8067",group:"Nâu"},
-  {name:"THUẾ THU NHẬP",type:"tax",icon:"🧾",amount:100},
-  {name:"Ga Sài Gòn",type:"station",price:200,rent:40,color:"#343f48",icon:"🚉"},
-  {name:"Đường Hai Bà Trưng",type:"property",price:100,rent:30,color:"#83c6d2",group:"Xanh biển"},
-  {name:"CƠ HỘI",type:"chance",icon:"🎴"},
-  {name:"Đường Pasteur",type:"property",price:100,rent:40,color:"#83c6d2",group:"Xanh biển"},
-  {name:"Đường Nguyễn Huệ",type:"property",price:120,rent:50,color:"#83c6d2",group:"Xanh biển"},
+  {name:"Chợ nổi Cái Bè",type:"property",price:60,rent:10,color:"#8a6a4b",group:"Tiền Giang"},
+  {name:"CƠ HỘI",type:"chance",icon:"🥥"},
+  {name:"Chùa Vĩnh Tràng",type:"property",price:60,rent:20,color:"#8a6a4b",group:"Tiền Giang"},
+  {name:"THUẾ NÔNG SẢN",type:"tax",icon:"🌾",amount:100},
+  {name:"Bến phà Rạch Miễu",type:"station",price:200,rent:40,color:"#2f5d6b",icon:"⛴️"},
+  {name:"Làng kẹo dừa",type:"property",price:100,rent:30,color:"#6fb7c4",group:"Bến Tre"},
+  {name:"CƠ HỘI",type:"chance",icon:"🥥"},
+  {name:"Cồn Phụng",type:"property",price:100,rent:40,color:"#6fb7c4",group:"Bến Tre"},
+  {name:"Sân chim Vàm Hồ",type:"property",price:120,rent:50,color:"#6fb7c4",group:"Bến Tre"},
   {name:"VÀO TÙ / THĂM TÙ",type:"jail",icon:"🔒",corner:true},
-  {name:"Đường Trần Hưng Đạo",type:"property",price:140,rent:60,color:"#d77e85",group:"Hồng"},
-  {name:"Công ty Điện lực",type:"utility",price:150,rent:50,color:"#e5d79d",icon:"💡"},
-  {name:"Đường Nguyễn Trãi",type:"property",price:140,rent:70,color:"#d77e85",group:"Hồng"},
-  {name:"Đường Cách Mạng Tháng 8",type:"property",price:160,rent:80,color:"#d77e85",group:"Hồng"},
-  {name:"Ga Hà Nội",type:"station",price:200,rent:40,color:"#343f48",icon:"🚉"},
-  {name:"Đường Bạch Đằng",type:"property",price:180,rent:90,color:"#eea56e",group:"Cam"},
-  {name:"CƠ HỘI",type:"chance",icon:"🎴"},
-  {name:"Đường Trần Phú",type:"property",price:180,rent:100,color:"#eea56e",group:"Cam"},
-  {name:"Đường Lý Thường Kiệt",type:"property",price:200,rent:110,color:"#eea56e",group:"Cam"},
-  {name:"BÃI ĐỖ XE MIỄN PHÍ",type:"free",icon:"🅿️",corner:true},
-  {name:"Đường Hùng Vương",type:"property",price:220,rent:120,color:"#e66f56",group:"Đỏ"},
-  {name:"CƠ HỘI",type:"chance",icon:"🎴"},
-  {name:"Đường Phan Đình Phùng",type:"property",price:220,rent:130,color:"#e66f56",group:"Đỏ"},
-  {name:"Đường Điện Biên Phủ",type:"property",price:240,rent:140,color:"#e66f56",group:"Đỏ"},
-  {name:"Ga Đà Nẵng",type:"station",price:200,rent:40,color:"#343f48",icon:"🚉"},
-  {name:"Đường Trần Hưng Đạo (ĐN)",type:"property",price:260,rent:150,color:"#e6d36e",group:"Vàng"},
-  {name:"Đường Bạch Đằng (ĐN)",type:"property",price:260,rent:160,color:"#e6d36e",group:"Vàng"},
-  {name:"Công ty Cấp nước",type:"utility",price:150,rent:50,color:"#e5d79d",icon:"💧"},
-  {name:"Đường Nguyễn Văn Linh",type:"property",price:280,rent:170,color:"#e6d36e",group:"Vàng"},
+  {name:"Cù lao An Bình",type:"property",price:140,rent:60,color:"#d9828f",group:"Vĩnh Long"},
+  {name:"Điện lực Miền Tây",type:"utility",price:150,rent:50,color:"#e8d9a0",icon:"💡"},
+  {name:"Chợ nổi Trà Ôn",type:"property",price:140,rent:70,color:"#d9828f",group:"Vĩnh Long"},
+  {name:"Văn Thánh Miếu",type:"property",price:160,rent:80,color:"#d9828f",group:"Vĩnh Long"},
+  {name:"Bến Ninh Kiều",type:"station",price:200,rent:40,color:"#2f5d6b",icon:"🚤"},
+  {name:"Làng hoa Sa Đéc",type:"property",price:180,rent:90,color:"#f0a05a",group:"Đồng Tháp"},
+  {name:"CƠ HỘI",type:"chance",icon:"🥥"},
+  {name:"Tràm Chim",type:"property",price:180,rent:100,color:"#f0a05a",group:"Đồng Tháp"},
+  {name:"Gò Tháp",type:"property",price:200,rent:110,color:"#f0a05a",group:"Đồng Tháp"},
+  {name:"CHỢ NỔI CÁI RĂNG",type:"free",icon:"🛶",corner:true},
+  {name:"Chùa Dơi",type:"property",price:220,rent:120,color:"#e0654b",group:"Sóc Trăng"},
+  {name:"CƠ HỘI",type:"chance",icon:"🥥"},
+  {name:"Chùa Kh'Leang",type:"property",price:220,rent:130,color:"#e0654b",group:"Sóc Trăng"},
+  {name:"Chợ nổi Ngã Năm",type:"property",price:240,rent:140,color:"#e0654b",group:"Sóc Trăng"},
+  {name:"Bến tàu Rạch Giá",type:"station",price:200,rent:40,color:"#2f5d6b",icon:"🚢"},
+  {name:"Nhà Công tử Bạc Liêu",type:"property",price:260,rent:150,color:"#e8c85a",group:"Bạc Liêu"},
+  {name:"Điện gió Bạc Liêu",type:"property",price:260,rent:160,color:"#e8c85a",group:"Bạc Liêu"},
+  {name:"Nhà máy nước Cửu Long",type:"utility",price:150,rent:50,color:"#e8d9a0",icon:"💧"},
+  {name:"Vườn chim Bạc Liêu",type:"property",price:280,rent:170,color:"#e8c85a",group:"Bạc Liêu"},
   {name:"ĐI THẲNG VÀO TÙ",type:"gotojail",icon:"🚓",corner:true},
-  {name:"Đường Võ Nguyên Giáp",type:"property",price:300,rent:180,color:"#76b889",group:"Xanh lá"},
-  {name:"Đường Trần Phú (PQ)",type:"property",price:300,rent:190,color:"#76b889",group:"Xanh lá"},
-  {name:"CƠ HỘI",type:"chance",icon:"🎴"},
-  {name:"Đường Bãi Trường",type:"property",price:320,rent:200,color:"#76b889",group:"Xanh lá"},
-  {name:"Ga Phú Quốc",type:"station",price:200,rent:40,color:"#343f48",icon:"🚉"},
-  {name:"CƠ HỘI",type:"chance",icon:"🎴"},
-  {name:"Đường Sunset Town",type:"property",price:350,rent:220,color:"#8a79bb",group:"Tím"},
-  {name:"THUẾ ĐẶC BIỆT",type:"tax",icon:"🧾",amount:100},
-  {name:"Đường Cầu Hôn",type:"property",price:400,rent:250,color:"#8a79bb",group:"Tím"}
+  {name:"Rừng tràm Trà Sư",type:"property",price:300,rent:180,color:"#5fae78",group:"An Giang"},
+  {name:"Núi Sam Châu Đốc",type:"property",price:300,rent:190,color:"#5fae78",group:"An Giang"},
+  {name:"CƠ HỘI",type:"chance",icon:"🥥"},
+  {name:"Miếu Bà Chúa Xứ",type:"property",price:320,rent:200,color:"#5fae78",group:"An Giang"},
+  {name:"Cảng Hà Tiên",type:"station",price:200,rent:40,color:"#2f5d6b",icon:"⚓"},
+  {name:"CƠ HỘI",type:"chance",icon:"🥥"},
+  {name:"Rừng U Minh Hạ",type:"property",price:350,rent:220,color:"#7c6bb5",group:"Cà Mau"},
+  {name:"PHÍ CẦU PHÀ",type:"tax",icon:"🧾",amount:100},
+  {name:"Mũi Cà Mau",type:"property",price:400,rent:250,color:"#7c6bb5",group:"Cà Mau"}
 ];
 const CHANCE_CARDS = [
-  {text:"Bạn nhận được cổ tức đầu tư. Nhận $100.",amount:100},
-  {text:"Sửa chữa nhà cửa. Trả $80.",amount:-80},
-  {text:"Trúng thưởng cuộc thi. Nhận $150.",amount:150},
-  {text:"Phí dịch vụ bất ngờ. Trả $50.",amount:-50},
-  {text:"Một người bạn trả nợ. Nhận $60.",amount:60},
-  {text:"Đóng góp quỹ cộng đồng. Trả $100.",amount:-100}
+  {text:"Mùa trái cây bội thu, thương lái đến tận vườn thu mua.",amount:100},
+  {text:"Nước lớn tràn bờ, phải sửa lại bờ bao.",amount:-80},
+  {text:"Trúng thưởng tại hội chợ nông sản.",amount:150},
+  {text:"Ghe bị hỏng máy giữa sông, tốn tiền sửa.",amount:-50},
+  {text:"Bán dưa hấu ở chợ nổi được giá.",amount:60},
+  {text:"Đóng góp xây cầu khỉ cho bà con.",amount:-100},
+  {text:"Khách du lịch ghé homestay vườn nhà.",amount:120},
+  {text:"Mùa nước nổi, mua lưới để giăng bắt cá linh.",amount:-60}
 ];
 
 let firebaseApp = null;
@@ -99,8 +103,17 @@ function setConnection(online, message) {
 function escapeHtml(value) {
   return String(value ?? "").replace(/[&<>"']/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 }
-function money(value) {
-  return "$" + Number(value || 0).toLocaleString("en-US");
+// 1 đơn vị dữ liệu = 10.000₫ (xem chú thích ở SPACE_DATA): 1.500 đơn vị = 15.000.000₫.
+const UNIT_VND = 10000;
+function money(units) {
+  return Math.round(Number(units || 0) * UNIT_VND).toLocaleString("vi-VN") + "₫";
+}
+// Dạng ngắn cho ô cờ nhỏ: 600k, 1,2tr, 4tr.
+function moneyShort(units) {
+  const vnd = Number(units || 0) * UNIT_VND;
+  return vnd >= 1000000
+    ? (vnd / 1000000).toLocaleString("vi-VN", {maximumFractionDigits:1}) + "tr"
+    : Math.round(vnd / 1000) + "k";
 }
 // Dữ liệu phòng do trình duyệt của người chơi ghi lên, nên mọi giá trị đưa vào innerHTML/style phải được kiểm tra.
 function safeColor(value) {
@@ -124,7 +137,7 @@ function describeSpace(index) {
   const owner = ownerUid ? roomState?.players?.[ownerUid] : null;
   const parts = [space.name];
   if (space.price) parts.push("giá " + money(space.price));
-  if (space.type === "station") parts.push("thuê $40, gấp đôi cho mỗi ga sở hữu thêm");
+  if (space.type === "station") parts.push("thuê " + money(40) + ", gấp đôi cho mỗi bến sở hữu thêm");
   else if (space.type === "utility") parts.push("thuê 4× điểm xúc xắc (10× nếu có cả hai công ty)");
   else if (space.rent) parts.push("thuê " + money(space.rent));
   if (space.type === "tax") parts.push("nộp " + money(space.amount));
@@ -224,13 +237,15 @@ function openRoom(code) {
   $("lobbyView").classList.add("hidden");
   $("gameView").classList.remove("hidden");
   $("roomCodeLabel").textContent = code;
-  $("centerStatus").textContent = "ĐANG KẾT NỐI PHÒNG...";
+  $("centerStatus").textContent = "Đang kết nối phòng...";
   unsubscribeRoom = onValue(ref(db, `${ROOM_ROOT}/${code}`), (snapshot) => {
     if (!snapshot.exists()) {
       leaveRoom("Phòng không còn tồn tại.");
       return;
     }
+    const previous = roomState;
     roomState = snapshot.val();
+    runEffects(previous, roomState);
     renderRoom();
   }, (error) => {
     notify("Không thể đọc phòng: " + explainFirebaseError(error));
@@ -330,6 +345,7 @@ async function joinRoom() {
   }
 }
 function leaveRoom(message) {
+  resetEffects();
   if (unsubscribeRoom) unsubscribeRoom();
   unsubscribeRoom = null;
   currentRoomCode = null;
@@ -367,14 +383,14 @@ function renderBoard() {
     const [row,col] = getBoardCoords(index);
     const ownerUid = roomState?.propertyOwners?.[getSpaceId(index)];
     const owner = ownerUid ? roomState?.players?.[ownerUid] : null;
-    const tokens = getPlayerEntries(roomState).filter(([,p]) => Number(p.position) === index);
     const div = document.createElement("div");
-    div.className = "space" + (space.corner ? " corner" : "");
+    div.className = "space" + (space.corner ? " corner" : "") + (owner ? " owned" : "") + (stampUntil[index] > Date.now() ? " stamp" : "");
+    if (owner) div.style.setProperty("--owner", safeColor(owner.color));
     div.style.gridRow = String(row+1);
     div.style.gridColumn = String(col+1);
-    const icon = space.icon || (space.type === "property" ? "🏠" : space.type === "station" ? "🚉" : space.type === "utility" ? "⚡" : "");
+    const icon = space.icon || "";  // ô đất thường không có biểu tượng để chừa chỗ cho giá tiền
     const colorBar = space.color || (space.type === "property" ? "#9b8067" : "transparent");
-    const price = space.price ? money(space.price) : space.amount ? money(space.amount) : "";
+    const price = space.price ? moneyShort(space.price) : space.amount ? moneyShort(space.amount) : "";
     const description = describeSpace(index);
     div.dataset.index = String(index);
     div.title = description;
@@ -384,8 +400,7 @@ function renderBoard() {
       ${icon ? `<span class="space-icon">${icon}</span>` : ""}
       <span class="space-name">${escapeHtml(space.name)}</span>
       ${price && !space.corner ? `<span class="space-price">${price}</span>` : ""}
-      ${owner ? `<span class="owned-mark" style="background:${safeColor(owner.color)}"></span>` : ""}
-      <span class="space-players">${tokens.map(([,p])=>`<i class="token" title="${escapeHtml(p.name)}" style="background:${safeColor(p.color)}"></i>`).join("")}</span>
+      <span class="space-players">${tokensHtml(index)}</span>
     `;
     board.insertBefore(div, center);
   });
@@ -397,8 +412,8 @@ function renderPlayers() {
     const isTurn = roomState.turnUid === uid;
     const isMe = uid === currentUser.uid;
     const space = SPACE_DATA[Number(p.position)]?.name || "—";
-    return `<div class="player-card ${isTurn?"active":""}">
-      <div class="player-head"><i class="player-dot" style="background:${safeColor(p.color)}"></i><span class="player-name">${escapeHtml(p.name)}</span>${isMe?'<span class="you-label">BẠN</span>':""}</div>
+    return `<div class="player-card ${isTurn?"active":""}" data-uid="${escapeHtml(uid)}">
+      <div class="player-head"><i class="player-dot" style="background:${safeColor(p.color)}"></i><span class="player-name">${escapeHtml(p.name)}</span>${isMe?'<span class="you-label">Bạn</span>':""}</div>
       <div class="player-cash">${money(p.cash)}</div>
       <p class="player-position">${escapeHtml(space)} ${p.jailTurns ? "· Đang ở tù" : ""}</p>
     </div>`;
@@ -423,7 +438,7 @@ function renderProperties() {
   }
   $("propertyList").innerHTML = owned.map(({space,uid}) => {
     const player = roomState.players?.[uid];
-    return `<div class="property-row"><i class="property-swatch" style="background:${space.color || "#b9b59b"}"></i><div><strong>${escapeHtml(space.name)}</strong><small>${escapeHtml(player?.name || "Người chơi")} · ${space.type === "station" ? "Thuê từ $40" : space.type === "utility" ? "Thuê 4× xúc xắc" : "Thuê " + money(space.rent || 50)}</small></div></div>`;
+    return `<div class="property-row"><i class="property-swatch" style="background:${space.color || "#b9b59b"}"></i><div><strong>${escapeHtml(space.name)}</strong><small>${escapeHtml(player?.name || "Người chơi")} · ${space.type === "station" ? "Thuê từ " + money(40) : space.type === "utility" ? "Thuê 4× xúc xắc" : "Thuê " + money(space.rent || 50)}</small></div></div>`;
   }).join("");
 }
 function renderActions() {
@@ -432,7 +447,7 @@ function renderActions() {
   const playing = roomState.status === "playing" && getPlayerEntries(roomState).length === 2;
   const pending = roomState.pending;
   const dice = roomState.lastRoll;
-  $("diceResult").innerHTML = dice ? `<span>${Number(dice[0]) || 0}</span><span>${Number(dice[1]) || 0}</span>` : "<span>⚄</span><span>⚄</span>";
+  if (!diceAnimating) $("diceResult").innerHTML = dice ? `<span>${Number(dice[0]) || 0}</span><span>${Number(dice[1]) || 0}</span>` : "<span>⚄</span><span>⚄</span>";
   $("actionMessage").textContent = roomState.message || (roomState.status === "waiting" ? "Đang chờ người chơi thứ hai..." : "Đến lượt bạn!");
   const buttons = $("pendingActions");
   buttons.innerHTML = "";
@@ -453,20 +468,152 @@ function renderActions() {
   // Chỉ được nộp phạt ra tù ở ĐẦU lượt (chưa có xúc xắc). Nếu vừa bị đưa vào tù trong lượt này
   // (đã có lastRoll) thì phải kết thúc lượt, nếu không việc "mất một lượt" bị bỏ qua.
   const canPayJail = Number(mine?.jailTurns || 0) > 0 && !dice;
-  $("rollButton").textContent = canPayJail ? "🔓 Trả $" + JAIL_FEE + " để ra tù" : "🎲 Tung xúc xắc";
+  $("rollButton").textContent = canPayJail ? "🔓 Nộp " + money(JAIL_FEE) + " để ra tù" : "🎲 Tung xúc xắc";
   $("rollButton").disabled = busy || !playing || !isMyTurn || !!pending || !!dice || roomState.status === "finished";
   $("endTurnButton").disabled = busy || !playing || !isMyTurn || !!pending || !dice || roomState.status === "finished";
+  document.title = roomState.status === "playing" && isMyTurn ? "● Đến lượt bạn - Cờ Tỷ Phú Online" : "Cờ Tỷ Phú Online";
   if (roomState.status === "waiting") {
-    $("centerStatus").textContent = "CHỜ NGƯỜI CHƠI THỨ HAI";
+    $("centerStatus").textContent = "Chờ người chơi thứ hai";
   } else if (roomState.status === "finished") {
-    $("centerStatus").textContent = "VÁN ĐẤU KẾT THÚC";
+    $("centerStatus").textContent = "Ván đấu kết thúc";
   } else {
-    $("centerStatus").textContent = isMyTurn ? "ĐẾN LƯỢT BẠN" : "ĐỢI ĐỐI THỦ...";
+    $("centerStatus").textContent = isMyTurn ? "Đến lượt bạn" : "Đợi đối thủ...";
   }
   if (roomState.status === "finished" && roomState.winner) {
     $("actionMessage").textContent = "🏆 " + (roomState.players?.[roomState.winner]?.name || "Người chơi") + " chiến thắng!";
   }
 }
+// ===== Hiệu ứng (chỉ là hiển thị phía trình duyệt, không ghi gì lên database) =====
+const reduceMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches === true;
+const displayPos = {};            // uid -> ô đang hiển thị khi quân đang nhảy
+const moveTimers = {};            // uid -> timer của bước nhảy
+const stampUntil = {};            // chỉ số ô -> thời điểm hết hiệu ứng "vừa mua"
+let movingUid = null;
+let diceAnimating = false;
+let diceTimer = null;
+const DICE_MS = 650;
+const HOP_MS = 150;
+
+function tokensHtml(index) {
+  return getPlayerEntries(roomState)
+    .filter(([uid, p]) => (displayPos[uid] ?? Number(p.position)) === index)
+    .map(([uid, p]) => `<i class="token${movingUid === uid ? " moving" : ""}" title="${escapeHtml(p.name)}" style="background:${safeColor(p.color)}"></i>`)
+    .join("");
+}
+function renderTokens() {
+  document.querySelectorAll("#board .space").forEach((cell) => {
+    const holder = cell.querySelector(".space-players");
+    if (holder) holder.innerHTML = tokensHtml(Number(cell.dataset.index));
+  });
+}
+function resetEffects() {
+  clearInterval(diceTimer);
+  diceAnimating = false;
+  movingUid = null;
+  for (const uid of Object.keys(moveTimers)) { clearTimeout(moveTimers[uid]); delete moveTimers[uid]; }
+  for (const uid of Object.keys(displayPos)) delete displayPos[uid];
+  for (const key of Object.keys(stampUntil)) delete stampUntil[key];
+  document.title = "Cờ Tỷ Phú Online";
+}
+// Quân cờ nhảy từng ô tới đích. Đi quá xa (vào tù) thì dịch chuyển thẳng.
+function animateMove(uid, from, to, delay) {
+  const dist = (to - from + 40) % 40;
+  if (reduceMotion || dist === 0 || dist > 12) return 0;
+  displayPos[uid] = from;
+  let step = 0;
+  const tick = () => {
+    step++;
+    movingUid = uid;
+    displayPos[uid] = (from + step) % 40;
+    if (step >= dist) {
+      delete displayPos[uid];
+      delete moveTimers[uid];
+      movingUid = null;
+      renderTokens();
+      return;
+    }
+    renderTokens();
+    moveTimers[uid] = setTimeout(tick, HOP_MS);
+  };
+  moveTimers[uid] = setTimeout(tick, delay);
+  return delay + dist * HOP_MS;
+}
+function animateDice(finalDice) {
+  const box = $("diceResult");
+  const finish = () => {
+    clearInterval(diceTimer);
+    diceAnimating = false;
+    box.classList.remove("rolling");
+    box.innerHTML = `<span>${Number(finalDice[0]) || 0}</span><span>${Number(finalDice[1]) || 0}</span>`;
+  };
+  if (reduceMotion) return;
+  diceAnimating = true;
+  box.classList.add("rolling");
+  const face = () => 1 + Math.floor(Math.random() * 6);
+  box.innerHTML = `<span>${face()}</span><span>${face()}</span>`;
+  clearInterval(diceTimer);
+  diceTimer = setInterval(() => { box.innerHTML = `<span>${face()}</span><span>${face()}</span>`; }, 80);
+  setTimeout(finish, DICE_MS);
+}
+function floatDelta(uid, delta, delay) {
+  if (!delta) return;
+  setTimeout(() => {
+    const card = document.querySelector(`.player-card[data-uid="${CSS.escape(uid)}"]`);
+    if (!card) return;
+    const rect = card.getBoundingClientRect();
+    const el = document.createElement("span");
+    el.className = "float-delta " + (delta > 0 ? "gain" : "loss");
+    el.textContent = (delta > 0 ? "+" : "−") + money(Math.abs(delta));
+    el.style.left = Math.max(8, rect.right - 12) + "px";
+    el.style.top = (rect.top + 10) + "px";
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 1800);
+  }, delay);
+}
+const CONFETTI = ["🌾", "🪷", "🥥", "🎉", "🍍", "✨"];
+function confetti() {
+  if (reduceMotion) return;
+  const layer = document.createElement("div");
+  layer.className = "confetti";
+  layer.setAttribute("aria-hidden", "true");
+  for (let i = 0; i < 40; i++) {
+    const bit = document.createElement("span");
+    bit.textContent = CONFETTI[i % CONFETTI.length];
+    bit.style.left = Math.random() * 100 + "%";
+    bit.style.animationDuration = 2.6 + Math.random() * 2.4 + "s";
+    bit.style.animationDelay = Math.random() * 0.9 + "s";
+    bit.style.fontSize = 18 + Math.random() * 16 + "px";
+    layer.appendChild(bit);
+  }
+  document.body.appendChild(layer);
+  setTimeout(() => layer.remove(), 6500);
+}
+// So sánh trạng thái cũ và mới của phòng để chọn hiệu ứng. Lần nhận dữ liệu đầu tiên (previous = null,
+// ví dụ tải lại trang) không chạy hiệu ứng nào.
+function runEffects(previous, next) {
+  if (!previous || !next) return;
+  const rolled = !previous.lastRoll && next.lastRoll;
+  if (rolled) animateDice(next.lastRoll);
+  for (const [uid, now] of getPlayerEntries(next)) {
+    const before = previous.players?.[uid];
+    if (!before) continue;
+    let delay = rolled ? DICE_MS : 0;
+    if (Number(before.position) !== Number(now.position)) {
+      delay = animateMove(uid, Number(before.position), Number(now.position), delay) || delay;
+    }
+    if (Number(before.cash) !== Number(now.cash)) floatDelta(uid, Number(now.cash) - Number(before.cash), delay);
+  }
+  for (const key of Object.keys(next.propertyOwners || {})) {
+    if (previous.propertyOwners?.[key]) continue;
+    const index = Number(key.slice(1));
+    stampUntil[index] = Date.now() + 1000;
+  }
+  if (next.status === "finished" && previous.status !== "finished") confetti();
+  if (next.status === "playing" && next.turnUid === currentUser?.uid && previous.turnUid !== currentUser?.uid) {
+    try { navigator.vibrate?.(80); } catch { /* không hỗ trợ rung */ }
+  }
+}
+
 function renderRoom() {
   if (!roomState || !currentUser) return;
   $("roomCodeLabel").textContent = currentRoomCode;
@@ -537,7 +684,7 @@ async function rollDice() {
       } else if (space.type === "chance") {
         const card = CHANCE_CARDS[Math.floor(Math.random()*CHANCE_CARDS.length)];
         player.cash += card.amount;
-        text += " " + card.text;
+        text += " " + card.text + (card.amount >= 0 ? " Nhận " : " Trả ") + money(Math.abs(card.amount)) + ".";
         if (player.cash < 0) { player.cash=0; player.bankrupt=true; room.status="finished"; room.winner=otherPlayerUid(room); }
       } else if (space.type === "gotojail") {
         player.position = 10; player.jailTurns = 1;
