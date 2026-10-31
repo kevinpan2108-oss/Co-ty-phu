@@ -114,7 +114,7 @@ async function connectFirebase(config) {
   if (!config?.apiKey || !config?.databaseURL || !config?.projectId || !config?.appId) {
     throw new Error("Thiếu apiKey, databaseURL, projectId hoặc appId trong Firebase config.");
   }
-  const appName = "co-ty-phu-" + config.projectId;
+  const appName = "co-ty-phu-" + config.projectId + "-" + Date.now();
   firebaseApp = initializeApp(config, appName);
   auth = getAuth(firebaseApp);
   db = getDatabase(firebaseApp);
@@ -391,7 +391,7 @@ async function rollDice() {
           player.cash -= paid;
           owner.cash = Number(owner.cash||0) + paid;
           text += " Trả " + money(rent) + " tiền thuê cho " + owner.name + ".";
-          if (paid < rent || player.cash <= 0) {
+          if (paid < rent) {
             player.cash = 0; player.bankrupt = true;
             room.status = "finished"; room.winner = ownerUid;
             text = player.name + " phá sản! " + owner.name + " chiến thắng.";
@@ -496,7 +496,6 @@ async function endTurn() {
     await runTransaction(ref(db, `${ROOM_ROOT}/${currentRoomCode}`), (room) => {
       if (!room || room.status !== "playing" || room.turnUid !== uid || room.pending || !room.lastRoll) return;
       const player = room.players?.[uid];
-      if (player?.jailTurns) player.jailTurns = 0;
       const nextUid = Object.keys(room.players||{}).find(id => id !== uid);
       room.turnUid = nextUid;
       room.turnNumber = Number(room.turnNumber||1)+1;
