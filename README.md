@@ -36,11 +36,13 @@ Mở `index.html` bằng VS Code Live Server hoặc một static web server. Đ�
 
 Workflow `.github/workflows/deploy.yml` tự deploy khi có push/merge vào `main`.
 
-Sau khi merge nhánh tính năng:
+Để xuất bản bản thử nghiệm hiện tại mà chưa merge vào `main`:
 1. Mở **Settings → Pages** trong repo.
-2. Chọn **Source: GitHub Actions**.
-3. Chờ workflow **Deploy Co Ty Phu Online to GitHub Pages** chạy thành công.
-4. Mở URL Pages được GitHub hiển thị ở mục Pages hoặc trong workflow deployment.
+2. Chọn **Source: Deploy from a branch**.
+3. Chọn branch `feat/online-mvp` và folder `/(root)`, rồi nhấn **Save**.
+4. GitHub Pages sẽ xuất bản trực tiếp `index.html` từ nhánh này. File `.nojekyll` đã được thêm để không xử lý mã nguồn JavaScript như trang Jekyll.
+
+Khi game ổn định và được merge vào `main`, có thể chuyển nguồn xuất bản sang `main` hoặc quay lại **GitHub Actions**.
 
 ## Công nghệ
 
