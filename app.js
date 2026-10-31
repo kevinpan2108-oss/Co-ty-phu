@@ -2,6 +2,19 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/13.1.0/firebas
 import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/13.1.0/firebase-auth.js";
 import { getDatabase, ref, set, get, onValue, runTransaction } from "https://www.gstatic.com/firebasejs/13.1.0/firebase-database.js";
 
+// Public Firebase Web App configuration for this game.
+// Realtime Database is hosted in asia-southeast1 (Singapore).
+const DEFAULT_FIREBASE_CONFIG = {
+  apiKey: "AIzaSyAECssZ_j6yvb9aYaqgw6yh9kFFadIJFW8",
+  authDomain: "cotyphuonline-8f536.firebaseapp.com",
+  databaseURL: "https://cotyphuonline-8f536-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "cotyphuonline-8f536",
+  storageBucket: "cotyphuonline-8f536.firebasestorage.app",
+  messagingSenderId: "901354948118",
+  appId: "1:901354948118:web:eb7eeb61580816136f5737",
+  measurementId: "G-5DR33JFZYB"
+};
+
 const $ = (id) => document.getElementById(id);
 const ROOM_ROOT = "rooms";
 const START_CASH = 1500;
@@ -561,12 +574,13 @@ $("settingsDialog").addEventListener("click", e => {
 
 async function boot() {
   const stored = localStorage.getItem("ctp-firebase-config");
-  if (!stored) {
-    setConnection(false,"Cần cấu hình");
-    return;
-  }
   try {
-    await connectFirebase(parseFirebaseConfig(stored));
+    const config = stored ? parseFirebaseConfig(stored) : DEFAULT_FIREBASE_CONFIG;
+    await connectFirebase(config);
+    if (!stored) {
+      localStorage.setItem("ctp-firebase-config", JSON.stringify(DEFAULT_FIREBASE_CONFIG));
+    }
+    setMessage("lobbyMessage","Đã kết nối Firebase. Bạn có thể tạo hoặc tham gia phòng.");
   } catch (error) {
     setConnection(false,"Lỗi kết nối");
     setMessage("lobbyMessage","Firebase chưa kết nối được: "+error.message,true);
