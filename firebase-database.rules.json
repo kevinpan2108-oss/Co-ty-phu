@@ -3,8 +3,84 @@
     "rooms": {
       "$roomId": {
         ".read": "auth != null",
-        ".write": "auth != null && ((!data.exists() && newData.child('status').val() == 'waiting' && newData.child('creatorUid').val() == auth.uid && newData.child('joinerUid').val() == null && newData.child('players').hasChild(auth.uid)) || (data.exists() && data.child('status').val() == 'waiting' && data.child('joinerUid').val() == null && newData.child('creatorUid').val() == data.child('creatorUid').val() && newData.child('joinerUid').val() == auth.uid && newData.child('players').hasChild(data.child('creatorUid').val()) && newData.child('players').hasChild(auth.uid) && !data.child('players').hasChild(auth.uid)) || (data.exists() && data.child('joinerUid').val() != null && data.child('players').hasChild(auth.uid) && newData.child('creatorUid').val() == data.child('creatorUid').val() && newData.child('joinerUid').val() == data.child('joinerUid').val() && newData.child('players').hasChild(data.child('creatorUid').val()) && newData.child('players').hasChild(data.child('joinerUid').val())))",
-        ".validate": "newData.hasChildren(['status', 'creatorUid', 'players', 'turnUid', 'turnNumber'])"
+        ".write": "auth != null && ((!data.exists() && newData.child('status').val() == 'waiting' && newData.child('creatorUid').val() == auth.uid && newData.child('turnUid').val() == auth.uid && !newData.child('joinerUid').exists() && newData.child('players').hasChild(auth.uid) && newData.child('players').child(auth.uid).child('cash').val() == 1500 && newData.child('players').child(auth.uid).child('position').val() == 0) || (data.exists() && data.child('status').val() == 'waiting' && !data.child('joinerUid').exists() && newData.child('status').val() == 'playing' && newData.child('creatorUid').val() == data.child('creatorUid').val() && newData.child('joinerUid').val() == auth.uid && auth.uid != data.child('creatorUid').val() && newData.child('turnUid').val() == data.child('turnUid').val() && newData.child('players').hasChild(auth.uid) && !data.child('players').hasChild(auth.uid) && newData.child('players').child(auth.uid).child('cash').val() == 1500 && newData.child('players').child(auth.uid).child('position').val() == 0 && newData.child('players').child(data.child('creatorUid').val()).child('cash').val() == data.child('players').child(data.child('creatorUid').val()).child('cash').val()) || (data.exists() && data.child('status').val() == 'playing' && data.child('turnUid').val() == auth.uid && data.child('players').hasChild(auth.uid) && (newData.child('status').val() == 'playing' || newData.child('status').val() == 'finished')))",
+        ".validate": "$roomId.matches(/^[A-HJ-NP-Z2-9]{6}$/) && newData.hasChildren(['status', 'creatorUid', 'players', 'turnUid', 'turnNumber']) && (!data.exists() || newData.child('creatorUid').val() == data.child('creatorUid').val()) && (!data.child('joinerUid').exists() || newData.child('joinerUid').val() == data.child('joinerUid').val())",
+        "status": {
+          ".validate": "newData.isString() && (newData.val() == 'waiting' || newData.val() == 'playing' || newData.val() == 'finished')"
+        },
+        "creatorUid": {
+          ".validate": "newData.isString() && newData.val().length <= 128"
+        },
+        "joinerUid": {
+          ".validate": "newData.isString() && newData.val().length <= 128"
+        },
+        "turnUid": {
+          ".validate": "newData.isString() && newData.parent().child('players').hasChild(newData.val())"
+        },
+        "winner": {
+          ".validate": "newData.isString() && newData.parent().child('players').hasChild(newData.val())"
+        },
+        "turnNumber": {
+          ".validate": "newData.isNumber()"
+        },
+        "message": {
+          ".validate": "newData.isString() && newData.val().length <= 300"
+        },
+        "createdAt": {
+          ".validate": "newData.isNumber()"
+        },
+        "updatedAt": {
+          ".validate": "newData.isNumber()"
+        },
+        "lastRoll": {
+          "0": {
+            ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 6"
+          },
+          "1": {
+            ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 6"
+          },
+          ".validate": "newData.hasChildren(['0', '1'])"
+        },
+        "pending": {
+          ".validate": "newData.hasChildren(['uid', 'index'])",
+          "uid": {
+            ".validate": "newData.isString() && newData.parent().parent().child('players').hasChild(newData.val())"
+          },
+          "index": {
+            ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 39"
+          }
+        },
+        "propertyOwners": {
+          "$spaceId": {
+            ".validate": "$spaceId.matches(/^s([0-9]|[12][0-9]|3[0-9])$/) && newData.isString() && newData.parent().parent().child('players').hasChild(newData.val())"
+          }
+        },
+        "players": {
+          "$uid": {
+            ".validate": "($uid == newData.parent().parent().child('creatorUid').val() || $uid == newData.parent().parent().child('joinerUid').val()) && newData.hasChildren(['uid', 'name', 'color', 'cash', 'position', 'jailTurns']) && newData.child('uid').val() == $uid",
+            "uid": {
+              ".validate": "newData.isString()"
+            },
+            "name": {
+              ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 18"
+            },
+            "color": {
+              ".validate": "newData.isString() && newData.val().matches(/^#[0-9a-fA-F]{6}$/)"
+            },
+            "cash": {
+              ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 1000000"
+            },
+            "position": {
+              ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 39"
+            },
+            "jailTurns": {
+              ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 3"
+            },
+            "bankrupt": {
+              ".validate": "newData.isBoolean()"
+            }
+          }
+        }
       }
     }
   }
