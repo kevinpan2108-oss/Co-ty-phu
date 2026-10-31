@@ -43,12 +43,12 @@
           <span class="dice-illustration">⚄</span>
         </div>
         <label class="field-label" for="playerName">Tên người chơi</label>
-        <input id="playerName" class="text-input" maxlength="18" placeholder="Nhập tên của bạn" value="Người chơi 1" />
+        <input id="playerName" class="text-input" maxlength="18" placeholder="Nhập tên (tối đa 18 ký tự)" autocomplete="nickname" />
         <button id="createRoomButton" class="primary-button" type="button"><span>＋</span> Tạo phòng mới</button>
         <div class="or-divider"><span>HOẶC THAM GIA PHÒNG</span></div>
         <label class="field-label" for="roomCodeInput">Mã phòng 6 ký tự</label>
         <div class="join-row">
-          <input id="roomCodeInput" class="text-input room-input" maxlength="6" placeholder="VD: A2B4C6" autocomplete="off" />
+          <input id="roomCodeInput" class="text-input room-input" maxlength="6" placeholder="VD: A2B4C6" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" />
           <button id="joinRoomButton" class="secondary-button" type="button">Tham gia <span>→</span></button>
         </div>
         <p class="card-footnote"><span>✦</span> Chỉ cần chia sẻ mã phòng với một người bạn.</p>
@@ -66,6 +66,8 @@
         </div>
       </div>
 
+      <div id="gameNotice" class="game-notice" role="status" aria-live="polite"></div>
+
       <div class="game-content">
         <aside class="side-panel">
           <div class="panel-title">BẢNG TÀI SẢN</div>
@@ -82,7 +84,7 @@
             <button id="rollButton" class="primary-button roll-button" type="button" disabled>🎲 Tung xúc xắc</button>
             <button id="endTurnButton" class="secondary-button full-button" type="button" disabled>Kết thúc lượt →</button>
           </div>
-          <div class="legend-card"><span>●</span> Vị trí của bạn <b>●</b> Vị trí đối thủ</div>
+          <div class="legend-card"><span id="legendMine">●</span> Quân của bạn <b id="legendOpponent">●</b> Quân đối thủ</div>
         </aside>
 
         <div class="board-wrap">
@@ -102,12 +104,11 @@
           <div class="rules-mini">
             <span class="section-kicker">MẸO NHỎ</span>
             <p>💡 Đi qua ô XUẤT PHÁT nhận <b>$200</b>.</p>
-            <p>🏡 Sở hữu càng nhiều đất, tiền thuê càng cao.</p>
-            <p>🤝 Để ý túi tiền trước khi quyết định mua!</p>
+            <p>🚉 Sở hữu nhiều ga hoặc công ty, tiền thuê tăng gấp bội.</p>
+            <p>👆 Chạm vào một ô trên bàn cờ để xem giá và chủ sở hữu.</p>
           </div>
         </aside>
       </div>
-      <div id="gameNotice" class="game-notice" role="status"></div>
     </section>
 
     <footer class="footer"><span>© 2026 CỜ TỶ PHÚ ONLINE</span><span>MADE FOR FRIENDS <b>♥</b></span></footer>
