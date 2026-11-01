@@ -67,3 +67,10 @@ npm run test:e2e
 - Đã bỏ nút "Kết thúc lượt": `scheduleAutoEnd()` tự gọi `endTurn()` sau ~2 giây khi đã tung xúc xắc và không còn việc chờ mua/bỏ qua.
 - Xúc xắc có chấm thật, ném lên giữa bàn ở cả hai máy (`#diceStage`), quân nhảy cung với gợn sóng từng ô.
 - Khi đổi CSS/JS nhớ tăng `?v=` trong `index.html` (hiện `cell4`).
+
+## Cập nhật: màn hình game toàn màn hình nằm ngang (kiểu Monopoly mobile)
+- `#gameView` là lớp `position:fixed` phủ cả màn hình, bên trong `.stage`. Trên điện thoại cầm dọc, `.stage` tự xoay 90° bằng CSS; khi bấm Tạo phòng/Vào phòng/Chơi với máy sẽ thử `requestFullscreen` + khóa ngang (`enterGameScreen`).
+- Bàn cờ 3D xéo (`rotateX(60deg) rotateZ(-45deg)`), kích thước tính theo `cqh/cqw` của `.stage`. Chữ + giá nằm trên mặt bàn, công trình và quân cờ là hình đứng (đối xoay ngược). Khối CSS cuối `style.css` bắt đầu bằng "Màn hình game kiểu Monopoly mobile".
+- Thẻ người chơi ở hai góc trên, nút Tung xúc xắc ở góc dưới phải, Sổ đất / Mã phòng / Rời ở góc dưới trái; Sổ đất mở trong cửa sổ `#propsModal`.
+- Xúc xắc là hai khối 3D lăn rồi dừng đúng mặt (`animateDice`, `CUBE_ROT`). Đừng đặt animation `transform` lên nút Tung xúc xắc vì Playwright coi là "không ổn định".
+- `?v=` hiện là `land5`.

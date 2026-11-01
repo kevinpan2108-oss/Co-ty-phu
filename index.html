@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;800&family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="./style.css?v=cell4" />
+  <link rel="stylesheet" href="./style.css?v=land5" />
 </head>
 <body>
   <div class="ambient ambient-one"></div>
@@ -68,33 +68,16 @@
     </section>
 
     <section id="gameView" class="game-layout hidden">
-      <div class="game-heading">
-        <div><span class="section-kicker"><span id="gameModeLabel">Phòng</span> <b id="roomCodeLabel">------</b></span><h2 id="gameTitle">Đại chiến bất động sản</h2></div>
-        <div class="game-heading-actions">
-          <button id="copyRoomButton" class="soft-button" type="button">Sao chép mã</button>
-          <button id="leaveRoomButton" class="soft-button leave-button" type="button">Rời phòng</button>
-        </div>
-      </div>
-
-      <div id="gameNotice" class="game-notice" role="status" aria-live="polite"></div>
-
-      <div class="game-content">
-        <aside class="side-panel">
-          <div class="panel-title">Tài sản</div>
+      <div class="stage" id="stage">
+        <div class="hud-top">
           <div id="playersPanel" class="players-panel"></div>
-          <div class="turn-card">
-            <span class="turn-pulse"></span>
-            <div><small>Đến lượt</small><strong id="turnName">Chờ đối thủ...</strong></div>
+          <div class="room-pill">
+            <span class="section-kicker"><span id="gameModeLabel">Phòng</span> <b id="roomCodeLabel">------</b></span>
+            <h2 id="gameTitle" class="sr-only">Đại chiến bất động sản</h2>
+            <div class="turn-card"><span class="turn-pulse"></span><small>Đến lượt</small> <strong id="turnName">Chờ đối thủ...</strong></div>
           </div>
-          <div class="action-card">
-            <div id="actionMessage" class="action-message">Tạo phòng hoặc tham gia để bắt đầu.</div>
-            <div id="pendingActions" class="pending-actions"></div>
-            <div class="dice-result" id="diceResult"></div>
-            <button id="rollButton" class="primary-button roll-button" type="button" disabled>🎲 Tung xúc xắc</button>
-          </div>
-          <div class="legend-card"><span id="legendMine">●</span> Quân của bạn <b id="legendOpponent">●</b> Quân đối thủ</div>
-        </aside>
-
+        </div>
+        <div id="gameNotice" class="game-notice" role="status" aria-live="polite"></div>
         <div class="board-wrap">
           <div class="board" id="board">
             <div class="board-center">
@@ -153,27 +136,42 @@
               <div id="centerStatus" class="center-status">Đang chờ người chơi...</div>
             </div>
           </div>
-          <div id="diceStage" class="dice-stage" aria-hidden="true"></div>
-          <div id="cellInfo" class="cell-info" role="status" aria-live="polite"></div>
         </div>
-
-        <aside class="right-panel">
-          <div class="panel-title">Sổ đất</div>
-          <div id="propertyList" class="property-list"><div class="empty-properties">Chưa có bất động sản nào được mua.</div></div>
-          <div class="rules-mini">
-            <span class="section-kicker">Mẹo nhỏ</span>
-            <p>Đi qua ô Xuất phát nhận <b>2.000.000₫</b>.</p>
-            <p>Sở hữu nhiều bến phà hoặc công ty, tiền thuê tăng gấp bội.</p>
-            <p>Sở hữu đủ các ô của một tỉnh: tiền thuê gấp đôi.</p>
-            <p>Chạm vào một ô trên bàn cờ để xem giới thiệu, giá và chủ sở hữu.</p>
+        <div id="diceStage" class="dice-stage" aria-hidden="true"></div>
+        <div id="cellInfo" class="cell-info" role="status" aria-live="polite"></div>
+        <div id="actionMessage" class="action-message">Tạo phòng hoặc tham gia để bắt đầu.</div>
+        <div id="pendingActions" class="pending-actions"></div>
+        <div class="hud-bottom">
+          <div class="hud-menu">
+            <button id="propsButton" class="hud-button" type="button" aria-label="Sổ đất"><span>📋</span><small>Sổ đất</small></button>
+            <button id="copyRoomButton" class="hud-button" type="button" aria-label="Sao chép mã phòng"><span>🔗</span><small>Mã phòng</small></button>
+            <button id="leaveRoomButton" class="hud-button leave-button" type="button" aria-label="Rời phòng"><span>🚪</span><small>Rời</small></button>
           </div>
-        </aside>
+          <div class="hud-roll">
+            <div class="dice-result" id="diceResult"></div>
+            <button id="rollButton" class="primary-button roll-button" type="button" disabled>🎲 Tung xúc xắc</button>
+          </div>
+        </div>
+        <div id="propsModal" class="modal" hidden>
+          <div class="modal-card">
+            <button id="propsClose" class="modal-close" type="button" aria-label="Đóng">×</button>
+            <div class="panel-title">Sổ đất</div>
+            <div id="propertyList" class="property-list"><div class="empty-properties">Chưa có bất động sản nào được mua.</div></div>
+            <div class="rules-mini">
+              <span class="section-kicker">Mẹo nhỏ</span>
+              <p>Đi qua ô Xuất phát nhận <b>2.000.000₫</b>.</p>
+              <p>Sở hữu nhiều bến phà hoặc công ty, tiền thuê tăng gấp bội.</p>
+              <p>Sở hữu đủ các ô của một tỉnh: tiền thuê gấp đôi.</p>
+              <p>Chạm vào một ô trên bàn cờ để xem giới thiệu, giá và chủ sở hữu.</p>
+            </div>
+          </div>
+        </div>
       </div>
     </section>
 
     <footer class="footer"><span>© 2026 Cờ Tỷ Phú Online</span><span>Làm để chơi với bạn bè</span></footer>
   </main>
 
-  <script type="module" src="./app.js?v=cell4"></script>
+  <script type="module" src="./app.js?v=land5"></script>
 </body>
 </html>

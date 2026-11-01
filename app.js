@@ -499,19 +499,19 @@ function renderPlayers() {
     const isTurn = roomState.turnUid === uid;
     const isMe = uid === currentUser.uid;
     const space = SPACE_DATA[Number(p.position)]?.name || "—";
-    return `<div class="player-card ${isTurn?"active":""}" data-uid="${escapeHtml(uid)}">
+    return `<div class="player-card ${isTurn?"active":""}" data-uid="${escapeHtml(uid)}" style="--pc:${safeColor(p.color)}"><span class="player-avatar">${animalFor(p.color, entries.findIndex(([id]) => id === uid))}</span><div class="player-info">
       <div class="player-head"><i class="player-dot" style="background:${safeColor(p.color)}"></i><span class="player-name">${escapeHtml(p.name)}</span>${isMe?'<span class="you-label">Bạn</span>':""}</div>
       <div class="player-cash">${money(p.cash)}</div>
       <p class="player-position">${escapeHtml(space)} ${p.jailTurns ? "· Đang ở tù" : ""}</p>
-    </div>`;
+    </div></div>`;
   }).join("");
   const turnPlayer = roomState.players?.[roomState.turnUid];
   const waitingForOpponent = roomState.status === "waiting";
   $("turnName").textContent = waitingForOpponent || !turnPlayer ? "Chờ đối thủ..." : turnPlayer.name;
   // Màu quân cờ phụ thuộc vào việc là người tạo hay người vào phòng, nên chú giải phải lấy màu thật.
   const opponent = roomState.players?.[otherPlayerUid()];
-  $("legendMine").style.color = safeColor(myPlayer()?.color);
-  $("legendOpponent").style.color = safeColor(opponent?.color || TOKEN_COLORS[1]);
+  
+  
 }
 function renderProperties() {
   const ownerMap = roomState.propertyOwners || {};
@@ -587,7 +587,7 @@ const AUTO_END_MS = 2000;
 let movingUid = null;
 let diceAnimating = false;
 let diceTimer = null;
-const DICE_MS = 900;
+const DICE_MS = 1000;
 const HOP_MS = 190;
 
 function tokensHtml(index) {
@@ -639,29 +639,51 @@ function animateMove(uid, from, to, delay) {
   moveTimers[uid] = setTimeout(tick, delay);
   return delay + dist * HOP_MS;
 }
+const CUBE_ROT = { 1: [0, 0], 2: [0, -90], 3: [-90, 0], 4: [90, 0], 5: [0, 90], 6: [0, 180] };
+function cubeHtml() {
+  const faces = [1, 2, 3, 4, 5, 6].map((n) => `<span class="die face" data-v="${n}">${"<i></i>".repeat(9)}</span>`).join("");
+  return `<div class="cube-wrap"><div class="cube">${faces}</div></div>`;
+}
+function setCube(el, value, spin) {
+  const [bx, by] = CUBE_ROT[value] || [0, 0];
+  el.style.transform = `rotateX(${spin[0]}deg) rotateY(${spin[1]}deg) rotateX(${bx}deg) rotateY(${by}deg)`;
+}
+// Hai khối xúc xắc 3D lăn giữa bàn cờ rồi dừng đúng mặt. Cộng thêm bội số của 360° nên mặt cuối không đổi.
 function animateDice(finalDice) {
   const box = $("diceResult");
   const stage = $("diceStage");
+  const total = (Number(finalDice[0]) || 0) + (Number(finalDice[1]) || 0);
   const finish = () => {
     clearInterval(diceTimer);
     diceAnimating = false;
     box.classList.remove("rolling");
     box.innerHTML = diceHtml(finalDice);
     if (stage) {
-      stage.className = "dice-stage show landed";
-      stage.innerHTML = `<div class="dice-row">${diceHtml(finalDice)}<b class="dice-total">${(Number(finalDice[0]) || 0) + (Number(finalDice[1]) || 0)}</b></div>`;
-      setTimeout(() => { stage.className = "dice-stage"; }, 1300);
+      stage.classList.remove("rolling");
+      stage.classList.add("landed");
+      stage.querySelector(".dice-row")?.insertAdjacentHTML("beforeend", `<b class="dice-total">${total}</b>`);
+      setTimeout(() => { stage.className = "dice-stage"; }, 1500);
     }
   };
   if (reduceMotion) return;
   diceAnimating = true;
   box.classList.add("rolling");
   const face = () => 1 + Math.floor(Math.random() * 6);
-  const shuffle = () => { const d = [face(), face()]; box.innerHTML = diceHtml(d); if (stage) stage.innerHTML = `<div class="dice-row">${diceHtml(d)}</div>`; };
-  if (stage) stage.className = "dice-stage show rolling";
+  const shuffle = () => { box.innerHTML = diceHtml([face(), face()]); };
   shuffle();
   clearInterval(diceTimer);
   diceTimer = setInterval(shuffle, 90);
+  if (stage) {
+    stage.className = "dice-stage show rolling";
+    stage.innerHTML = `<div class="dice-row">${cubeHtml()}${cubeHtml()}</div>`;
+    const cubes = stage.querySelectorAll(".cube");
+    cubes.forEach((cube) => { cube.style.transition = "none"; setCube(cube, face(), [0, 0]); });
+    void stage.offsetWidth;
+    cubes.forEach((cube, i) => {
+      cube.style.transition = "";
+      setCube(cube, Number(finalDice[i]) || 1, [720 + 360 * i, 540 + 360 * (1 - i)]);
+    });
+  }
   setTimeout(finish, DICE_MS);
 }
 function floatDelta(uid, delta, delay) {
@@ -1007,6 +1029,15 @@ $("createRoomButton").addEventListener("click", createRoom);
 $("joinRoomButton").addEventListener("click", joinRoom);
 $("playComputerButton").addEventListener("click", startComputerGame);
 $("rollButton").addEventListener("click", rollDice);
+$("propsButton").addEventListener("click", () => { $("propsModal").hidden = false; });
+$("propsClose").addEventListener("click", () => { $("propsModal").hidden = true; });
+$("propsModal").addEventListener("click", (event) => { if (event.target === $("propsModal")) $("propsModal").hidden = true; });
+// Trên điện thoại: vào toàn màn hình và khóa ngang (nếu trình duyệt cho phép; nếu không giao diện tự xoay bằng CSS).
+function enterGameScreen() {
+  if (window.innerWidth > 900) return;
+  try { document.documentElement.requestFullscreen?.({ navigationUI: "hide" })?.then(() => screen.orientation?.lock?.("landscape")).catch(() => {}); } catch { /* bỏ qua */ }
+}
+for (const id of ["createRoomButton", "joinRoomButton", "playComputerButton"]) $(id).addEventListener("click", enterGameScreen);
 $("leaveRoomButton").addEventListener("click", () => leaveRoom());
 $("board").addEventListener("click", (event) => {
   // Trên điện thoại ô quá nhỏ để hiện tên: chạm vào ô để xem thông tin.

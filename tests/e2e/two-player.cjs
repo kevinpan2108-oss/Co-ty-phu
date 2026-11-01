@@ -151,7 +151,7 @@ let rules;
   const stageInfo = await pb.page.evaluate(() => { const s = document.getElementById("diceStage"); const r = s.getBoundingClientRect(); const d = s.querySelector(".die"); const dr = d ? d.getBoundingClientRect() : null; return JSON.stringify({ cls: s.className, op: getComputedStyle(s).opacity, rect: [r.x, r.y, r.width, r.height].map(Math.round), die: dr && [dr.x, dr.y, dr.width, dr.height].map(Math.round), n: s.querySelectorAll(".die").length }); });
   check("hiệu ứng: xúc xắc ném lên giữa bàn cờ ở máy đối thủ", sawStage, stageInfo);
   const sawHop = await pb.page.waitForFunction(() => document.querySelector(".token.moving"), null, { timeout: 4000, polling: 20 }).then(() => true).catch(() => false);
-  if (OUT) { await pb.page.evaluate(() => { const s = document.getElementById("diceStage"); s.className = "dice-stage show"; s.innerHTML = '<div class="dice-row"><span class="die" data-v="4">' + "<i></i>".repeat(9) + '</span><span class="die" data-v="6">' + "<i></i>".repeat(9) + '</span><b class="dice-total">10</b></div>'; });     await pb.page.waitForTimeout(100); await pb.page.screenshot({ path: `${OUT}/desktop-dice.png`, clip: { x: 280, y: 220, width: 720, height: 480 } }); console.log("stage@shot", await pb.page.evaluate(() => { const s = document.getElementById("diceStage"); const d = s.querySelector(".die"); const r = d && d.getBoundingClientRect(); return s.className + " " + JSON.stringify(r && [r.x, r.y, r.width, r.height].map(Math.round)); })); }
+  if (OUT) { await pb.page.screenshot({ path: `${OUT}/dice-live.png` }); await pb.page.evaluate(() => { const s = document.getElementById("diceStage"); s.className = "dice-stage show"; s.innerHTML = '<div class="dice-row"><span class="die" data-v="4">' + "<i></i>".repeat(9) + '</span><span class="die" data-v="6">' + "<i></i>".repeat(9) + '</span><b class="dice-total">10</b></div>'; });     await pb.page.waitForTimeout(100); await pb.page.screenshot({ path: `${OUT}/desktop-dice.png`, clip: { x: 280, y: 220, width: 720, height: 480 } }); console.log("stage@shot", await pb.page.evaluate(() => { const s = document.getElementById("diceStage"); const d = s.querySelector(".die"); const r = d && d.getBoundingClientRect(); return s.className + " " + JSON.stringify(r && [r.x, r.y, r.width, r.height].map(Math.round)); })); }
   check("hiệu ứng: quân cờ nhảy từng ô", sawHop, sawHop ? "" : await pb.page.evaluate(() => JSON.stringify({tokens: document.querySelectorAll(".token").length, pass: document.querySelectorAll(".space.pass,.space.land").length, ds: document.getElementById("diceStage")?.className})));
   await pa.page.waitForTimeout(1800);
   const faces = (page) => page.$$eval("#diceResult .die", (els) => els.map((e) => e.dataset.v).join(","));
@@ -239,7 +239,13 @@ let rules;
     if (OUT) { await m.page.screenshot({ path: `${OUT}/mobile-${w}.png` }); await m.page.evaluate(() => document.getElementById("lobbyView").classList.remove("hidden")); }
     await m.context.close();
   }
-  if (OUT) await pa.page.screenshot({ path: `${OUT}/desktop-game.png` });
+  if (OUT) {
+    await pa.page.screenshot({ path: `${OUT}/desktop-game.png` });
+    await pa.page.setViewportSize({ width: 844, height: 390 }); await pa.page.waitForTimeout(400);
+    await pa.page.screenshot({ path: `${OUT}/landscape-844.png` });
+    await pa.page.setViewportSize({ width: 390, height: 844 }); await pa.page.waitForTimeout(400);
+    await pa.page.screenshot({ path: `${OUT}/portrait-rotated.png` });
+  }
 
   const errs = [...pa.errors, ...pb.errors, ...pc.errors];
   check("không có lỗi JavaScript trên trang", errs.length === 0, errs.join(" | ").slice(0, 200));
