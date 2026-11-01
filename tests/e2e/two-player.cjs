@@ -366,6 +366,12 @@ let rules;
     await cpu.page.click("#rollButton");
     await cpu.page.waitForFunction(() => document.querySelector("#turnName")?.textContent.trim() === "Minh" && !document.querySelector("#rollButton")?.disabled, null, { timeout: 7000 });
     check("Máy Miền Tây cũng tung để phân định lượt nhưng người chơi thắng lượt này", /Đến lượt bạn/.test(await text(cpu.page, "#centerStatus")));
+    // Đợi animation chọn lượt dừng hẳn để không tiêu thụ chuỗi ngẫu nhiên ở lượt kế tiếp.
+    await cpu.page.waitForFunction(() => {
+      const stage = document.querySelector("#diceStage");
+      const result = document.querySelector("#diceResult");
+      return !stage?.classList.contains("show") && !result?.classList.contains("rolling");
+    }, null, { timeout: 5000 });
     // Người chơi đến bến phà, bỏ mua; Máy Miền Tây tự cân nhắc trả giá.
     await cpu.page.evaluate(() => { const q = [0.2, 0.4]; Math.random = () => q.length ? q.shift() : 0.5; });
     await cpu.page.click("#rollButton");
