@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;800&family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="./style.css?v=land5" />
+  <link rel="stylesheet" href="./style.css?v=starttokens1" />
 </head>
 <body>
   <div class="ambient ambient-one"></div>
@@ -53,6 +53,10 @@
         </div>
         <label class="field-label" for="playerName">Tên người chơi</label>
         <input id="playerName" class="text-input" maxlength="18" placeholder="Nhập tên (tối đa 18 ký tự)" autocomplete="nickname" />
+        <div class="token-select">
+          <div class="token-select-heading"><span class="field-label">Chọn quân đại diện</span><small>Token sẽ đi theo bạn trong ván</small></div>
+          <div id="tokenPicker" class="token-picker" role="group" aria-label="Chọn token người chơi"></div>
+        </div>
         <button id="createRoomButton" class="primary-button" type="button"><span>＋</span> Tạo phòng mới</button>
         <div class="or-divider"><span>hoặc vào phòng của bạn bè</span></div>
         <label class="field-label" for="roomCodeInput">Mã phòng 6 ký tự</label>
@@ -172,6 +176,6 @@
     <footer class="footer"><span>© 2026 Cờ Tỷ Phú Online</span><span>Làm để chơi với bạn bè</span></footer>
   </main>
 
-  <script type="module" src="./app.js?v=land5"></script>
+  <script type="module" src="./app.js?v=starttokens1"></script>
 </body>
 </html>

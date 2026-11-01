@@ -13,13 +13,21 @@ function extractFunction(name) {
 const spaceSource = app.match(/const SPACE_DATA = (\[[\s\S]*?\n\]);/)[1];
 const api = new Function(
   `const SPACE_DATA = ${spaceSource};
+   const AUCTION_INCREMENT = 10;
+   const COMPUTER_UID = "__computer__";
    ${extractFunction("getSpaceId")}
    ${extractFunction("provinceCells")}
    ${extractFunction("ownsWholeProvince")}
    ${extractFunction("calcRent")}
-   return {SPACE_DATA, provinceCells, ownsWholeProvince, calcRent};`
+   ${extractFunction("isAuctionSpace")}
+   ${extractFunction("nextAuctionBid")}
+   ${extractFunction("isOpeningRollPhase")}
+   ${extractFunction("canAdvanceTurn")}
+   ${extractFunction("compareOpeningRolls")}
+   ${extractFunction("isComputerActionDue")}
+   return {SPACE_DATA, provinceCells, ownsWholeProvince, calcRent, isAuctionSpace, nextAuctionBid, isOpeningRollPhase, canAdvanceTurn, compareOpeningRolls, isComputerActionDue};`
 )();
-const { SPACE_DATA, provinceCells, ownsWholeProvince, calcRent } = api;
+const { SPACE_DATA, provinceCells, ownsWholeProvince, calcRent, isAuctionSpace, nextAuctionBid, isOpeningRollPhase, canAdvanceTurn, compareOpeningRolls, isComputerActionDue } = api;
 
 const MEKONG_PROVINCES = [
   "Long An", "Tiền Giang", "Bến Tre", "Trà Vinh", "Vĩnh Long", "Đồng Tháp", "Cần Thơ",
@@ -85,13 +93,69 @@ test("stations double per extra station and utilities depend on the dice", () =>
   assert.equal(calcRent(SPACE_DATA[utilities[0]], { [`s${utilities[0]}`]: "p1", [`s${utilities[1]}`]: "p1" }, "p1", 6).rent, 60);
 });
 
-test("every purchasable place has its own landmark drawing", async () => {
-  const { artSvg, animalFor } = await import("../board-art.js");
-  for (let i = 0; i < SPACE_DATA.length; i++) {
-    const space = SPACE_DATA[i];
-    if (["property", "station", "utility"].includes(space.type)) {
-      assert.match(artSvg(space.name, "#fff"), /<svg/, `${space.name} needs art`);
-    }
-  }
-  assert.notEqual(animalFor("#0e7c86"), animalFor("#e8402a"));
+test("only stations and utilities enter the auction flow", () => {
+  const stations = SPACE_DATA.filter((space) => space.type === "station");
+  const utilities = SPACE_DATA.filter((space) => space.type === "utility");
+  const properties = SPACE_DATA.filter((space) => space.type === "property");
+  assert.equal(stations.length, 4);
+  assert.equal(utilities.length, 2);
+  assert.ok(stations.every(isAuctionSpace));
+  assert.ok(utilities.every(isAuctionSpace));
+  assert.ok(properties.every((space) => !isAuctionSpace(space)));
+});
+
+test("auction starts at 100,000₫ and rises in 100,000₫ steps", () => {
+  assert.equal(nextAuctionBid({ currentBid: 0 }), 10);
+  assert.equal(nextAuctionBid({ currentBid: 10 }), 20);
+  assert.equal(nextAuctionBid({ currentBid: 120 }), 130);
+});
+
+test("the board renderer no longer injects floating 3D landmark art", async () => {
+  const source = await readFile(new URL("../app.js", import.meta.url), "utf8");
+  const renderer = source.slice(source.indexOf("function renderBoard()"), source.indexOf("function renderPlayers()"));
+  assert.doesNotMatch(renderer, /artSvg|space-art/);
+  assert.ok(source.includes("function isAuctionSpace(space)"));
+});
+
+
+test("the computer is scheduled only for its actual turn or auction bid", () => {
+  const human = "human";
+  const computer = "__computer__";
+  assert.equal(isComputerActionDue({ status: "playing", turnUid: computer }, computer), true);
+  assert.equal(isComputerActionDue({ status: "playing", turnUid: human, auction: { turnUid: computer } }, computer), true);
+  assert.equal(isComputerActionDue({ status: "playing", turnUid: computer, auction: { turnUid: human } }, computer), false);
+  assert.equal(isComputerActionDue({ status: "finished", turnUid: computer }, computer), false);
+});
+
+
+test("opening dice choose the player with the higher total and detect ties", () => {
+  assert.equal(compareOpeningRolls([6, 4], [3, 5]), 1);
+  assert.equal(compareOpeningRolls([1, 2], [4, 5]), -1);
+  assert.equal(compareOpeningRolls([3, 4], [5, 2]), 0);
+});
+test("the game waits for opening rolls only on newly started matches", () => {
+  assert.equal(isOpeningRollPhase({status:"playing",openingRound:1,openingRolls:{}}), true);
+  assert.equal(isOpeningRollPhase({status:"playing",openingRound:2,startPlayerUid:"p1"}), false);
+  assert.equal(isOpeningRollPhase({status:"playing"}), false);
+});
+test("the computer waits for the human opening roll, then submits its own", () => {
+  const state = {status:"playing",creatorUid:"human",turnUid:"human",openingRound:1,openingRolls:{}};
+  assert.equal(isComputerActionDue(state,"computer"), false);
+  state.openingRolls.human = [4,5];
+  assert.equal(isComputerActionDue(state,"computer"), true);
+  state.openingRolls.computer = [2,3];
+  assert.equal(isComputerActionDue(state,"computer"), false);
+});
+test("the lobby offers both classic and Vietnamese everyday tokens", async () => {
+  const { TOKEN_OPTIONS, tokenMarkup } = await import("../board-art.js");
+  assert.deepEqual(TOKEN_OPTIONS.map((item) => item.id), ["penguin","puppy","plastic-chair","vietnamese-coffee"]);
+  assert.match(tokenMarkup("plastic-chair"), /<svg/);
+  assert.match(tokenMarkup("vietnamese-coffee"), /<svg/);
+});
+
+
+test("rooms from older versions remain playable without an opening-roll phase", () => {
+  assert.equal(canAdvanceTurn({status:"playing",turnUid:"p1"}), true);
+  assert.equal(canAdvanceTurn({status:"playing",openingRound:1}), false);
+  assert.equal(canAdvanceTurn({status:"playing",openingRound:2,startPlayerUid:"p2"}), true);
 });

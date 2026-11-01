@@ -120,6 +120,10 @@ let rules;
   await pa.page.waitForTimeout(500);
   if (OUT) await pa.page.screenshot({ path: `${OUT}/desktop-lobby.png` });
   check("kết nối thành công, huy hiệu 'Đã kết nối'", /Đã kết nối/.test(await text(pa.page, "#connectionBadge")));
+  await pa.page.click('#tokenPicker [data-token="plastic-chair"]');
+  await pb.page.click('#tokenPicker [data-token="vietnamese-coffee"]');
+  check("người chơi chọn được ghế nhựa Việt Nam", await pa.page.locator('#tokenPicker [data-token="plastic-chair"]').getAttribute("aria-pressed") === "true");
+  check("người chơi chọn được cà phê sữa đá", await pb.page.locator('#tokenPicker [data-token="vietnamese-coffee"]').getAttribute("aria-pressed") === "true");
   await pa.page.fill("#playerName", "An"); await pa.page.click("#createRoomButton");
   await pa.page.waitForSelector("#gameView:not(.hidden)");
   const code = (await text(pa.page, "#roomCodeLabel")).trim();
@@ -134,13 +138,36 @@ let rules;
   await pb.page.waitForSelector("#gameView:not(.hidden)", { timeout: 4000 }).catch(() => {});
   check("người thứ hai tham gia được (transaction không bị hủy vì dữ liệu null)", await pb.page.locator("#gameView").isVisible(), await text(pb.page, "#lobbyMessage"));
   await pa.page.waitForTimeout(400);
-  check("cả hai thấy trạng thái đang chơi", /Đến lượt bạn/i.test(await text(pa.page, "#centerStatus")) && /Đợi đối thủ/i.test(await text(pb.page, "#centerStatus")));
+  check("cả hai vào bước tung xí ngầu chọn người đi trước", /Tung xí ngầu chọn người đi trước/i.test(await text(pa.page, "#centerStatus")) && /Tung xí ngầu chọn người đi trước/i.test(await text(pb.page, "#centerStatus")));
+  check("token ghế nhựa và cà phê được lưu theo từng người", await pa.page.locator('.player-avatar[data-token="plastic-chair"]').count() === 1 && await pa.page.locator('.player-avatar[data-token="vietnamese-coffee"]').count() === 1);
+  await pa.page.evaluate(() => { Math.random = () => 0.5; });
+  await pa.page.click("#rollButton");
+  await pa.page.waitForFunction(() => /Đã tung xí ngầu/.test(document.querySelector("#centerStatus")?.textContent || ""), null, { timeout: 4000 });
+  check("người đã tung không thể tung lần hai trong cùng vòng", await pa.page.locator("#rollButton").isDisabled());
+  await pb.page.evaluate(() => { Math.random = () => 0.5; });
+  await pb.page.click("#rollButton");
+  await pa.page.waitForFunction(() => /Hòa điểm/.test(document.querySelector("#centerStatus")?.textContent || ""), null, { timeout: 5000 });
+  check("hai người hòa điểm thì mở vòng tung lại", /Vòng 2/.test(await text(pa.page, "#actionMessage")) && !(await pa.page.locator("#rollButton").isDisabled()));
+  await pa.page.waitForFunction(() => !document.querySelector("#diceStage")?.classList.contains("show"), null, { timeout: 4000 });
+  await pa.page.evaluate(() => { Math.random = () => 0.99; });
+  await pa.page.click("#rollButton");
+  await pa.page.waitForFunction(() => /Đã tung xí ngầu/.test(document.querySelector("#centerStatus")?.textContent || ""), null, { timeout: 4000 });
+  await pa.page.waitForFunction(() => !document.querySelector("#diceStage")?.classList.contains("show"), null, { timeout: 4000 });
+  await pb.page.evaluate(() => { Math.random = () => 0.01; });
+  await pb.page.click("#rollButton");
+  await pa.page.waitForFunction(() => document.querySelector("#rollButton")?.disabled === false && document.querySelector("#turnName")?.textContent.trim() === "An", null, { timeout: 6000 });
+  check("An thắng lượt xí ngầu và được đi trước", /Đến lượt bạn/i.test(await text(pa.page, "#centerStatus")) && /Đợi đối thủ/i.test(await text(pb.page, "#centerStatus")));
+  await Promise.all([
+    pa.page.waitForFunction(() => !document.querySelector("#diceStage")?.classList.contains("show"), null, { timeout: 4000 }),
+    pb.page.waitForFunction(() => !document.querySelector("#diceStage")?.classList.contains("show"), null, { timeout: 4000 })
+  ]);
 
   await pc.page.fill("#roomCodeInput", code); await pc.page.fill("#playerName", "Chi"); await pc.page.click("#joinRoomButton"); await pc.page.waitForTimeout(600);
   check("người thứ ba bị từ chối", !(await pc.page.locator("#gameView").isVisible()) && /đã đủ 2 người/.test(await text(pc.page, "#lobbyMessage")), await text(pc.page, "#lobbyMessage"));
 
-  const tokenInfo = await pa.page.evaluate(() => [...document.querySelectorAll(".token b")].map((b) => { const r = b.getBoundingClientRect(); const s = getComputedStyle(b); return [b.textContent, Math.round(r.x), Math.round(r.y), Math.round(r.width), Math.round(r.height), s.visibility, s.fontSize]; }));
-  check("quân cờ con vật hiển thị trên bàn cờ", tokenInfo.length === 2 && tokenInfo.some((x) => x[0] === "🐧") && tokenInfo.some((x) => x[0] === "🐶") && tokenInfo.every((x) => x[3] > 8 && x[4] > 8), JSON.stringify(tokenInfo));
+  const tokenInfo = await pa.page.evaluate(() => [...document.querySelectorAll(".token b")].map((b) => { const r = b.getBoundingClientRect(); const s = getComputedStyle(b); return [b.dataset.token, Math.round(r.x), Math.round(r.y), Math.round(r.width), Math.round(r.height), s.visibility, s.fontSize]; }));
+  check("quân ghế nhựa và ly cà phê hiển thị trên bàn", tokenInfo.length === 2 && tokenInfo.some((x) => x[0] === "plastic-chair") && tokenInfo.some((x) => x[0] === "vietnamese-coffee") && tokenInfo.every((x) => x[3] > 8 && x[4] > 8), JSON.stringify(tokenInfo));
+  check("token đã thu nhỏ, không lấn át ô cờ", tokenInfo.every((x) => x[3] < 46 && x[4] < 38), JSON.stringify(tokenInfo));
   check("chỉ người có lượt được bấm Tung xúc xắc", !(await pa.page.locator("#rollButton").isDisabled()) && (await pb.page.locator("#rollButton").isDisabled()));
   // Tung xúc xắc [1,2] → ô 3 (Đường Đồng Khởi, $60)
   await pa.page.evaluate(() => { const q = [0, 0.2]; Math.random = () => (q.length ? q.shift() : 0.5); });
@@ -150,6 +177,12 @@ let rules;
   const sawStage = await pb.page.waitForSelector("#diceStage.show", { timeout: 2000 }).then(() => true).catch(() => false);
   const stageInfo = await pb.page.evaluate(() => { const s = document.getElementById("diceStage"); const r = s.getBoundingClientRect(); const d = s.querySelector(".die"); const dr = d ? d.getBoundingClientRect() : null; return JSON.stringify({ cls: s.className, op: getComputedStyle(s).opacity, rect: [r.x, r.y, r.width, r.height].map(Math.round), die: dr && [dr.x, dr.y, dr.width, dr.height].map(Math.round), n: s.querySelectorAll(".die").length }); });
   check("hiệu ứng: xúc xắc ném lên giữa bàn cờ ở máy đối thủ", sawStage, stageInfo);
+  const diceStyle = await pb.page.evaluate(() => {
+    const stage = document.getElementById("diceStage");
+    const face = stage.querySelector(".die.face");
+    return { burst: getComputedStyle(stage, "::before").display, border: face ? getComputedStyle(face).borderTopWidth : null };
+  });
+  check("xúc xắc không còn tia trắng hoặc viền trắng", diceStyle.burst === "none" && diceStyle.border === "0px", JSON.stringify(diceStyle));
   const sawHop = await pb.page.waitForFunction(() => document.querySelector(".token.moving"), null, { timeout: 4000, polling: 20 }).then(() => true).catch(() => false);
   if (OUT) { await pb.page.screenshot({ path: `${OUT}/dice-live.png` }); await pb.page.evaluate(() => { const s = document.getElementById("diceStage"); s.className = "dice-stage show"; s.innerHTML = '<div class="dice-row"><span class="die" data-v="4">' + "<i></i>".repeat(9) + '</span><span class="die" data-v="6">' + "<i></i>".repeat(9) + '</span><b class="dice-total">10</b></div>'; });     await pb.page.waitForTimeout(100); await pb.page.screenshot({ path: `${OUT}/desktop-dice.png`, clip: { x: 280, y: 220, width: 720, height: 480 } }); console.log("stage@shot", await pb.page.evaluate(() => { const s = document.getElementById("diceStage"); const d = s.querySelector(".die"); const r = d && d.getBoundingClientRect(); return s.className + " " + JSON.stringify(r && [r.x, r.y, r.width, r.height].map(Math.round)); })); }
   check("hiệu ứng: quân cờ nhảy từng ô", sawHop, sawHop ? "" : await pb.page.evaluate(() => JSON.stringify({tokens: document.querySelectorAll(".token").length, pass: document.querySelectorAll(".space.pass,.space.land").length, ds: document.getElementById("diceStage")?.className})));
@@ -158,6 +191,8 @@ let rules;
   const diceA = await faces(pa.page), diceB = await faces(pb.page);
   check("hai bên thấy cùng xúc xắc", diceA === diceB && diceA === "1,2", JSON.stringify([diceA, diceB]));
   check("A thấy nút Mua 600.000₫; B không thấy", /Mua 600\.000₫/.test(await text(pa.page, "#pendingActions")) && (await pb.page.locator("#pendingActions button").count()) === 0);
+  const buyBoxes = await pa.page.locator("#pendingActions button").evaluateAll((els) => els.map((el) => { const r = el.getBoundingClientRect(); return [Math.round(r.width), Math.round(r.height)]; }));
+  check("hộp Mua/Bỏ qua đã gọn, không che mặt bàn", buyBoxes.length === 2 && buyBoxes.every(([w,h]) => w <= 105 && h <= 38), JSON.stringify(buyBoxes));
   check("không còn nút Kết thúc lượt", (await pa.page.locator("#endTurnButton").count()) === 0);
   check("lượt chưa chuyển khi A chưa quyết định mua", /Mua/.test(await text(pa.page, "#pendingActions")) && (await pb.page.locator("#rollButton").isDisabled()));
   await pa.page.click("#pendingActions .primary-button");
@@ -177,11 +212,42 @@ let rules;
   check("ghi dữ liệu sai cấu trúc bị Rules chặn", hack.ok === false);
 
   // B tung [3,3] → ô 6 (Hai Bà Trưng) rồi bỏ qua
-  await pb.page.evaluate(() => { const q = [0.4, 0.4]; Math.random = () => (q.length ? q.shift() : 0.5); });
-  await pb.page.click("#rollButton"); await pb.page.waitForTimeout(400);
-  await pb.page.locator("#pendingActions .secondary-button").click(); await pb.page.waitForTimeout(300);
-  await pa.page.waitForFunction(() => document.querySelector("#rollButton")?.disabled === false, null, { timeout: 6000 }).catch(() => {});
-  check("vòng chơi thứ hai hoạt động, lượt quay lại A", !(await pa.page.locator("#rollButton").isDisabled()));
+  // B đến bến phà (ô đặc biệt) và bỏ mua → A và B đấu giá lần lượt.
+  await pb.page.evaluate(() => { const q = [0.2, 0.4]; Math.random = () => (q.length ? q.shift() : 0.5); });
+  await pb.page.click("#rollButton");
+  await pb.page.waitForFunction(() => /Mua/.test(document.querySelector("#pendingActions")?.textContent || ""), null, { timeout: 4000 });
+  check("B đến bến phà và có lựa chọn mua", /Bến phà Rạch Miễu/.test(await text(pb.page, "#actionMessage")));
+  await pb.page.locator("#pendingActions .secondary-button").click();
+  await pa.page.waitForFunction(() => /Ra giá/.test(document.querySelector("#pendingActions")?.textContent || ""), null, { timeout: 4000 });
+  check("bỏ mua bến phà mở phiên đấu giá", /đấu giá/i.test(await text(pa.page, "#actionMessage")));
+  check("giá mở đấu giá là 100.000₫", (await text(pa.page, "#pendingActions")).includes("100.000₫"));
+  await pa.page.locator("#pendingActions .primary-button").click();
+  await pb.page.waitForFunction(() => /Nâng giá/.test(document.querySelector("#pendingActions")?.textContent || ""), null, { timeout: 4000 });
+  check("người chơi còn lại được quyền nâng giá", (await text(pb.page, "#pendingActions")).includes("200.000₫"));
+  await pb.page.locator("#pendingActions .primary-button").click();
+  await pa.page.waitForFunction(() => /Bỏ lượt/.test(document.querySelector("#pendingActions")?.textContent || ""), null, { timeout: 4000 });
+  await pa.page.locator("#pendingActions .secondary-button").click();
+  await pb.page.waitForFunction(() => document.querySelector("#board .space[data-index='5'].owned"), null, { timeout: 4000 });
+  check("người trả giá cao nhất sở hữu bến phà", await pb.page.locator("#board .space[data-index='5']").evaluate(el => el.classList.contains("owned")));
+  check("tiền đấu giá 200.000₫ được trừ đúng", (await text(pb.page, "#playersPanel")).includes("14.800.000₫"));
+  await pb.page.waitForFunction(() => document.querySelector("#rollButton")?.disabled === true, null, { timeout: 8000 }).catch(() => {});
+  await pa.page.waitForFunction(() => document.querySelector("#rollButton")?.disabled === false, null, { timeout: 4000 }).catch(() => {});
+  check("sau đấu giá tự động kết thúc lượt và trả lượt cho A", !(await pa.page.locator("#rollButton").isDisabled()));
+
+  // A đến công ty điện, cả hai cùng bỏ giá → ô không có chủ và lượt vẫn tự kết thúc.
+  await pa.page.evaluate(() => { const q = [0.4, 0.9]; Math.random = () => (q.length ? q.shift() : 0.5); });
+  await pa.page.click("#rollButton");
+  await pa.page.waitForFunction(() => /Mua/.test(document.querySelector("#pendingActions")?.textContent || ""), null, { timeout: 4000 });
+  check("A đến ô công ty điện", /Điện lực Miền Tây/.test(await text(pa.page, "#actionMessage")));
+  await pa.page.locator("#pendingActions .secondary-button").click();
+  await pb.page.waitForFunction(() => /Bỏ đấu giá/.test(document.querySelector("#pendingActions")?.textContent || ""), null, { timeout: 4000 });
+  await pb.page.locator("#pendingActions .secondary-button").click();
+  await pa.page.waitForFunction(() => /Bỏ đấu giá/.test(document.querySelector("#pendingActions")?.textContent || ""), null, { timeout: 4000 });
+  await pa.page.locator("#pendingActions .secondary-button").click();
+  await pa.page.waitForFunction(() => !document.querySelector("#pendingActions")?.textContent.includes("đấu giá"), null, { timeout: 4000 });
+  check("cả hai bỏ đấu giá thì ô không có chủ", !(await pa.page.locator("#board .space[data-index='12']").evaluate(el => el.classList.contains("owned"))));
+  await pb.page.waitForFunction(() => document.querySelector("#rollButton")?.disabled === false, null, { timeout: 8000 }).catch(() => {});
+  check("khi không ai trả giá, ván tự chuyển lượt", !(await pb.page.locator("#rollButton").isDisabled()));
 
   // Ván kết thúc → pháo giấy
   store.rooms[code] = { ...store.rooms[code], status: "finished", winner: store.rooms[code].creatorUid };
@@ -211,16 +277,30 @@ let rules;
     await cpu.page.waitForSelector("#gameView:not(.hidden)");
     check("chế độ đấu với máy mở được bàn cờ riêng", await cpu.page.locator("#gameModeLabel").innerText().then(x => /đơn/i.test(x)) && (await text(cpu.page, "#roomCodeLabel")).includes("VỚI MÁY"));
     check("đối thủ Máy Miền Tây xuất hiện trên bảng tài sản", /Máy Miền Tây/.test(await text(cpu.page, "#playersPanel")));
-    await cpu.page.evaluate(() => { const q = [0, 0, 0.5]; Math.random = () => q.length ? q.shift() : 0.5; });
+    check("ván với máy bắt đầu bằng lượt tung chọn người đi trước", /Tung xí ngầu chọn người đi trước/.test(await text(cpu.page, "#centerStatus")));
+    await cpu.page.evaluate(() => { const q = [0.99, 0.99]; Math.random = () => q.length ? q.shift() : 0.5; });
     await cpu.page.click("#rollButton");
+    await cpu.page.waitForFunction(() => document.querySelector("#turnName")?.textContent.trim() === "Minh" && !document.querySelector("#rollButton")?.disabled, null, { timeout: 7000 });
+    check("Máy Miền Tây cũng tung để phân định lượt nhưng người chơi thắng lượt này", /Đến lượt bạn/.test(await text(cpu.page, "#centerStatus")));
+    await cpu.page.waitForFunction(() => !document.querySelector("#diceStage")?.classList.contains("show"), null, { timeout: 4000 });
+    // Người chơi đến bến phà, bỏ mua; Máy Miền Tây tự cân nhắc trả giá.
+    await cpu.page.evaluate(() => { const q = [0.2, 0.4]; Math.random = () => q.length ? q.shift() : 0.5; });
+    await cpu.page.click("#rollButton");
+    await cpu.page.waitForFunction(() => /Mua/.test(document.querySelector("#pendingActions")?.textContent || ""), null, { timeout: 4000 });
+    await cpu.page.locator("#pendingActions .secondary-button").click();
+    await cpu.page.waitForFunction(() => /Nâng giá|Bỏ đấu giá/.test(document.querySelector("#pendingActions")?.textContent || ""), null, { timeout: 5000 });
+    check("Máy Miền Tây tự tham gia đấu giá bến phà", /Nâng giá/.test(await text(cpu.page, "#pendingActions")));
+    await cpu.page.locator("#pendingActions .secondary-button").click();
+    await cpu.page.waitForFunction(() => document.querySelector("#board .space[data-index='5'].owned"), null, { timeout: 8000 });
+    check("Máy thắng đấu giá khi người chơi bỏ lượt", await cpu.page.locator("#board .space[data-index='5']").evaluate(el => el.classList.contains("owned")));
     await cpu.page.waitForFunction(() =>
       document.querySelector("#rollButton")?.disabled === false &&
       document.querySelector("#turnName")?.textContent.trim() === "Minh" &&
       /Đến lượt bạn/i.test(document.querySelector("#centerStatus")?.textContent || ""),
       null,
-      { timeout: 12000 }
+      { timeout: 15000 }
     );
-    check("máy tự tung xúc xắc, xử lý ô đất và trả lượt cho người chơi", true);
+    check("máy tự xử lý đấu giá và hoàn tất lượt", true);
     await cpu.context.close();
   }
 
