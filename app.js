@@ -1649,6 +1649,7 @@ $("joinRoomButton").addEventListener("click", joinRoom);
 $("playComputerButton").addEventListener("click", startComputerGame);
 $("rollButton").addEventListener("click", rollDice);
 $("propsButton").addEventListener("click", () => { $("propsModal").hidden = false; });
+$("propertyList").addEventListener("click", handleDeedAction);
 $("propsClose").addEventListener("click", () => { $("propsModal").hidden = true; });
 $("propsModal").addEventListener("click", (event) => { if (event.target === $("propsModal")) $("propsModal").hidden = true; });
 // Trên điện thoại: vào toàn màn hình và khóa ngang (nếu trình duyệt cho phép; nếu không giao diện tự xoay bằng CSS).
