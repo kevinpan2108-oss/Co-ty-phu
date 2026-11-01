@@ -1023,14 +1023,14 @@ async function boot() {
 boot();
 
 // ===== Chế độ xem bàn cờ: 3D (isometric) hoặc phẳng. Chỉ đổi giao diện, không ghi gì lên database =====
-const VIEW_KEY = "ctp-board-view";
+const VIEW_KEY = "ctp-board-view-v2";
 function applyBoardView(iso) {
   $("boardWrap").classList.toggle("iso", iso);
   const btn = $("viewToggleButton");
   btn.textContent = iso ? "Bàn phẳng" : "Bàn 3D";
   btn.setAttribute("aria-pressed", String(iso));
 }
-applyBoardView(store("get", VIEW_KEY) !== "flat");
+applyBoardView(store("get", VIEW_KEY) === "iso");
 $("viewToggleButton").addEventListener("click", () => {
   const iso = !$("boardWrap").classList.contains("iso");
   applyBoardView(iso);
