@@ -13,6 +13,7 @@ function extractFunction(name) {
 const spaceSource = app.match(/const SPACE_DATA = (\[[\s\S]*?\n\]);/)[1];
 const api = new Function(
   `const SPACE_DATA = ${spaceSource};
+   const AUCTION_INCREMENT = 10;
    ${extractFunction("getSpaceId")}
    ${extractFunction("provinceCells")}
    ${extractFunction("ownsWholeProvince")}
