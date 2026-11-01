@@ -294,16 +294,9 @@ function ownsWholeProvince(owners, group, uid) {
   const cells = group && uid ? provinceCells(group) : [];
   return cells.length >= 2 && cells.every((i) => owners?.[getSpaceId(i)] === uid);
 }
-function calcRent(space, owners, ownerUid, diceTotal) {
-  const countOwned = (type) => Object.keys(owners || {}).filter((key) => SPACE_DATA[Number(key.slice(1))]?.type === type && owners[key] === ownerUid).length;
-  let rent = space.rent || 50;
-  let wholeProvince = false;
-  if (space.type === "station") rent = 40 * Math.pow(2, Math.max(0, countOwned("station") - 1));
-  else if (space.type === "utility") rent = diceTotal * (countOwned("utility") > 1 ? 10 : 4);
-  else if (space.type === "property" && ownsWholeProvince(owners, space.group, ownerUid)) { rent *= 2; wholeProvince = true; }
-  return {rent, wholeProvince};
+function calcRent(space, owners, ownerUid, diceTotal, index, houses = {}, mortgages = {}) {
+  return calculateAssetRent(SPACE_DATA, space, owners, ownerUid, diceTotal, index, houses, mortgages);
 }
-let cellInfoTimer = null;
 function showCellInfo(index, seconds = 7) {
   const space = SPACE_DATA[index];
   const box = $("cellInfo");
@@ -883,9 +876,9 @@ function resetEffects() {
   if (stage) stage.className = "dice-stage";
 }
 // Quân cờ nhảy từng ô tới đích. Đi quá xa (vào tù) thì dịch chuyển thẳng.
-function animateMove(uid, from, to, delay) {
-  const dist = (to - from + 40) % 40;
-  if (reduceMotion || dist === 0 || dist > 12) return 0;
+function animateMove(uid, from, to, delay, expectedSteps = null) {
+  const distance = Number.isInteger(expectedSteps) ? expectedSteps : (to - from + 40) % 40;
+  if (reduceMotion || distance < 1 || distance > 12 || (from + distance) % 40 !== to) return 0;
   displayPos[uid] = from;
   let step = 0;
   const tick = () => {
@@ -893,8 +886,8 @@ function animateMove(uid, from, to, delay) {
     movingUid = uid;
     displayPos[uid] = (from + step) % 40;
     const cell = document.querySelector(`#board .space[data-index="${displayPos[uid]}"]`);
-    if (cell) { cell.classList.remove("pass", "land"); void cell.offsetWidth; cell.classList.add(step >= dist ? "land" : "pass"); }
-    if (step >= dist) {
+    if (cell) { cell.classList.remove("pass", "land"); void cell.offsetWidth; cell.classList.add(step >= distance ? "land" : "pass"); }
+    if (step >= distance) {
       delete displayPos[uid];
       delete moveTimers[uid];
       movingUid = null;
@@ -905,9 +898,8 @@ function animateMove(uid, from, to, delay) {
     moveTimers[uid] = setTimeout(tick, HOP_MS);
   };
   moveTimers[uid] = setTimeout(tick, delay);
-  return delay + dist * HOP_MS;
+  return delay + distance * HOP_MS;
 }
-const CUBE_ROT = { 1: [0, 0], 2: [0, -90], 3: [-90, 0], 4: [90, 0], 5: [0, 90], 6: [0, 180] };
 function cubeHtml() {
   const faces = [1, 2, 3, 4, 5, 6].map((n) => `<span class="die face" data-v="${n}">${"<i></i>".repeat(9)}</span>`).join("");
   return `<div class="cube-wrap"><div class="cube">${faces}</div></div>`;
@@ -949,7 +941,7 @@ function animateDice(finalDice) {
     void stage.offsetWidth;
     cubes.forEach((cube, i) => {
       cube.style.transition = "";
-      setCube(cube, Number(finalDice[i]) || 1, [720 + 360 * i, 540 + 360 * (1 - i)]);
+      setCube(cube, Number(finalDice[i]) || 1, finalDiceSpin(i));
     });
   }
   setTimeout(finish, DICE_MS);
@@ -1001,7 +993,11 @@ function runEffects(previous, next) {
     if (!before) continue;
     let delay = (rolled || openingRolled) ? DICE_MS : 0;
     if (Number(before.position) !== Number(now.position)) {
-      delay = animateMove(uid, Number(before.position), Number(now.position), delay) || delay;
+      const move = next.lastMove;
+      const exactSteps = move?.uid === uid &&
+        Number(move.from) === Number(before.position) &&
+        Number(move.to) === Number(now.position) ? Number(move.steps) : null;
+      delay = animateMove(uid, Number(before.position), Number(now.position), delay, exactSteps) || delay;
     }
     if (Number(before.cash) !== Number(now.cash)) floatDelta(uid, Number(now.cash) - Number(before.cash), delay);
   }
@@ -1015,7 +1011,6 @@ function runEffects(previous, next) {
     try { navigator.vibrate?.(80); } catch { /* không hỗ trợ rung */ }
   }
 }
-
 function renderRoom() {
   if (!roomState || !currentUser) return;
   $("roomCodeLabel").textContent = computerGame ? "VỚI MÁY" : currentRoomCode;
@@ -1073,73 +1068,81 @@ async function rollOpeningDice() {
   if (computerGame && !computerBusy) scheduleComputerTurn();
 }
 async function rollDice() {
-  if (!roomState || busy) return;
+  if (!roomState || busy || roomState.debt) return;
   if (isOpeningRollPhase(roomState)) return rollOpeningDice();
   const mine = myPlayer();
   if (mine?.jailTurns) return releaseFromJail();
   setBusy(true);
   try {
-    const dice = [1+Math.floor(Math.random()*6),1+Math.floor(Math.random()*6)];
+    // Chọn kết quả một lần bên ngoài transaction. Nếu Firebase phải chạy lại updater,
+    // cùng một bộ xúc xắc và cùng một thẻ vẫn được dùng, không phát sinh kết quả lệch.
+    const dice = [1 + Math.floor(Math.random() * 6), 1 + Math.floor(Math.random() * 6)];
+    const planned = calculateDiceMove(mine.position, dice);
+    const landing = SPACE_DATA[planned.to];
+    const drawnCard = landing?.type === "chance" || landing?.type === "fortune"
+      ? drawCard(landing.type)
+      : null;
     const uid = currentUser.uid;
     const result = await updateCurrentRoom((room) => {
-      if (room === null) return room; // SDK chưa có dữ liệu: yêu cầu nạp từ server rồi gọi lại
-      if (!room || room.status !== "playing" || room.turnUid !== uid || room.pending || room.auction || room.lastRoll) return;
+      if (room === null) return room;
+      if (!room || room.status !== "playing" || room.turnUid !== uid || room.pending || room.auction || room.lastRoll || room.debt) return;
       const player = room.players?.[uid];
-      if (!player || player.jailTurns) return;
-      const total = dice[0]+dice[1];
-      const oldPos = Number(player.position || 0);
-      const newPos = (oldPos + total) % 40;
-      if (oldPos + total >= 40) player.cash += SALARY;
-      player.position = newPos;
-      room.lastRoll = dice;
+      if (!player || player.jailTurns || Number(player.position || 0) !== planned.from) return;
+      const move = calculateDiceMove(player.position, dice);
+      if (move.to !== planned.to || move.steps !== dice[0] + dice[1]) return;
+      if (move.passesStart) player.cash += SALARY;
+      player.position = move.to;
+      room.lastRoll = [...dice];
+      room.lastMove = {uid,from:move.from,to:move.to,steps:move.steps,dice:[...dice],turnNumber:Number(room.turnNumber || 1)};
       room.pending = null;
-      const space = SPACE_DATA[newPos];
-      const id = getSpaceId(newPos);
-      let text = player.name + " tung được " + dice[0] + " + " + dice[1] + " và đến " + space.name + ".";
+      const space = SPACE_DATA[move.to];
+      const id = getSpaceId(move.to);
+      let message = player.name + " tung được " + dice[0] + " + " + dice[1] + " = " + move.steps +
+        " bước và đến " + space.name + ".";
+      if (move.passesStart) message += " Đi qua Xuất phát, nhận " + money(SALARY) + ".";
       if (space.type === "property" || space.type === "station" || space.type === "utility") {
         const ownerUid = room.propertyOwners?.[id];
         if (!ownerUid) {
-          room.pending = {uid,index:newPos};
-          text += " Mảnh đất này chưa có chủ. Bạn có muốn mua không?";
+          room.pending = {uid,index:move.to};
+          message += " Tài sản này chưa có chủ. Bạn có muốn mua không?";
         } else if (ownerUid !== uid) {
           const owner = room.players[ownerUid];
-          const {rent, wholeProvince} = calcRent(space, room.propertyOwners, ownerUid, total);
-          const paid = Math.min(Number(player.cash||0),rent);
-          player.cash -= paid;
-          owner.cash = Number(owner.cash||0) + paid;
-          text += " Trả " + money(rent) + " tiền thuê cho " + owner.name + (wholeProvince ? " (chủ sở hữu đủ các ô của " + space.group + " nên thuê gấp đôi)" : "") + ".";
-          if (paid < rent) {
-            player.cash = 0; player.bankrupt = true;
-            room.status = "finished"; room.winner = ownerUid;
-            text = player.name + " phá sản! " + owner.name + " chiến thắng.";
+          const rentInfo = rentForRoom(room, move.to, move.steps);
+          if (rentInfo.rent > 0) {
+            const payment = chargePlayer(room, uid, rentInfo.rent, ownerUid, "Tiền thuê " + space.name);
+            message += " Tiền thuê " + money(rentInfo.rent) + " cho " + owner.name +
+              (rentInfo.houses === 5 ? " (khách sạn)" : rentInfo.houses > 0 ? " (" + rentInfo.houses + " nhà)" : rentInfo.wholeProvince ? " (sở hữu trọn bộ tỉnh, thuê gấp đôi)" : "") + ".";
+            if (payment.remaining > 0) message += " Bạn còn thiếu " + money(payment.remaining) + " và cần xử lý nợ.";
+          } else if (rentInfo.mortgaged) {
+            message += " Tài sản đang cầm cố nên tạm thời không thu tiền thuê.";
           }
         } else {
-          text += " Đây là tài sản của bạn.";
+          message += " Đây là tài sản của bạn.";
         }
       } else if (space.type === "tax") {
-        player.cash -= space.amount;
-        text += " Bạn phải nộp " + money(space.amount) + " tiền thuế.";
-        if (player.cash < 0) { player.cash=0; player.bankrupt=true; room.status="finished"; room.winner=otherPlayerUid(room); }
-      } else if (space.type === "chance") {
-        const card = CHANCE_CARDS[Math.floor(Math.random()*CHANCE_CARDS.length)];
-        player.cash += card.amount;
-        text += " " + card.text + (card.amount >= 0 ? " Nhận " : " Trả ") + money(Math.abs(card.amount)) + ".";
-        if (player.cash < 0) { player.cash=0; player.bankrupt=true; room.status="finished"; room.winner=otherPlayerUid(room); }
+        const payment = chargePlayer(room, uid, space.amount, "", "Thuế " + space.name);
+        message += " Nộp thuế " + money(space.amount) + ".";
+        if (payment.remaining > 0) message += " Bạn còn thiếu " + money(payment.remaining) + " và cần xử lý nợ.";
+      } else if (space.type === "chance" || space.type === "fortune") {
+        const cardText = applyCardEffect(room, uid, drawnCard);
+        message += " " + cardText;
       } else if (space.type === "gotojail") {
-        player.position = 10; player.jailTurns = 1;
-        text += " Bạn phải vào tù!";
+        player.position = 10;
+        player.jailTurns = 1;
+        room.lastMove = {uid,from:move.from,to:10,steps:0,kind:"teleport"};
+        message += " Bạn bị đưa thẳng vào tù, không nhận tiền Xuất phát.";
       } else if (space.type === "start") {
-        text += " Bạn dừng ngay tại Xuất phát.";
+        message += " Bạn dừng ngay tại Xuất phát.";
       } else if (space.type === "free") {
-        text += " Nghỉ chân một lượt.";
+        message += " Nghỉ chân tại chợ nổi Cái Răng.";
       } else if (space.type === "jail") {
-        text += " Bạn chỉ ghé thăm nhà tù.";
+        message += " Bạn chỉ ghé thăm nhà tù.";
       }
-      room.message = text;
+      room.message = message.slice(0, 300);
       room.updatedAt = Date.now();
       return room;
     });
-    if (!result.committed) notify("Chưa thể tung xúc xắc. Hãy kiểm tra lượt chơi.");
+    if (!result.committed) notify("Chưa thể tung xúc xắc. Hãy kiểm tra lượt chơi hoặc khoản nợ đang xử lý.");
   } catch (error) {
     notify("Lỗi khi tung xúc xắc: " + explainFirebaseError(error));
   } finally {
