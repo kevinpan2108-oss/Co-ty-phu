@@ -1,33 +1,62 @@
-# Ghi chú bàn giao (cho người/AI làm tiếp)
+# Ghi chú bàn giao – Cờ Tỷ Phú Miền Tây
 
-Nhánh làm việc: `feat/mekong-theme` (từ `feat/online-mvp`). **Không sửa trực tiếp `main` hay `feat/online-mvp`**: làm trên nhánh riêng rồi mở Pull Request.
-Ràng buộc của dự án (xem `CLAUDE_REVIEW.md`): chỉ 2 người chơi, ưu tiên tiếng Việt, **không** thanh toán, quảng cáo, tài khoản/mật khẩu, chat, giao dịch giữa người chơi, AI đối thủ.
+## Trạng thái nhánh
 
-## Đã làm
-- **Kết nối:** không dùng Firebase Authentication. Mỗi trình duyệt tự sinh mã người chơi (`localStorage`), chỉ cần Realtime Database. Rules ở `firebase-database.rules.json` (Publish thủ công trong Firebase Console mỗi khi file đổi).
-- **Tiền Việt:** dữ liệu lưu theo *đơn vị*, 1 đơn vị = 10.000₫ (`UNIT_VND`, hàm `money()`/`moneyShort()` trong `app.js`). Đổi cách hiển thị thì không phải đổi Rules hay dữ liệu phòng. Giá/tiền thuê trong `SPACE_DATA` vẫn là số đơn vị.
-- **Chủ đề miền Tây:** 40 ô đặt tên theo địa danh ĐBSCL, nhóm màu theo tỉnh; thẻ Cơ hội; bảng màu sông nước (biến CSS ở đầu `style.css`); cảnh hoàng hôn trên sông (SVG trong `index.html`, `.scene`).
-- **Hiệu ứng** (`runEffects()` trong `app.js`, chỉ là hiển thị, không ghi lên database): xúc xắc lăn, quân cờ nhảy từng ô, tiền cộng/trừ bay lên, dấu chủ sở hữu khi mua đất, pháo giấy khi thắng, rung nhẹ + tiêu đề tab khi đến lượt. Tôn trọng `prefers-reduced-motion`.
+- Nhánh tính năng đang làm: `feat/mekong-board-polish`.
+- Nhánh nền online: `feat/online-mvp`.
+- Không sửa trực tiếp `main` hoặc `feat/online-mvp`; tiếp tục trên nhánh tính năng và mở Pull Request về `feat/online-mvp`.
+- Bản GitHub Pages hiện lấy từ `feat/online-mvp`, do đó nhánh tính năng chưa tự động xuất hiện trên link công khai trước khi được đưa vào nhánh xuất bản.
 
-## Quy tắc khi sửa code
-- **Mỗi lần sửa `app.js` hoặc `style.css`, tăng `?v=` ở hai thẻ trong `index.html`** (đang là `mekong3`), nếu không điện thoại sẽ dùng bản cũ trong bộ nhớ đệm.
-- Mọi dữ liệu lấy từ database (tên, màu, xúc xắc...) phải qua `escapeHtml()` / `safeColor()` / `Number()` trước khi đưa vào HTML.
-- Giữ `SPACE_DATA` đủ 40 ô; chỉ số ô là khóa của `propertyOwners` (`s0`..`s39`) nên **không đổi thứ tự ô** khi có phòng đang chơi.
-- Đổi cấu trúc dữ liệu phòng thì phải đổi cả `firebase-database.rules.json` và `tests/rules.test.js`.
+## Phạm vi game đã thống nhất
 
-## Kiểm thử
-```
+Có hai chế độ:
+1. **Online 2 người:** hai người thật dùng mã phòng 6 ký tự và Firebase Realtime Database.
+2. **Chơi với máy:** người chơi đấu với “Máy Miền Tây” cục bộ; không tạo phòng Firebase. Yêu cầu chơi với máy là yêu cầu mới của chủ dự án và **ghi đè ràng buộc cũ trong `CLAUDE_REVIEW.md` cấm AI đối thủ**. Không được xóa chế độ này.
+
+Không có tài khoản/mật khẩu, chat, thanh toán, quảng cáo hoặc giao dịch giữa người chơi.
+
+## Nội dung và giao diện đã có
+
+- Bàn cờ 40 ô; 22 bất động sản thuộc đủ 13 tỉnh/thành ĐBSCL trong bộ dữ liệu.
+- Sở hữu đủ bất động sản thuộc cùng tỉnh thì tiền thuê ô đó nhân đôi.
+- Dữ liệu địa danh có icon, giới thiệu và màu nhóm theo tỉnh.
+- Khung thông tin khi chạm ô; cảnh sông nước, khung bàn cờ và màu chủ đề miền Tây.
+- Xúc xắc lăn, quân cờ nhảy từng ô, tiền bay, dấu sở hữu, pháo giấy khi thắng; tôn trọng `prefers-reduced-motion`.
+- Đối thủ máy có chiến lược giữ tiền và ưu tiên hoàn thiện nhóm tỉnh; logic nằm trong `computer-player.js`.
+
+## Kết quả kiểm thử mới nhất
+
+- `npm run check`: đạt.
+- `npm test`: **63/63** đạt.
+- `npm run test:e2e`: **34/34** đạt ở GitHub Actions (hai trình duyệt Chromium + Firebase giả lập).
+- E2E bao gồm tạo/tham gia phòng, từ chối người thứ ba, đồng bộ xúc xắc và tài sản, hiệu ứng quân cờ, chế độ chơi với máy, và viewport 390px/360px.
+- Chưa phải kiểm thử Firebase Emulator hay hai điện thoại thật.
+- E2E đã phát hiện và sửa lỗi focus/scroll khi chuyển từ sảnh sang bàn cờ: nút xúc xắc từng bị nằm phía trên viewport trên Android 360px. `showGameView()` trong `app.js` làm mờ nút sảnh đang focus và đưa trang về đầu trước khi hiển thị game.
+
+## Quy tắc khi sửa
+
+- Sau mỗi lần sửa `app.js` hoặc `style.css`, tăng query version ở hai thẻ CSS/JS trong `index.html`.
+- Dữ liệu từ database phải qua `escapeHtml()`, `safeColor()` hoặc `Number()` trước khi đưa vào HTML.
+- Giữ đúng 40 ô và không đổi thứ tự index vì `propertyOwners` dùng khóa `s0`.. `s39`.
+- Đổi cấu trúc dữ liệu phòng phải cập nhật `firebase-database.rules.json` và `tests/rules.test.js`.
+- Mọi thay đổi hành vi nên có unit test hoặc E2E; workflow `.github/workflows/validate.yml` đã chạy cả npm test và Playwright E2E.
+
+## Lệnh kiểm thử
+
+```bash
 npm run check
-npm test                              # smoke + hành vi Rules (bộ mô phỏng tối giản)
-npm i --no-save playwright && npx playwright install chromium
-node tests/e2e/two-player.cjs ./shots # 2 trình duyệt + Firebase giả lập + ảnh chụp mobile/desktop
+npm test
+npm install --no-save playwright
+npx playwright install chromium
+npm run test:e2e
 ```
-Chưa từng chạy với Firebase Emulator hay Firebase thật trong môi trường tự động: hãy thử 2 thiết bị thật sau mỗi thay đổi lớn.
 
-## Việc có thể làm tiếp (theo thứ tự gợi ý)
-1. Xem lại ảnh chụp mobile (390px, 360px) sau mỗi thay đổi giao diện; tên ô bị ẩn dưới 560px (chạm ô để xem chi tiết).
-2. Hộp thoại hiện thẻ Cơ hội khi rút (hiện chỉ có dòng chữ ở khung Hành động).
-3. Nút "Chơi lại" khi ván kết thúc (hiện phải rời phòng và tạo phòng mới).
-4. Âm thanh (xúc xắc, mua đất, thắng) có nút tắt tiếng, mặc định tắt.
-5. Dọn phòng cũ; báo cho người còn lại khi một người rời phòng giữa ván.
-6. Chống gian lận cần Cloud Functions (hiện người chơi tự tính tiền/xúc xắc ở trình duyệt; ai biết mã phòng đều sửa được phòng đó).
+## Việc nên làm tiếp
+
+1. Kiểm thử online trên hai điện thoại với Firebase thật sau khi merge vào nhánh xuất bản.
+2. Xem lại ảnh chụp mobile (390px, 360px) sau mỗi thay đổi lớn.
+3. Thêm hộp thoại/thẻ trực quan khi rút Cơ hội (hiện nội dung ở khung Hành động).
+4. Cân nhắc nút “Chơi lại” khi ván kết thúc.
+5. Âm thanh xúc xắc/mua đất/thắng có nút tắt, mặc định tắt.
+6. Dọn phòng cũ; báo người còn lại khi một người rời phòng giữa ván.
+7. Chống gian lận cần Cloud Functions vì client hiện tự tính tiền/xúc xắc.

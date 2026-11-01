@@ -21,5 +21,11 @@ jobs:
           node-version: 22
       - name: Check JavaScript syntax
         run: npm run check
-      - name: Run smoke tests
+      - name: Run unit and smoke tests
         run: npm test
+      - name: Install Playwright and Chromium for two-player E2E
+        run: |
+          npm install --no-save playwright
+          npx playwright install --with-deps chromium
+      - name: Run two-browser end-to-end tests
+        run: npm run test:e2e

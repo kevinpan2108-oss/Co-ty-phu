@@ -269,3 +269,16 @@ h1,h2,.brand strong,.center-title,.player-cash,.dice-illustration{font-family:va
   transform: translateY(-1px);
 }
 .soft-button[hidden] { display: none !important; }
+
+/* ===== Khung thông tin ô ===== */
+.board-wrap{flex-direction:column;gap:12px}
+.cell-info{width:min(100%,560px);max-height:0;opacity:0;overflow:hidden;border:1px solid transparent;border-radius:14px;background:rgba(6,24,29,.55);padding:0 14px;transition:max-height .25s,opacity .25s,padding .25s,border-color .25s}
+.cell-info.show{max-height:260px;opacity:1;padding:12px 14px;border-color:var(--line)}
+.cell-info-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.cell-info-head i{width:10px;height:10px;border-radius:50%}
+.cell-info-head span{font-size:12px;color:var(--muted)}
+.cell-info-head strong{font-family:var(--display);font-size:18px;flex-basis:100%}
+.cell-info p{margin:6px 0 0;font-size:13px;line-height:1.55;color:#dcebec}
+.cell-info-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.cell-info-chips span{padding:4px 10px;border-radius:99px;background:rgba(242,182,50,.14);color:#ffe08a;font-size:12px;font-weight:600}
+.cell-info p.cell-info-bonus{color:#ffe08a;font-weight:600}

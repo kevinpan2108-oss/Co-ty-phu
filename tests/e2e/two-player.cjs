@@ -192,7 +192,32 @@ let rules;
     await x.context.close();
   }
 
-  // ===== 4. Giao diện điện thoại
+  // ===== 4. Đối thủ máy chạy hoàn chỉnh một lượt
+  {
+    const cpu = await newPlayer(browser, "uidCOMPUTEROPPONENT000000000");
+    await cpu.page.goto(URL0);
+    await cpu.page.waitForFunction(() => document.querySelector("#connectionBadge")?.classList.contains("online"), null, { timeout: 8000 });
+    await cpu.page.fill("#playerName", "Minh");
+    await cpu.page.click("#playComputerButton");
+    await cpu.page.waitForSelector("#gameView:not(.hidden)");
+    check("chế độ đấu với máy mở được bàn cờ riêng", await cpu.page.locator("#gameModeLabel").innerText().then(x => /đơn/i.test(x)) && (await text(cpu.page, "#roomCodeLabel")).includes("VỚI MÁY"));
+    check("đối thủ Máy Miền Tây xuất hiện trên bảng tài sản", /Máy Miền Tây/.test(await text(cpu.page, "#playersPanel")));
+    await cpu.page.evaluate(() => { const q = [0, 0, 0.5]; Math.random = () => q.length ? q.shift() : 0.5; });
+    await cpu.page.click("#rollButton");
+    await cpu.page.waitForSelector("#endTurnButton:not(:disabled)", { timeout: 4000 });
+    await cpu.page.click("#endTurnButton");
+    await cpu.page.waitForFunction(() =>
+      document.querySelector("#rollButton")?.disabled === false &&
+      document.querySelector("#turnName")?.textContent.trim() === "Minh" &&
+      /Đến lượt bạn/i.test(document.querySelector("#centerStatus")?.textContent || ""),
+      null,
+      { timeout: 12000 }
+    );
+    check("máy tự tung xúc xắc, xử lý ô đất và trả lượt cho người chơi", true);
+    await cpu.context.close();
+  }
+
+  // ===== 5. Giao diện điện thoại
   for (const [w, h, label] of [[390, 844, "iPhone 390"], [360, 740, "Android 360"]]) {
     const m = await newPlayer(browser, "uidMMMMMMMMMMMMMMMMMMMMMMMMM", { viewport: { width: w, height: h }, mobile: true });
     await m.page.goto(URL0); await m.page.waitForTimeout(500);
@@ -202,7 +227,7 @@ let rules;
     const overflow = await m.page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
     const rollBox = await m.page.locator("#rollButton").boundingBox();
     check(label + ": không tràn ngang (sảnh/ván)", lobbyOverflow <= 0 && overflow <= 0, `sảnh ${lobbyOverflow}px, ván ${overflow}px`);
-    check(label + ": nút Tung xúc xắc trong màn hình đầu, cao ≥ 40px", rollBox && rollBox.y + rollBox.height <= h && rollBox.height >= 40, rollBox ? `y=${Math.round(rollBox.y)}..${Math.round(rollBox.y + rollBox.height)}/${h}, cao ${Math.round(rollBox.height)}` : "không thấy");
+    check(label + ": nút Tung xúc xắc nằm trọn trong màn hình đầu, cao ≥ 40px", rollBox && rollBox.y >= 0 && rollBox.y + rollBox.height <= h && rollBox.height >= 40, rollBox ? `y=${Math.round(rollBox.y)}..${Math.round(rollBox.y + rollBox.height)}/${h}, cao ${Math.round(rollBox.height)}` : "không thấy");
     const inputFont = await m.page.evaluate(() => getComputedStyle(document.getElementById("playerName")).fontSize);
     if (OUT) { await m.page.screenshot({ path: `${OUT}/mobile-${w}.png` }); await m.page.evaluate(() => document.getElementById("lobbyView").classList.remove("hidden")); }
     await m.context.close();
