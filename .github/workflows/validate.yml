@@ -28,4 +28,4 @@ jobs:
           npm install --no-save playwright
           npx playwright install --with-deps chromium
       - name: Run two-browser end-to-end tests
-        run: node tests/e2e/two-player.cjs
+        run: npm run test:e2e
