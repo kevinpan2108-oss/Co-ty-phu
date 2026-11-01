@@ -226,7 +226,10 @@ let rules;
     await m.page.waitForTimeout(400);
     const overflow = await m.page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
     const rollBox = await m.page.locator("#rollButton").boundingBox();
+    const boardBox = await m.page.locator("#board").boundingBox();
+    const boardTransform = await m.page.locator("#board").evaluate((el) => getComputedStyle(el).transform);
     check(label + ": không tràn ngang (sảnh/ván)", lobbyOverflow <= 0 && overflow <= 0, `sảnh ${lobbyOverflow}px, ván ${overflow}px`);
+    check(label + ": bàn cờ nghiêng nằm trọn theo chiều ngang", boardBox && boardBox.x >= 0 && boardBox.x + boardBox.width <= w && boardTransform !== "none", boardBox ? `x=${Math.round(boardBox.x)}..${Math.round(boardBox.x + boardBox.width)}/${w}` : "không thấy");
     check(label + ": nút Tung xúc xắc nằm trọn trong màn hình đầu, cao ≥ 40px", rollBox && rollBox.y >= 0 && rollBox.y + rollBox.height <= h && rollBox.height >= 40, rollBox ? `y=${Math.round(rollBox.y)}..${Math.round(rollBox.y + rollBox.height)}/${h}, cao ${Math.round(rollBox.height)}` : "không thấy");
     const inputFont = await m.page.evaluate(() => getComputedStyle(document.getElementById("playerName")).fontSize);
     if (OUT) { await m.page.screenshot({ path: `${OUT}/mobile-${w}.png` }); await m.page.evaluate(() => document.getElementById("lobbyView").classList.remove("hidden")); }
