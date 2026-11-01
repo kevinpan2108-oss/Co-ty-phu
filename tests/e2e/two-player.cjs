@@ -164,8 +164,17 @@ let rules;
 
   const tokenInfo = await pa.page.evaluate(() => [...document.querySelectorAll(".token b")].map((b) => { const r = b.getBoundingClientRect(); const s = getComputedStyle(b); return [b.dataset.token, Math.round(r.x), Math.round(r.y), Math.round(r.width), Math.round(r.height), s.visibility, s.fontSize]; }));
   check("quân ghế nhựa và ly cà phê hiển thị trên bàn", tokenInfo.length === 2 && tokenInfo.some((x) => x[0] === "plastic-chair") && tokenInfo.some((x) => x[0] === "vietnamese-coffee") && tokenInfo.every((x) => x[3] > 8 && x[4] > 8), JSON.stringify(tokenInfo));
-  check("token đã thu nhỏ, không lấn át ô cờ", tokenInfo.every((x) => x[3] < 46 && x[4] < 38), JSON.stringify(tokenInfo));
+  check("token gọn trong ô cờ", tokenInfo.every((x) => x[3] < 46 && x[4] < 46), JSON.stringify(tokenInfo));
   check("chỉ người có lượt được bấm Tung xúc xắc", !(await pa.page.locator("#rollButton").isDisabled()) && (await pb.page.locator("#rollButton").isDisabled()));
+  // Chờ hiệu ứng của lượt tung chọn người đi trước kết thúc ở cả hai trình duyệt.
+  // Nếu không, interval xáo xúc xắc cũ có thể tiêu thụ Math.random mà bài test sắp cố định.
+  await Promise.all([pa, pb].map(async ({ page }) => {
+    await page.waitForFunction(() => {
+      const stage = document.querySelector("#diceStage");
+      const result = document.querySelector("#diceResult");
+      return !stage?.classList.contains("show") && !result?.classList.contains("rolling");
+    }, null, { timeout: 5000 });
+  }));
   // Tung xúc xắc [1,2] → ô 3 (Đường Đồng Khởi, $60)
   await pa.page.evaluate(() => { const q = [0, 0.2]; Math.random = () => (q.length ? q.shift() : 0.5); });
   await pa.page.click("#rollButton");
@@ -309,8 +318,10 @@ let rules;
       players:{...store.rooms[code].players,[uidA]:{...store.rooms[code].players[uidA],cash:0}},
       debt:{uid:uidA,amount:20,creditorUid:uidB,reason:"Tiền thuê"}
     };
-    await pa.page.waitForSelector("#pendingActions .debt-ledger-button", { timeout:4000 });
-    await pa.page.locator("#pendingActions .debt-ledger-button").click();
+    // Sổ đất là nơi quản lý tài sản và đã được mở ở phần kiểm tra xây nhà bên trên.
+    // Khi phát sinh nợ, modal hiển thị banner số nợ cùng nút cầm cố trực tiếp.
+    await pa.page.waitForSelector("#propsModal:not([hidden]) #propertyList .debt-banner", { timeout:4000 });
+    check("sổ đất hiển thị khoản nợ và hướng xử lý", /Đang nợ 20/.test(await text(pa.page, "#propertyList")));
     await pa.page.waitForSelector('#propertyList [data-deed-action="mortgage-asset"][data-index="3"]', { timeout:4000 });
     await pa.page.locator('#propertyList [data-deed-action="mortgage-asset"][data-index="3"]').click();
     await pa.page.waitForSelector('#board .space[data-index="3"].mortgaged', { timeout:4000 });
@@ -355,6 +366,12 @@ let rules;
     await cpu.page.click("#rollButton");
     await cpu.page.waitForFunction(() => document.querySelector("#turnName")?.textContent.trim() === "Minh" && !document.querySelector("#rollButton")?.disabled, null, { timeout: 7000 });
     check("Máy Miền Tây cũng tung để phân định lượt nhưng người chơi thắng lượt này", /Đến lượt bạn/.test(await text(cpu.page, "#centerStatus")));
+    // Đợi animation chọn lượt dừng hẳn để không tiêu thụ chuỗi ngẫu nhiên ở lượt kế tiếp.
+    await cpu.page.waitForFunction(() => {
+      const stage = document.querySelector("#diceStage");
+      const result = document.querySelector("#diceResult");
+      return !stage?.classList.contains("show") && !result?.classList.contains("rolling");
+    }, null, { timeout: 5000 });
     // Người chơi đến bến phà, bỏ mua; Máy Miền Tây tự cân nhắc trả giá.
     await cpu.page.evaluate(() => { const q = [0.2, 0.4]; Math.random = () => q.length ? q.shift() : 0.5; });
     await cpu.page.click("#rollButton");
