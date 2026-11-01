@@ -282,3 +282,49 @@ h1,h2,.brand strong,.center-title,.player-cash,.dice-illustration{font-family:va
 .cell-info-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
 .cell-info-chips span{padding:4px 10px;border-radius:99px;background:rgba(242,182,50,.14);color:#ffe08a;font-size:12px;font-weight:600}
 .cell-info p.cell-info-bonus{color:#ffe08a;font-weight:600}
+
+/* ===== Xúc xắc thật, bàn cờ đẹp hơn, hiệu ứng di chuyển ===== */
+.die{--s:36px;width:var(--s);height:var(--s);border-radius:22%;background:linear-gradient(145deg,#fffaf0,#efe0b8);box-shadow:0 5px 13px rgba(0,0,0,.25),inset 0 -3px 0 rgba(0,0,0,.1);display:grid;grid-template:repeat(3,1fr)/repeat(3,1fr);padding:15%;gap:2px;place-items:center}
+.die i{width:78%;height:78%;border-radius:50%;background:transparent}
+.dice-result .die{box-shadow:0 5px 13px rgba(0,0,0,.18),inset 0 -3px 0 rgba(0,0,0,.1)}
+.die[data-v="1"] i:nth-child(5),
+.die[data-v="2"] i:nth-child(1),.die[data-v="2"] i:nth-child(9),
+.die[data-v="3"] i:nth-child(1),.die[data-v="3"] i:nth-child(5),.die[data-v="3"] i:nth-child(9),
+.die[data-v="4"] i:nth-child(1),.die[data-v="4"] i:nth-child(3),.die[data-v="4"] i:nth-child(7),.die[data-v="4"] i:nth-child(9),
+.die[data-v="5"] i:nth-child(1),.die[data-v="5"] i:nth-child(3),.die[data-v="5"] i:nth-child(5),.die[data-v="5"] i:nth-child(7),.die[data-v="5"] i:nth-child(9),
+.die[data-v="6"] i:nth-child(1),.die[data-v="6"] i:nth-child(3),.die[data-v="6"] i:nth-child(4),.die[data-v="6"] i:nth-child(6),.die[data-v="6"] i:nth-child(7),.die[data-v="6"] i:nth-child(9){background:#1f3a3d}
+.die[data-v="1"] i:nth-child(5),.die[data-v="4"] i:nth-child(1){background:#c8321f}
+.die[data-v="1"] i:nth-child(5){background:#c8321f}
+.dice-result.rolling .die{animation:diceTumble .3s linear infinite}
+.dice-stage{--s:clamp(40px,7vw,64px);position:absolute;inset:0;z-index:5;display:flex;align-items:center;justify-content:center;gap:14px;pointer-events:none;opacity:0}
+.dice-stage .die{--s:clamp(40px,7vw,64px)}
+.dice-stage.show{opacity:1}
+.dice-stage.rolling .die{animation:diceThrow .9s cubic-bezier(.2,.7,.3,1) both}
+.dice-stage.rolling .die:nth-child(2){animation-delay:.06s;animation-direction:reverse}
+.dice-stage.landed .die{animation:diceLand .35s ease-out}
+.dice-total{position:absolute;top:calc(50% + clamp(34px,6vw,54px));padding:3px 14px;border-radius:99px;background:#f2b632;color:#2b1d05;font-family:var(--display);font-size:clamp(16px,2.4vw,24px);box-shadow:0 6px 16px rgba(0,0,0,.35);animation:badgePop .35s ease-out both}
+@keyframes diceThrow{0%{transform:translate(-160%,-140%) rotate(-360deg) scale(.6)}45%{transform:translate(10%,20%) rotate(120deg) scale(1.15)}65%{transform:translate(0,-34%) rotate(240deg) scale(1.05)}100%{transform:translate(0,0) rotate(360deg) scale(1)}}
+@keyframes diceLand{0%{transform:scale(1.25)}100%{transform:scale(1)}}
+@keyframes badgePop{0%{transform:scale(.3);opacity:0}100%{transform:scale(1);opacity:1}}
+/* khung gỗ có ván và đinh */
+.board{background:repeating-linear-gradient(90deg,#92603f 0 46px,#855636 46px 48px),#8b5a3c;border-color:#5b3620;box-shadow:0 18px 46px rgba(0,0,0,.4),inset 0 0 0 2px rgba(255,214,150,.18),inset 0 0 18px rgba(0,0,0,.35)}
+.board:before{content:"";position:absolute;inset:3px;border-radius:14px;pointer-events:none;background:radial-gradient(circle,#e8c98a 0 1.6px,transparent 2px) 0 0/calc(100% - 6px) calc(100% - 6px) no-repeat;opacity:.0}
+.space{background:linear-gradient(180deg,#fffaea,#f4e8c7);box-shadow:0 1px 2px rgba(0,0,0,.25),inset 0 0 0 1px rgba(255,255,255,.5)}
+.space .space-color{height:7px;box-shadow:inset 0 -2px 0 rgba(0,0,0,.18)}
+.space-icon{filter:drop-shadow(0 1px 1px rgba(0,0,0,.25))}
+.space.corner{background:radial-gradient(circle at 30% 25%,#fff3c4,#e9cf86);box-shadow:0 2px 5px rgba(0,0,0,.3),inset 0 0 0 2px rgba(122,78,30,.35)}
+.space.corner .space-name{font-weight:900;color:#5b3414}
+.space.corner .space-icon{filter:drop-shadow(0 2px 2px rgba(0,0,0,.3))}
+.token{width:11px;height:11px;border:0;background-image:radial-gradient(circle at 35% 30%,rgba(255,255,255,.85),rgba(255,255,255,0) 45%);box-shadow:0 2px 3px rgba(0,0,0,.45),inset -2px -2px 3px rgba(0,0,0,.3),0 0 0 1.5px #fff}
+.token.moving{animation:tokenArc .19s ease-out;transform:scale(1.35)}
+@keyframes tokenArc{0%{transform:translateY(0) scale(1)}50%{transform:translateY(-14px) scale(1.6);box-shadow:0 12px 6px -6px rgba(0,0,0,.4),0 0 0 1.5px #fff}100%{transform:translateY(0) scale(1.35)}}
+.space.pass{animation:cellPass .5s ease-out}
+.space.land{animation:cellLand .75s ease-out;z-index:2}
+@keyframes cellPass{0%{box-shadow:0 0 0 0 rgba(242,182,50,.7)}100%{box-shadow:0 0 0 8px rgba(242,182,50,0)}}
+@keyframes cellLand{0%{transform:scale(1);box-shadow:0 0 0 0 rgba(255,224,138,.9)}30%{transform:scale(1.18);box-shadow:0 0 0 4px #f2b632,0 8px 20px rgba(0,0,0,.4)}100%{transform:scale(1);box-shadow:0 0 0 14px rgba(242,182,50,0)}}
+.cloud-a{animation:cloudDrift 38s linear infinite}.cloud-b{animation:cloudDrift 52s linear infinite reverse}
+@keyframes cloudDrift{0%{transform:translateX(-30px)}50%{transform:translateX(40px)}100%{transform:translateX(-30px)}}
+.crane{animation:craneFly 9s ease-in-out infinite}
+@keyframes craneFly{0%,100%{transform:translate(-20px,4px)}50%{transform:translate(60px,-6px)}}
+@media(prefers-reduced-motion:reduce){.dice-stage.rolling .die,.dice-stage.landed .die,.dice-result.rolling .die,.space.pass,.space.land,.cloud,.crane,.dice-total{animation:none}}
+@media(max-width:800px){.dice-total{font-size:15px}}

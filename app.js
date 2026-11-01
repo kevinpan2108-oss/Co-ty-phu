@@ -524,7 +524,7 @@ function renderActions() {
   const playing = roomState.status === "playing" && getPlayerEntries(roomState).length === 2;
   const pending = roomState.pending;
   const dice = roomState.lastRoll;
-  if (!diceAnimating) $("diceResult").innerHTML = dice ? `<span>${Number(dice[0]) || 0}</span><span>${Number(dice[1]) || 0}</span>` : "<span>⚄</span><span>⚄</span>";
+  if (!diceAnimating) $("diceResult").innerHTML = dice ? diceHtml(dice) : diceHtml([0, 0]);
   $("actionMessage").textContent = roomState.message || (roomState.status === "waiting" ? "Đang chờ người chơi thứ hai..." : "Đến lượt bạn!");
   const buttons = $("pendingActions");
   buttons.innerHTML = "";
@@ -567,11 +567,16 @@ const reduceMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").mat
 const displayPos = {};            // uid -> ô đang hiển thị khi quân đang nhảy
 const moveTimers = {};            // uid -> timer của bước nhảy
 const stampUntil = {};            // chỉ số ô -> thời điểm hết hiệu ứng "vừa mua"
+function dieHtml(v) {
+  const n = Math.min(6, Math.max(0, Math.floor(Number(v)) || 0));
+  return `<span class="die" data-v="${n}">${"<i></i>".repeat(9)}</span>`;
+}
+function diceHtml(d) { return dieHtml(d?.[0]) + dieHtml(d?.[1]); }
 let movingUid = null;
 let diceAnimating = false;
 let diceTimer = null;
-const DICE_MS = 650;
-const HOP_MS = 150;
+const DICE_MS = 900;
+const HOP_MS = 190;
 
 function tokensHtml(index) {
   return getPlayerEntries(roomState)
@@ -593,6 +598,8 @@ function resetEffects() {
   for (const uid of Object.keys(displayPos)) delete displayPos[uid];
   for (const key of Object.keys(stampUntil)) delete stampUntil[key];
   document.title = "Cờ Tỷ Phú Online";
+  const stage = $("diceStage");
+  if (stage) stage.className = "dice-stage";
 }
 // Quân cờ nhảy từng ô tới đích. Đi quá xa (vào tù) thì dịch chuyển thẳng.
 function animateMove(uid, from, to, delay) {
@@ -604,6 +611,8 @@ function animateMove(uid, from, to, delay) {
     step++;
     movingUid = uid;
     displayPos[uid] = (from + step) % 40;
+    const cell = document.querySelector(`#board .space[data-index="${displayPos[uid]}"]`);
+    if (cell) { cell.classList.remove("pass", "land"); void cell.offsetWidth; cell.classList.add(step >= dist ? "land" : "pass"); }
     if (step >= dist) {
       delete displayPos[uid];
       delete moveTimers[uid];
@@ -619,19 +628,27 @@ function animateMove(uid, from, to, delay) {
 }
 function animateDice(finalDice) {
   const box = $("diceResult");
+  const stage = $("diceStage");
   const finish = () => {
     clearInterval(diceTimer);
     diceAnimating = false;
     box.classList.remove("rolling");
-    box.innerHTML = `<span>${Number(finalDice[0]) || 0}</span><span>${Number(finalDice[1]) || 0}</span>`;
+    box.innerHTML = diceHtml(finalDice);
+    if (stage) {
+      stage.className = "dice-stage show landed";
+      stage.innerHTML = diceHtml(finalDice) + `<b class="dice-total">${(Number(finalDice[0]) || 0) + (Number(finalDice[1]) || 0)}</b>`;
+      setTimeout(() => { stage.className = "dice-stage"; }, 1300);
+    }
   };
   if (reduceMotion) return;
   diceAnimating = true;
   box.classList.add("rolling");
   const face = () => 1 + Math.floor(Math.random() * 6);
-  box.innerHTML = `<span>${face()}</span><span>${face()}</span>`;
+  const shuffle = () => { const d = [face(), face()]; box.innerHTML = diceHtml(d); if (stage) stage.innerHTML = diceHtml(d); };
+  if (stage) stage.className = "dice-stage show rolling";
+  shuffle();
   clearInterval(diceTimer);
-  diceTimer = setInterval(() => { box.innerHTML = `<span>${face()}</span><span>${face()}</span>`; }, 80);
+  diceTimer = setInterval(shuffle, 90);
   setTimeout(finish, DICE_MS);
 }
 function floatDelta(uid, delta, delay) {
