@@ -1154,26 +1154,31 @@ async function releaseFromJail() {
   try {
     const uid = currentUser.uid;
     await updateCurrentRoom((room) => {
-      if (room === null) return room; // SDK chưa có dữ liệu: yêu cầu nạp từ server rồi gọi lại
-      // lastRoll != null nghĩa là người chơi vừa bị đưa vào tù ngay trong lượt này: chưa được nộp phạt.
-      if (!room || room.turnUid !== uid || room.status !== "playing" || room.lastRoll || room.pending) return;
+      if (room === null) return room;
+      if (!room || room.turnUid !== uid || room.status !== "playing" || room.lastRoll || room.pending || room.debt) return;
       const player = room.players?.[uid];
       if (!player?.jailTurns) return;
-      if (player.cash < JAIL_FEE) {
+      if (Number(player.jailPasses || 0) > 0) {
+        player.jailPasses -= 1;
         player.jailTurns = 0;
-        room.message = player.name + " không đủ tiền nộp phạt, được thả nhưng mất lượt.";
+        room.message = player.name + " dùng thẻ miễn vào tù và được ra ngoài miễn phí.";
       } else {
-        player.cash -= JAIL_FEE;
+        const payment = chargePlayer(room, uid, JAIL_FEE, "", "Phí ra tù", {resumeJail:true});
+        if (payment.remaining > 0) {
+          room.message = player.name + " chưa đủ " + money(JAIL_FEE) + " để nộp phạt. Hãy bán nhà hoặc cầm cố tài sản để trả nợ.";
+          room.updatedAt = Date.now();
+          return room;
+        }
         player.jailTurns = 0;
         room.message = player.name + " đã nộp " + money(JAIL_FEE) + " và ra tù. Lượt này kết thúc.";
       }
-      room.turnUid = Object.keys(room.players).find(id => id !== uid);
-      room.turnNumber = Number(room.turnNumber||1)+1;
+      room.turnUid = Object.keys(room.players).find((id) => id !== uid);
+      room.turnNumber = Number(room.turnNumber || 1) + 1;
       room.lastRoll = null;
       room.updatedAt = Date.now();
       return room;
     });
-  } catch (error) { notify("Không thể xử lý ra tù: "+explainFirebaseError(error)); }
+  } catch (error) { notify("Không thể xử lý ra tù: " + explainFirebaseError(error)); }
   finally { setBusy(false); }
   if (computerGame && !computerBusy) scheduleComputerTurn();
 }
@@ -1184,7 +1189,7 @@ async function buyProperty() {
     const uid = currentUser.uid;
     await updateCurrentRoom((room) => {
       if (room === null) return room; // SDK chưa có dữ liệu: yêu cầu nạp từ server rồi gọi lại
-      if (!room || room.turnUid !== uid || room.pending?.uid !== uid) return;
+      if (!room || room.turnUid !== uid || room.pending?.uid !== uid || room.debt) return;
       const space = SPACE_DATA[room.pending.index];
       const player = room.players?.[uid];
       const key = getSpaceId(room.pending.index);
@@ -1296,9 +1301,9 @@ async function redeemAsset(index) {
   } catch (error) { notify("Không giải chấp được tài sản: " + explainFirebaseError(error)); }
   finally { setBusy(false); }
 }
-async function declareBankruptcy() {
+async function declareBankruptcy(skipConfirm = false) {
   if (busy || !canDeclareBankruptcy(roomState, currentUser?.uid)) return;
-  if (!window.confirm("Bạn đã hết khả năng bán nhà và cầm cố tài sản. Tuyên bố phá sản và kết thúc ván?")) return;
+  if (!skipConfirm && !window.confirm("Bạn đã hết khả năng bán nhà và cầm cố tài sản. Tuyên bố phá sản và kết thúc ván?")) return;
   setBusy(true);
   try {
     const uid = currentUser.uid;
@@ -1375,7 +1380,7 @@ async function passProperty() {
     const uid = currentUser.uid;
     await updateCurrentRoom((room) => {
       if (room === null) return room;
-      if (!room || room.turnUid !== uid || room.pending?.uid !== uid || room.auction) return;
+      if (!room || room.turnUid !== uid || room.pending?.uid !== uid || room.auction || room.debt) return;
       const index = Number(room.pending.index);
       const space = SPACE_DATA[index];
       room.pending = null;
@@ -1408,7 +1413,7 @@ async function placeAuctionBid() {
     const result = await updateCurrentRoom((room) => {
       if (room === null) return room;
       const auction = room?.auction;
-      if (!room || room.status !== "playing" || !auction || auction.turnUid !== uid || room.pending) return;
+      if (!room || room.status !== "playing" || !auction || auction.turnUid !== uid || room.pending || room.debt) return;
       const amount = nextAuctionBid(auction);
       const player = room.players?.[uid];
       if (!player || player.cash < amount) return;
@@ -1435,7 +1440,7 @@ async function passAuction() {
     const result = await updateCurrentRoom((room) => {
       if (room === null) return room;
       const auction = room?.auction;
-      if (!room || room.status !== "playing" || !auction || auction.turnUid !== uid || room.pending) return;
+      if (!room || room.status !== "playing" || !auction || auction.turnUid !== uid || room.pending || room.debt) return;
       if (auction.highestUid && auction.highestUid !== uid) {
         closeAuction(room, auction.highestUid);
       } else if (!auction.highestUid && auction.passedUid && auction.passedUid !== uid) {
@@ -1461,26 +1466,23 @@ async function endTurn() {
   try {
     const uid = currentUser.uid;
     await updateCurrentRoom((room) => {
-      if (room === null) return room; // SDK chưa có dữ liệu: yêu cầu nạp từ server rồi gọi lại
-      if (!room || room.status !== "playing" || !canAdvanceTurn(room) || room.turnUid !== uid || room.pending || room.auction || !room.lastRoll) return;
-      const player = room.players?.[uid];
-      const nextUid = Object.keys(room.players||{}).find(id => id !== uid);
+      if (room === null) return room;
+      if (!room || room.status !== "playing" || room.debt || !canAdvanceTurn(room) || room.turnUid !== uid || room.pending || room.auction || !room.lastRoll) return;
+      const nextUid = Object.keys(room.players || {}).find((id) => id !== uid);
       room.turnUid = nextUid;
-      room.turnNumber = Number(room.turnNumber||1)+1;
+      room.turnNumber = Number(room.turnNumber || 1) + 1;
       room.lastRoll = null;
       room.message = "Đến lượt " + (room.players?.[nextUid]?.name || "người chơi tiếp theo") + ".";
       room.updatedAt = Date.now();
       return room;
     });
-  } catch (error) { notify("Không thể kết thúc lượt: "+explainFirebaseError(error)); }
+  } catch (error) { notify("Không thể kết thúc lượt: " + explainFirebaseError(error)); }
   finally { setBusy(false); }
   if (computerGame && !computerBusy) scheduleComputerTurn();
 }
-
-// Không còn nút "Kết thúc lượt": tung xúc xắc (và quyết định mua nếu có) xong là tự chuyển lượt
-// sau khi hiệu ứng chạy xong.
 function scheduleAutoEnd() {
-  const ok = roomState && currentUser && roomState.status === "playing" && canAdvanceTurn(roomState) && roomState.turnUid === currentUser.uid &&
+  const ok = roomState && currentUser && roomState.status === "playing" && !roomState.debt &&
+    canAdvanceTurn(roomState) && roomState.turnUid === currentUser.uid &&
     roomState.lastRoll && !roomState.pending && !roomState.auction && !computerBusy && currentUser.uid !== COMPUTER_UID;
   if (!ok) return;
   const key = currentRoomCode + ":" + roomState.turnNumber;
@@ -1488,13 +1490,12 @@ function scheduleAutoEnd() {
   autoEndKey = key;
   clearTimeout(autoEndTimer);
   const fire = () => {
-    if (!roomState || roomState.turnUid !== currentUser?.uid || !roomState.lastRoll || roomState.pending || roomState.auction) return;
+    if (!roomState || roomState.debt || roomState.turnUid !== currentUser?.uid || !roomState.lastRoll || roomState.pending || roomState.auction) return;
     if (busy) { autoEndTimer = setTimeout(fire, 400); return; }
     endTurn();
   };
   autoEndTimer = setTimeout(fire, AUTO_END_MS);
 }
-
 function startComputerGame() {
   if (busy) return;
   const humanUid = getPlayerId();
@@ -1555,6 +1556,7 @@ function computerAuctionMaxBid(index) {
 }
 function isComputerActionDue(state, computerUid = COMPUTER_UID) {
   if (!state || state.status !== "playing") return false;
+  if (state.debt) return state.debt.uid === computerUid;
   if (isOpeningRollPhase(state)) {
     const humanUid = state.creatorUid;
     return !!state.openingRolls?.[humanUid] && !state.openingRolls?.[computerUid];
@@ -1563,6 +1565,24 @@ function isComputerActionDue(state, computerUid = COMPUTER_UID) {
   // của lượt chơi gốc để gọi máy lặp khi tới lượt người thật.
   if (state.auction) return state.auction.turnUid === computerUid;
   return state.turnUid === computerUid;
+}
+async function resolveComputerDebt() {
+  const uid = COMPUTER_UID;
+  if (roomState?.debt?.uid !== uid) return;
+  // Thanh lý công trình trước, sau đó mới cầm cố đất.
+  for (let index = 0; index < SPACE_DATA.length; index++) {
+    if (sellHouseEligibility(SPACE_DATA, roomState.propertyOwners, roomState.houses || {}, uid, index).ok) {
+      await sellHouse(index);
+      return;
+    }
+  }
+  for (let index = 0; index < SPACE_DATA.length; index++) {
+    if (mortgageEligibility(SPACE_DATA, roomState.propertyOwners, roomState.houses || {}, roomState.mortgages || {}, uid, index).ok) {
+      await mortgageAsset(index);
+      return;
+    }
+  }
+  await declareBankruptcy(true);
 }
 function scheduleComputerTurn() {
   if (!computerGame || computerBusy || computerTimer || !isComputerActionDue(roomState)) return;
@@ -1581,7 +1601,9 @@ async function playComputerTurn() {
   currentUser.uid = COMPUTER_UID;
   try {
     await new Promise((resolve) => setTimeout(resolve, 650));
-    if (isOpeningRollPhase(roomState)) {
+    if (roomState.debt?.uid === COMPUTER_UID) {
+      await resolveComputerDebt();
+    } else if (isOpeningRollPhase(roomState)) {
       await rollOpeningDice();
     } else if (roomState.auction?.turnUid === COMPUTER_UID) {
       const index = Number(roomState.auction.index);
@@ -1598,7 +1620,7 @@ async function playComputerTurn() {
         if (computerShouldBuy(index)) await buyProperty();
         else await passProperty();
       }
-      if (roomState && roomState.status === "playing" &&
+      if (roomState && roomState.status === "playing" && !roomState.debt &&
           roomState.turnUid === COMPUTER_UID && roomState.lastRoll && !roomState.pending && !roomState.auction) {
         await new Promise((resolve) => setTimeout(resolve, 550));
         await endTurn();
