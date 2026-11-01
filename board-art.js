@@ -98,3 +98,40 @@ const SHORT_NAMES = {
   "THUẾ NÔNG SẢN": "Thuế", "PHÍ CẦU PHÀ": "Phí phà"
 };
 export function shortName(name) { return SHORT_NAMES[name] || name; }
+
+
+// Token lựa chọn mang nét đời thường Việt Nam.
+export const TOKEN_OPTIONS = Object.freeze([
+  { id: "penguin", label: "Chim cánh cụt" },
+  { id: "puppy", label: "Cún con" },
+  { id: "plastic-chair", label: "Ghế nhựa Việt Nam" },
+  { id: "vietnamese-coffee", label: "Cà phê sữa đá" }
+]);
+const TOKEN_MARKUP = {
+  penguin: '<span class="token-emoji" aria-hidden="true">🐧</span>',
+  puppy: '<span class="token-emoji" aria-hidden="true">🐶</span>',
+  "plastic-chair": `<svg class="token-svg" viewBox="0 0 64 64" aria-hidden="true" focusable="false">
+    <path d="M20 8 Q18 7 17 12 L17 31 Q17 34 21 35 L45 35 Q49 34 48 30 L46 12 Q45 7 41 8Z" fill="#ed493d" stroke="#8e2725" stroke-width="3" stroke-linejoin="round"/>
+    <path d="M13 32 Q12 29 17 29 H47 Q52 29 51 34 L48 42 H17Z" fill="#f15a49" stroke="#8e2725" stroke-width="3" stroke-linejoin="round"/>
+    <path d="M19 40 L17 56 Q17 59 21 59 H24 L27 42 M45 40 L47 56 Q47 59 43 59 H40 L37 42" fill="#d93732" stroke="#8e2725" stroke-width="3" stroke-linejoin="round"/>
+    <path d="M20 46 H44" stroke="#ff9a87" stroke-width="2.5" stroke-linecap="round"/>
+    <path d="M25 14 V27 M39 14 V27" stroke="#ff9a87" stroke-width="2" stroke-linecap="round" opacity=".85"/>
+  </svg>`,
+  "vietnamese-coffee": `<svg class="token-svg" viewBox="0 0 64 64" aria-hidden="true" focusable="false">
+    <path d="M39 10 L48 3" stroke="#a94e25" stroke-width="3.5" stroke-linecap="round"/>
+    <path d="M17 16 H49 L45 57 Q44 60 41 60 H24 Q21 60 20 57Z" fill="#dff6f6" fill-opacity=".72" stroke="#517c86" stroke-width="2.5" stroke-linejoin="round"/>
+    <path d="M20 34 H46 L44 55 H23Z" fill="#80502d"/>
+    <path d="M20 34 Q31 30 46 34 V40 Q34 44 21 39Z" fill="#c18a55"/>
+    <path d="M23 42 Q30 37 37 43 T44 44 L43 54 H23Z" fill="#704127"/>
+    <path d="M26 30 L32 24 L38 31 L35 36 H27Z" fill="#f8ffff" fill-opacity=".9" stroke="#b8d5d7" stroke-width="1"/>
+    <path d="M38 28 L43 24 L47 30 L43 35 H39Z" fill="#f8ffff" fill-opacity=".9" stroke="#b8d5d7" stroke-width="1"/>
+    <path d="M16 15 H50 Q52 15 51 18 H15 Q14 16 16 15Z" fill="#f4ffff" stroke="#517c86" stroke-width="2"/>
+    <path d="M23 39 Q29 43 36 39" fill="none" stroke="#e9d4b2" stroke-width="2" stroke-linecap="round"/>
+  </svg>`
+};
+export function tokenMarkup(tokenId) {
+  return TOKEN_MARKUP[tokenId] || TOKEN_MARKUP.penguin;
+}
+export function tokenLabel(tokenId) {
+  return TOKEN_OPTIONS.find((token) => token.id === tokenId)?.label || TOKEN_OPTIONS[0].label;
+}

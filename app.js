@@ -1,5 +1,5 @@
 import { initializeApp, deleteApp } from "https://www.gstatic.com/firebasejs/13.1.0/firebase-app.js";
-import { animalFor, shortName } from "./board-art.js?v=1";
+import { animalFor, shortName, TOKEN_OPTIONS, tokenMarkup, tokenLabel } from "./board-art.js?v=2";
 import { shouldComputerBuy } from "./computer-player.js?v=1";
 import { getDatabase, ref, set, get, onValue, runTransaction } from "https://www.gstatic.com/firebasejs/13.1.0/firebase-database.js";
 
@@ -21,6 +21,7 @@ const ROOM_ROOT = "rooms";
 const APP_NAME = "co-ty-phu";
 const LAST_ROOM_KEY = "ctp-last-room";
 const PLAYER_ID_KEY = "ctp-player-id";
+const TOKEN_PREF_KEY = "ctp-token-choice";
 const ROOM_CODE_PATTERN = /^[A-HJ-NP-Z2-9]{6}$/;
 const FALLBACK_COLOR = "#b9b59b";
 const START_CASH = 1500;
@@ -136,6 +137,39 @@ function store(op, key, value) {
     else return localStorage.getItem(key);
   } catch { /* chế độ riêng tư có thể chặn localStorage */ }
   return null;
+}
+const TOKEN_IDS = TOKEN_OPTIONS.map((token) => token.id);
+let selectedToken = TOKEN_IDS.includes(store("get", TOKEN_PREF_KEY)) ? store("get", TOKEN_PREF_KEY) : "penguin";
+function renderTokenPicker() {
+  const picker = $("tokenPicker");
+  if (!picker) return;
+  picker.innerHTML = TOKEN_OPTIONS.map((token) => {
+    const active = token.id === selectedToken;
+    return `<button class="token-option${active ? " selected" : ""}" type="button" data-token="${token.id}" aria-pressed="${active}">
+      <span class="token-option-art">${tokenMarkup(token.id)}</span>
+      <span class="token-option-label">${token.label}</span>
+    </button>`;
+  }).join("");
+}
+function chooseToken(tokenId) {
+  if (!TOKEN_IDS.includes(tokenId)) return;
+  selectedToken = tokenId;
+  store("set", TOKEN_PREF_KEY, tokenId);
+  renderTokenPicker();
+}
+function playerTokenId(player, index = 0) {
+  if (TOKEN_IDS.includes(player?.token)) return player.token;
+  return animalFor(player?.color, index) === "🐶" ? "puppy" : "penguin";
+}
+function alternateToken(tokenId) {
+  return TOKEN_OPTIONS.find((token) => token.id !== tokenId)?.id || "puppy";
+}
+function isOpeningRollPhase(state) {
+  return !!state && state.status === "playing" && Number(state.openingRound || 0) > 0 && !state.startPlayerUid;
+}
+function compareOpeningRolls(a, b) {
+  const total = (dice) => (Number(dice?.[0]) || 0) + (Number(dice?.[1]) || 0);
+  return Math.sign(total(a) - total(b));
 }
 // ===== Luật tiền thuê (hàm thuần túy, có test trong tests/board.test.js) =====
 // Các ô đất cùng tỉnh (cùng "group"). Chỉ tỉnh có từ 2 ô đất trở lên mới có thưởng sở hữu cả tỉnh.
@@ -354,7 +388,7 @@ async function createRoom() {
         creatorUid:uid,
         joinerUid:null,
         players:{
-          [uid]:{uid,name,color:TOKEN_COLORS[0],cash:START_CASH,position:0,jailTurns:0}
+          [uid]:{uid,name,color:TOKEN_COLORS[0],token:selectedToken,cash:START_CASH,position:0,jailTurns:0}
         },
         propertyOwners:{},
         turnUid:uid,
@@ -409,10 +443,12 @@ async function joinRoom() {
         const creatorName = room.players?.[room.creatorUid]?.name;
         const joinName = name === creatorName ? name.slice(0, 14) + " (2)" : name;
         room.players = room.players || {};
-        room.players[uid] = {uid,name:joinName,color:TOKEN_COLORS[1],cash:START_CASH,position:0,jailTurns:0};
+        room.players[uid] = {uid,name:joinName,color:TOKEN_COLORS[1],token:selectedToken,cash:START_CASH,position:0,jailTurns:0};
         room.joinerUid = uid;
         room.status = "playing";
-        room.message = joinName+" đã tham gia. Cuộc chơi bắt đầu!";
+        room.openingRound = 1;
+        room.openingRolls = {};
+        room.message = "Cả hai người chơi hãy tung hai viên xí ngầu để chọn người đi trước.";
         room.updatedAt = Date.now();
         return room;
       }, {applyLocally:false});
@@ -494,10 +530,11 @@ function renderBoard() {
 function renderPlayers() {
   const entries = getPlayerEntries(roomState);
   $("playersPanel").innerHTML = entries.map(([uid,p]) => {
-    const isTurn = roomState.turnUid === uid;
+    const isTurn = !isOpeningRollPhase(roomState) && roomState.turnUid === uid;
     const isMe = uid === currentUser.uid;
+    const tokenId = playerTokenId(p, entries.findIndex(([id]) => id === uid));
     const space = SPACE_DATA[Number(p.position)]?.name || "—";
-    return `<div class="player-card ${isTurn?"active":""}" data-uid="${escapeHtml(uid)}" style="--pc:${safeColor(p.color)}"><span class="player-avatar">${animalFor(p.color, entries.findIndex(([id]) => id === uid))}</span><div class="player-info">
+    return `<div class="player-card ${isTurn?"active":""}" data-uid="${escapeHtml(uid)}" style="--pc:${safeColor(p.color)}"><span class="player-avatar" data-token="${tokenId}" aria-label="${escapeHtml(tokenLabel(tokenId))}">${tokenMarkup(tokenId)}</span><div class="player-info">
       <div class="player-head"><i class="player-dot" style="background:${safeColor(p.color)}"></i><span class="player-name">${escapeHtml(p.name)}</span>${isMe?'<span class="you-label">Bạn</span>':""}</div>
       <div class="player-cash">${money(p.cash)}</div>
       <p class="player-position">${escapeHtml(space)} ${p.jailTurns ? "· Đang ở tù" : ""}</p>
@@ -505,7 +542,7 @@ function renderPlayers() {
   }).join("");
   const turnPlayer = roomState.players?.[roomState.turnUid];
   const waitingForOpponent = roomState.status === "waiting";
-  $("turnName").textContent = waitingForOpponent || !turnPlayer ? "Chờ đối thủ..." : turnPlayer.name;
+  $("turnName").textContent = waitingForOpponent ? "Chờ đối thủ..." : isOpeningRollPhase(roomState) ? "Đang chọn lượt" : turnPlayer?.name || "Chờ đối thủ...";
   // Màu quân cờ phụ thuộc vào việc là người tạo hay người vào phòng, nên chú giải phải lấy màu thật.
   const opponent = roomState.players?.[otherPlayerUid()];
   
@@ -538,7 +575,19 @@ function renderActions() {
 
   const buttons = $("pendingActions");
   buttons.innerHTML = "";
-  if (auction && SPACE_DATA[auction.index]) {
+  const openingPhase = isOpeningRollPhase(roomState);
+  const myOpeningRoll = roomState.openingRolls?.[uid];
+  if (openingPhase) {
+    buttons.innerHTML = "";
+    if (myOpeningRoll) {
+      const sum = Number(myOpeningRoll[0] || 0) + Number(myOpeningRoll[1] || 0);
+      $("actionMessage").textContent = `Bạn đã tung ${myOpeningRoll[0]} + ${myOpeningRoll[1]} = ${sum}. Đợi người chơi còn lại tung xí ngầu.`;
+    } else {
+      $("actionMessage").textContent = Number(roomState.openingRound) > 1
+        ? `Hòa điểm! Vòng ${roomState.openingRound}: cả hai hãy tung lại để chọn người đi trước.`
+        : "Mỗi người tung hai viên xí ngầu. Ai có tổng cao hơn sẽ đi trước.";
+    }
+  } else if (auction && SPACE_DATA[auction.index]) {
     const space = SPACE_DATA[auction.index];
     const leader = auction.highestUid ? roomState.players?.[auction.highestUid] : null;
     if (auction.turnUid === uid) {
@@ -581,13 +630,23 @@ function renderActions() {
   }
 
   const canPayJail = Number(mine?.jailTurns || 0) > 0 && !dice;
-  $("rollButton").textContent = canPayJail ? "🔓 Nộp " + money(JAIL_FEE) + " để ra tù" : "🎲 Tung xúc xắc";
-  $("rollButton").disabled = busy || !playing || !isMyTurn || !!pending || !!auction || !!dice || roomState.status === "finished";
-  document.title = roomState.status === "playing" && isMyTurn ? "● Đến lượt bạn - Cờ Tỷ Phú Online" : "Cờ Tỷ Phú Online";
+  if (openingPhase) {
+    $("rollButton").textContent = myOpeningRoll ? "⏳ Đợi đối thủ tung..." : "🎲 Tung xí ngầu chọn lượt";
+    $("rollButton").disabled = busy || !playing || !!myOpeningRoll;
+  } else {
+    $("rollButton").textContent = canPayJail ? "🔓 Nộp " + money(JAIL_FEE) + " để ra tù" : "🎲 Tung xúc xắc";
+    $("rollButton").disabled = busy || !playing || !isMyTurn || !!pending || !!auction || !!dice || roomState.status === "finished";
+  }
+  document.title = roomState.status === "playing" && !openingPhase && isMyTurn ? "● Đến lượt bạn - Cờ Tỷ Phú Online" : "Cờ Tỷ Phú Online";
   if (roomState.status === "waiting") {
     $("centerStatus").textContent = "Chờ người chơi thứ hai";
   } else if (roomState.status === "finished") {
     $("centerStatus").textContent = "Ván đấu kết thúc";
+  } else if (openingPhase) {
+    const ownRoll = roomState.openingRolls?.[uid];
+    $("centerStatus").textContent = ownRoll
+      ? "Đã tung xí ngầu · Đợi đối thủ"
+      : Number(roomState.openingRound) > 1 ? `Hòa điểm · Tung lại vòng ${roomState.openingRound}` : "Tung xí ngầu chọn người đi trước";
   } else if (computerGame && roomState.turnUid === COMPUTER_UID) {
     $("centerStatus").textContent = "Máy đang suy nghĩ...";
   } else {
@@ -620,7 +679,10 @@ const HOP_MS = 190;
 function tokensHtml(index) {
   return getPlayerEntries(roomState)
     .filter(([uid, p]) => (displayPos[uid] ?? Number(p.position)) === index)
-    .map(([uid, p], i) => `<i class="token${movingUid === uid ? " moving" : ""}" title="${escapeHtml(p.name)}" style="--tc:${safeColor(p.color)}"><b>${animalFor(p.color, i)}</b></i>`)
+    .map(([uid, p], i) => {
+      const tokenId = playerTokenId(p, i);
+      return `<i class="token${movingUid === uid ? " moving" : ""}" title="${escapeHtml(p.name)}" style="--tc:${safeColor(p.color)}"><b class="token-glyph" data-token="${tokenId}">${tokenMarkup(tokenId)}</b></i>`;
+    })
     .join("");
 }
 function renderTokens() {
@@ -750,12 +812,15 @@ function confetti() {
 // ví dụ tải lại trang) không chạy hiệu ứng nào.
 function runEffects(previous, next) {
   if (!previous || !next) return;
+  const openingRolled = next.openingLastRoll &&
+    JSON.stringify(previous.openingLastRoll || null) !== JSON.stringify(next.openingLastRoll);
   const rolled = !previous.lastRoll && next.lastRoll;
-  if (rolled) animateDice(next.lastRoll);
+  if (openingRolled) animateDice(next.openingLastRoll.dice);
+  else if (rolled) animateDice(next.lastRoll);
   for (const [uid, now] of getPlayerEntries(next)) {
     const before = previous.players?.[uid];
     if (!before) continue;
-    let delay = rolled ? DICE_MS : 0;
+    let delay = (rolled || openingRolled) ? DICE_MS : 0;
     if (Number(before.position) !== Number(now.position)) {
       delay = animateMove(uid, Number(before.position), Number(now.position), delay) || delay;
     }
@@ -785,8 +850,52 @@ function renderRoom() {
   scheduleAutoEnd();
 }
 
+async function rollOpeningDice() {
+  if (!roomState || busy || !isOpeningRollPhase(roomState)) return;
+  const uid = currentUser.uid;
+  const dice = [1 + Math.floor(Math.random() * 6), 1 + Math.floor(Math.random() * 6)];
+  setBusy(true);
+  try {
+    const result = await updateCurrentRoom((room) => {
+      if (room === null) return room;
+      if (!room || !isOpeningRollPhase(room) || !room.players?.[uid] || room.openingRolls?.[uid]) return;
+      const round = Number(room.openingRound || 1);
+      room.openingRolls = room.openingRolls || {};
+      room.openingRolls[uid] = dice;
+      room.openingLastRoll = {uid,round,dice};
+      const playerIds = Object.keys(room.players || {});
+      if (playerIds.length === 2 && playerIds.every((playerUid) => room.openingRolls?.[playerUid])) {
+        const [firstUid, secondUid] = playerIds;
+        const comparison = compareOpeningRolls(room.openingRolls[firstUid], room.openingRolls[secondUid]);
+        if (comparison === 0) {
+          room.openingRound = round + 1;
+          room.openingRolls = {};
+          room.message = `Hai người hòa điểm. Cùng tung lại ở vòng ${room.openingRound} để chọn người đi trước.`;
+        } else {
+          const winnerUid = comparison > 0 ? firstUid : secondUid;
+          const winner = room.players[winnerUid];
+          room.startPlayerUid = winnerUid;
+          room.turnUid = winnerUid;
+          room.turnNumber = 1;
+          room.message = `${winner.name} thắng lượt tung xí ngầu và được đi trước!`;
+        }
+      } else {
+        room.message = room.players[uid].name + " đã tung xí ngầu. Đang chờ người chơi còn lại...";
+      }
+      room.updatedAt = Date.now();
+      return room;
+    });
+    if (!result?.committed) notify("Chưa ghi nhận được lượt tung. Hãy thử lại.");
+  } catch (error) {
+    notify("Không tung được xí ngầu chọn lượt: " + explainFirebaseError(error));
+  } finally {
+    setBusy(false);
+  }
+  if (computerGame && !computerBusy) scheduleComputerTurn();
+}
 async function rollDice() {
   if (!roomState || busy) return;
+  if (isOpeningRollPhase(roomState)) return rollOpeningDice();
   const mine = myPlayer();
   if (mine?.jailTurns) return releaseFromJail();
   setBusy(true);
@@ -1028,7 +1137,7 @@ async function endTurn() {
     const uid = currentUser.uid;
     await updateCurrentRoom((room) => {
       if (room === null) return room; // SDK chưa có dữ liệu: yêu cầu nạp từ server rồi gọi lại
-      if (!room || room.status !== "playing" || room.turnUid !== uid || room.pending || room.auction || !room.lastRoll) return;
+      if (!room || room.status !== "playing" || !room.startPlayerUid || room.turnUid !== uid || room.pending || room.auction || !room.lastRoll) return;
       const player = room.players?.[uid];
       const nextUid = Object.keys(room.players||{}).find(id => id !== uid);
       room.turnUid = nextUid;
@@ -1046,7 +1155,7 @@ async function endTurn() {
 // Không còn nút "Kết thúc lượt": tung xúc xắc (và quyết định mua nếu có) xong là tự chuyển lượt
 // sau khi hiệu ứng chạy xong.
 function scheduleAutoEnd() {
-  const ok = roomState && currentUser && roomState.status === "playing" && roomState.turnUid === currentUser.uid &&
+  const ok = roomState && currentUser && roomState.status === "playing" && roomState.startPlayerUid && roomState.turnUid === currentUser.uid &&
     roomState.lastRoll && !roomState.pending && !roomState.auction && !computerBusy && currentUser.uid !== COMPUTER_UID;
   if (!ok) return;
   const key = currentRoomCode + ":" + roomState.turnNumber;
@@ -1077,15 +1186,17 @@ function startComputerGame() {
     creatorUid:humanUid,
     joinerUid:COMPUTER_UID,
     players:{
-      [humanUid]:{uid:humanUid,name:cleanName($("playerName").value,"Bạn"),color:TOKEN_COLORS[0],cash:START_CASH,position:0,jailTurns:0},
-      [COMPUTER_UID]:{uid:COMPUTER_UID,name:"Máy Miền Tây",color:TOKEN_COLORS[1],cash:START_CASH,position:0,jailTurns:0,isComputer:true}
+      [humanUid]:{uid:humanUid,name:cleanName($("playerName").value,"Bạn"),color:TOKEN_COLORS[0],token:selectedToken,cash:START_CASH,position:0,jailTurns:0},
+      [COMPUTER_UID]:{uid:COMPUTER_UID,name:"Máy Miền Tây",color:TOKEN_COLORS[1],token:alternateToken(selectedToken),cash:START_CASH,position:0,jailTurns:0,isComputer:true}
     },
     propertyOwners:{},
     turnUid:humanUid,
     turnNumber:1,
+    openingRound:1,
+    openingRolls:{},
     lastRoll:null,
     pending:null,
-    message:"Bạn đi trước. Chúc bạn may mắn!",
+    message:"Tung hai viên xí ngầu để chọn người đi trước!",
     createdAt:Date.now(),
     updatedAt:Date.now()
   };
@@ -1094,6 +1205,7 @@ function startComputerGame() {
   $("copyRoomButton").hidden = true;
   $("roomCodeLabel").textContent = "VỚI MÁY";
   renderRoom();
+  scheduleComputerTurn();
   document.title = "Đấu với máy - Cờ Tỷ Phú";
 }
 function computerShouldBuy(index) {
@@ -1116,6 +1228,10 @@ function computerAuctionMaxBid(index) {
 }
 function isComputerActionDue(state, computerUid = COMPUTER_UID) {
   if (!state || state.status !== "playing") return false;
+  if (isOpeningRollPhase(state)) {
+    const humanUid = state.creatorUid;
+    return !!state.openingRolls?.[humanUid] && !state.openingRolls?.[computerUid];
+  }
   // Trong phiên đấu giá, chỉ xét người đang được quyền trả giá; không dùng turnUid
   // của lượt chơi gốc để gọi máy lặp khi tới lượt người thật.
   if (state.auction) return state.auction.turnUid === computerUid;
@@ -1138,7 +1254,9 @@ async function playComputerTurn() {
   currentUser.uid = COMPUTER_UID;
   try {
     await new Promise((resolve) => setTimeout(resolve, 650));
-    if (roomState.auction?.turnUid === COMPUTER_UID) {
+    if (isOpeningRollPhase(roomState)) {
+      await rollOpeningDice();
+    } else if (roomState.auction?.turnUid === COMPUTER_UID) {
       const index = Number(roomState.auction.index);
       if (nextAuctionBid(roomState.auction) <= computerAuctionMaxBid(index)) await placeAuctionBid();
       else await passAuction();
@@ -1172,6 +1290,11 @@ async function playComputerTurn() {
   }
 }
 
+$("tokenPicker").addEventListener("click", (event) => {
+  const button = event.target.closest("button[data-token]");
+  if (button) chooseToken(button.dataset.token);
+});
+renderTokenPicker();
 $("createRoomButton").addEventListener("click", createRoom);
 $("joinRoomButton").addEventListener("click", joinRoom);
 $("playComputerButton").addEventListener("click", startComputerGame);

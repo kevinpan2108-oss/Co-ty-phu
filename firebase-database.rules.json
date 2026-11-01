@@ -23,6 +23,29 @@
         "turnNumber": {
           ".validate": "newData.isNumber()"
         },
+        "openingRound": {
+          ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 100"
+        },
+        "startPlayerUid": {
+          ".validate": "newData.isString() && newData.parent().child('players').hasChild(newData.val())"
+        },
+        "openingRolls": {
+          "$uid": {
+            ".validate": "newData.parent().parent().child('players').hasChild($uid) && newData.hasChildren(['0', '1'])",
+            "0": { ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 6" },
+            "1": { ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 6" }
+          }
+        },
+        "openingLastRoll": {
+          ".validate": "newData.hasChildren(['uid', 'round', 'dice'])",
+          "uid": { ".validate": "newData.isString() && newData.parent().parent().child('players').hasChild(newData.val())" },
+          "round": { ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 100" },
+          "dice": {
+            ".validate": "newData.hasChildren(['0', '1'])",
+            "0": { ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 6" },
+            "1": { ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 6" }
+          }
+        },
         "message": {
           ".validate": "newData.isString() && newData.val().length <= 300"
         },
@@ -75,6 +98,9 @@
             },
             "color": {
               ".validate": "newData.isString() && newData.val().matches(/^#[0-9a-fA-F]{6}$/)"
+            },
+            "token": {
+              ".validate": "newData.isString() && (newData.val() == 'penguin' || newData.val() == 'puppy' || newData.val() == 'plastic-chair' || newData.val() == 'vietnamese-coffee')"
             },
             "cash": {
               ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 1000000"

@@ -21,10 +21,12 @@ const api = new Function(
    ${extractFunction("calcRent")}
    ${extractFunction("isAuctionSpace")}
    ${extractFunction("nextAuctionBid")}
+   ${extractFunction("isOpeningRollPhase")}
+   ${extractFunction("compareOpeningRolls")}
    ${extractFunction("isComputerActionDue")}
-   return {SPACE_DATA, provinceCells, ownsWholeProvince, calcRent, isAuctionSpace, nextAuctionBid, isComputerActionDue};`
+   return {SPACE_DATA, provinceCells, ownsWholeProvince, calcRent, isAuctionSpace, nextAuctionBid, isOpeningRollPhase, compareOpeningRolls, isComputerActionDue};`
 )();
-const { SPACE_DATA, provinceCells, ownsWholeProvince, calcRent, isAuctionSpace, nextAuctionBid, isComputerActionDue } = api;
+const { SPACE_DATA, provinceCells, ownsWholeProvince, calcRent, isAuctionSpace, nextAuctionBid, isOpeningRollPhase, compareOpeningRolls, isComputerActionDue } = api;
 
 const MEKONG_PROVINCES = [
   "Long An", "Tiền Giang", "Bến Tre", "Trà Vinh", "Vĩnh Long", "Đồng Tháp", "Cần Thơ",
@@ -122,4 +124,30 @@ test("the computer is scheduled only for its actual turn or auction bid", () => 
   assert.equal(isComputerActionDue({ status: "playing", turnUid: human, auction: { turnUid: computer } }, computer), true);
   assert.equal(isComputerActionDue({ status: "playing", turnUid: computer, auction: { turnUid: human } }, computer), false);
   assert.equal(isComputerActionDue({ status: "finished", turnUid: computer }, computer), false);
+});
+
+
+test("opening dice choose the player with the higher total and detect ties", () => {
+  assert.equal(compareOpeningRolls([6, 4], [3, 5]), 1);
+  assert.equal(compareOpeningRolls([1, 2], [4, 5]), -1);
+  assert.equal(compareOpeningRolls([3, 4], [5, 2]), 0);
+});
+test("the game waits for opening rolls only on newly started matches", () => {
+  assert.equal(isOpeningRollPhase({status:"playing",openingRound:1,openingRolls:{}}), true);
+  assert.equal(isOpeningRollPhase({status:"playing",openingRound:2,startPlayerUid:"p1"}), false);
+  assert.equal(isOpeningRollPhase({status:"playing"}), false);
+});
+test("the computer waits for the human opening roll, then submits its own", () => {
+  const state = {status:"playing",creatorUid:"human",turnUid:"human",openingRound:1,openingRolls:{}};
+  assert.equal(isComputerActionDue(state,"computer"), false);
+  state.openingRolls.human = [4,5];
+  assert.equal(isComputerActionDue(state,"computer"), true);
+  state.openingRolls.computer = [2,3];
+  assert.equal(isComputerActionDue(state,"computer"), false);
+});
+test("the lobby offers both classic and Vietnamese everyday tokens", async () => {
+  const { TOKEN_OPTIONS, tokenMarkup } = await import("../board-art.js");
+  assert.deepEqual(TOKEN_OPTIONS.map((item) => item.id), ["penguin","puppy","plastic-chair","vietnamese-coffee"]);
+  assert.match(tokenMarkup("plastic-chair"), /<svg/);
+  assert.match(tokenMarkup("vietnamese-coffee"), /<svg/);
 });
