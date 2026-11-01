@@ -1021,3 +1021,18 @@ async function boot() {
   await resumeLastRoom();
 }
 boot();
+
+// ===== Chế độ xem bàn cờ: 3D (isometric) hoặc phẳng. Chỉ đổi giao diện, không ghi gì lên database =====
+const VIEW_KEY = "ctp-board-view";
+function applyBoardView(iso) {
+  $("boardWrap").classList.toggle("iso", iso);
+  const btn = $("viewToggleButton");
+  btn.textContent = iso ? "Bàn phẳng" : "Bàn 3D";
+  btn.setAttribute("aria-pressed", String(iso));
+}
+applyBoardView(store("get", VIEW_KEY) !== "flat");
+$("viewToggleButton").addEventListener("click", () => {
+  const iso = !$("boardWrap").classList.contains("iso");
+  applyBoardView(iso);
+  store("set", VIEW_KEY, iso ? "iso" : "flat");
+});

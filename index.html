@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;800&family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="./style.css?v=board2" />
+  <link rel="stylesheet" href="./style.css?v=iso1" />
 </head>
 <body>
   <div class="ambient ambient-one"></div>
@@ -71,6 +71,7 @@
       <div class="game-heading">
         <div><span class="section-kicker"><span id="gameModeLabel">Phòng</span> <b id="roomCodeLabel">------</b></span><h2 id="gameTitle">Đại chiến bất động sản</h2></div>
         <div class="game-heading-actions">
+          <button id="viewToggleButton" class="soft-button" type="button" aria-pressed="true">Bàn phẳng</button>
           <button id="copyRoomButton" class="soft-button" type="button">Sao chép mã</button>
           <button id="leaveRoomButton" class="soft-button leave-button" type="button">Rời phòng</button>
         </div>
@@ -96,7 +97,7 @@
           <div class="legend-card"><span id="legendMine">●</span> Quân của bạn <b id="legendOpponent">●</b> Quân đối thủ</div>
         </aside>
 
-        <div class="board-wrap">
+        <div class="board-wrap iso" id="boardWrap">
           <div class="board" id="board">
             <div class="board-center">
               <svg class="scene" viewBox="0 0 400 300" preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false">
@@ -171,6 +172,6 @@
     <footer class="footer"><span>© 2026 Cờ Tỷ Phú Online</span><span>Làm để chơi với bạn bè</span></footer>
   </main>
 
-  <script type="module" src="./app.js?v=board2"></script>
+  <script type="module" src="./app.js?v=iso1"></script>
 </body>
 </html>
