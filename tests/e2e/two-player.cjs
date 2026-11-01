@@ -320,8 +320,7 @@ let rules;
     };
     // Sổ đất là nơi quản lý tài sản và đã được mở ở phần kiểm tra xây nhà bên trên.
     // Khi phát sinh nợ, modal hiển thị banner số nợ cùng nút cầm cố trực tiếp.
-    await pa.page.click("#propsButton");
-    await pa.page.waitForSelector("#propertyList .debt-banner", { timeout:4000 });
+    await pa.page.waitForSelector("#propsModal:not([hidden]) #propertyList .debt-banner", { timeout:4000 });
     check("sổ đất hiển thị khoản nợ và hướng xử lý", /Đang nợ 20/.test(await text(pa.page, "#propertyList")));
     await pa.page.waitForSelector('#propertyList [data-deed-action="mortgage-asset"][data-index="3"]', { timeout:4000 });
     await pa.page.locator('#propertyList [data-deed-action="mortgage-asset"][data-index="3"]').click();
