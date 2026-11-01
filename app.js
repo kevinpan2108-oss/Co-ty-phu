@@ -1,5 +1,5 @@
 import { initializeApp, deleteApp } from "https://www.gstatic.com/firebasejs/13.1.0/firebase-app.js";
-import { artSvg, animalFor } from "./board-art.js?v=1";
+import { artSvg, animalFor, shortName } from "./board-art.js?v=1";
 import { shouldComputerBuy } from "./computer-player.js?v=1";
 import { getDatabase, ref, set, get, onValue, runTransaction } from "https://www.gstatic.com/firebasejs/13.1.0/firebase-database.js";
 
@@ -471,7 +471,7 @@ function renderBoard() {
     const ownerUid = roomState?.propertyOwners?.[getSpaceId(index)];
     const owner = ownerUid ? roomState?.players?.[ownerUid] : null;
     const div = document.createElement("div");
-    div.className = "space" + (space.corner ? " corner" : "") + (owner ? " owned" : "") + (stampUntil[index] > Date.now() ? " stamp" : "");
+    div.className = "space" + (space.corner ? " corner" : "") + (owner ? " owned" : "") + (stampUntil[index] > Date.now() ? " stamp" : "") + (space.corner ? "" : row === 0 ? " side-top" : row === 10 ? " side-bottom" : col === 0 ? " side-left" : " side-right");
     if (owner) div.style.setProperty("--owner", safeColor(owner.color));
     div.style.gridRow = String(row+1);
     div.style.gridColumn = String(col+1);
@@ -486,8 +486,7 @@ function renderBoard() {
       <span class="space-color" style="background:${colorBar}"></span>
       ${icon ? `<span class="space-icon">${icon}</span>` : ""}
       <span class="space-art">${artSvg(space.name, colorBar) || `<b class="art-emoji">${icon}</b>`}</span>
-      <span class="space-name">${escapeHtml(space.name)}</span>
-      ${price && !space.corner ? `<span class="space-price">${price}</span>` : ""}
+      <span class="space-text"><span class="space-name">${escapeHtml(space.corner ? space.name : shortName(space.name))}</span>${price && !space.corner ? `<span class="space-price">${price}</span>` : ""}</span>
       <span class="space-players">${tokensHtml(index)}</span>
     `;
     board.insertBefore(div, center);
