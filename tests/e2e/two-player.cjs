@@ -166,6 +166,15 @@ let rules;
   check("quân ghế nhựa và ly cà phê hiển thị trên bàn", tokenInfo.length === 2 && tokenInfo.some((x) => x[0] === "plastic-chair") && tokenInfo.some((x) => x[0] === "vietnamese-coffee") && tokenInfo.every((x) => x[3] > 8 && x[4] > 8), JSON.stringify(tokenInfo));
   check("token đã thu nhỏ, không lấn át ô cờ", tokenInfo.every((x) => x[3] < 46 && x[4] < 38), JSON.stringify(tokenInfo));
   check("chỉ người có lượt được bấm Tung xúc xắc", !(await pa.page.locator("#rollButton").isDisabled()) && (await pb.page.locator("#rollButton").isDisabled()));
+  // Chờ hiệu ứng của lượt tung chọn người đi trước kết thúc ở cả hai trình duyệt.
+  // Nếu không, interval xáo xúc xắc cũ có thể tiêu thụ Math.random mà bài test sắp cố định.
+  await Promise.all([pa, pb].map(async ({ page }) => {
+    await page.waitForFunction(() => {
+      const stage = document.querySelector("#diceStage");
+      const result = document.querySelector("#diceResult");
+      return !stage?.classList.contains("show") && !result?.classList.contains("rolling");
+    }, null, { timeout: 5000 });
+  }));
   // Tung xúc xắc [1,2] → ô 3 (Đường Đồng Khởi, $60)
   await pa.page.evaluate(() => { const q = [0, 0.2]; Math.random = () => (q.length ? q.shift() : 0.5); });
   await pa.page.click("#rollButton");
