@@ -172,6 +172,119 @@ function compareOpeningRolls(a, b) {
   const total = (dice) => (Number(dice?.[0]) || 0) + (Number(dice?.[1]) || 0);
   return Math.sign(total(a) - total(b));
 }
+function houseMap(room = roomState) { return room?.houses || {}; }
+function mortgageMap(room = roomState) { return room?.mortgages || {}; }
+function rentForRoom(room, index, diceTotal) {
+  const space = SPACE_DATA[Number(index)];
+  const ownerUid = room?.propertyOwners?.[getSpaceId(index)];
+  return calculateAssetRent(SPACE_DATA, space, room?.propertyOwners, ownerUid, diceTotal, index, houseMap(room), mortgageMap(room));
+}
+function ownedAssetCount(room, uid) {
+  return Object.entries(room?.propertyOwners || {}).filter(([, owner]) => owner === uid).length;
+}
+function buildingRepairCost(room, uid, perHouse, perHotel) {
+  return Object.entries(room?.houses || {}).reduce((sum, [id, rawCount]) => {
+    const index = Number(String(id).slice(1));
+    if (room?.propertyOwners?.[id] !== uid || SPACE_DATA[index]?.type !== "property") return sum;
+    const count = Math.max(0, Math.min(5, Number(rawCount) || 0));
+    return sum + (count === 5 ? perHotel : count * perHouse);
+  }, 0);
+}
+function chargePlayer(room, uid, amount, creditorUid = "", reason = "", options = {}) {
+  const player = room?.players?.[uid];
+  const due = Math.max(0, Math.round(Number(amount) || 0));
+  if (!player || due <= 0) return { paid: 0, remaining: 0 };
+  if (room.debt && room.debt.uid !== uid) return { paid: 0, remaining: due, blocked: true };
+  const paid = Math.min(Math.max(0, Number(player.cash) || 0), due);
+  player.cash = Math.max(0, Number(player.cash || 0) - paid);
+  if (creditorUid && room.players?.[creditorUid]) room.players[creditorUid].cash += paid;
+  const remaining = due - paid;
+  if (remaining > 0) {
+    room.debt = {
+      uid,
+      amount: Number(room.debt?.amount || 0) + remaining,
+      creditorUid: creditorUid || room.debt?.creditorUid || "",
+      reason: [room.debt?.reason, reason].filter(Boolean).join("; ").slice(0, 120),
+      ...(options.resumeJail || room.debt?.resumeJail ? {resumeJail:true} : {})
+    };
+  }
+  return { paid, remaining };
+}
+function applyDebtFunds(room, uid, funds) {
+  const player = room?.players?.[uid];
+  let amount = Math.max(0, Math.round(Number(funds) || 0));
+  if (!player || amount <= 0) return;
+  const debt = room.debt;
+  if (debt?.uid === uid) {
+    const paid = Math.min(amount, Math.max(0, Number(debt.amount) || 0));
+    if (debt.creditorUid && room.players?.[debt.creditorUid]) room.players[debt.creditorUid].cash += paid;
+    debt.amount -= paid;
+    amount -= paid;
+    if (debt.amount <= 0) {
+      const resumeJail = debt.resumeJail === true;
+      room.debt = null;
+      if (resumeJail) {
+        player.jailTurns = 0;
+        room.turnUid = Object.keys(room.players || {}).find((id) => id !== uid);
+        room.turnNumber = Number(room.turnNumber || 1) + 1;
+        room.lastRoll = null;
+      }
+      room.message = player.name + " đã thanh toán đủ khoản nợ và có thể tiếp tục ván chơi.";
+    } else {
+      room.message = player.name + " đã trả " + money(paid) + ". Còn nợ " + money(debt.amount) + ".";
+    }
+  }
+  player.cash = Math.max(0, Number(player.cash || 0)) + amount;
+}
+function applyCardEffect(room, uid, card) {
+  const player = room?.players?.[uid];
+  if (!player || !card) return "Không rút được thẻ.";
+  const otherUid = Object.keys(room.players || {}).find((id) => id !== uid);
+  const amount = Math.abs(Number(card.amount) || 0);
+  switch (card.kind) {
+    case "money":
+      if (Number(card.amount) >= 0) player.cash += amount;
+      else chargePlayer(room, uid, amount, "", card.text);
+      return card.text + (Number(card.amount) >= 0 ? " Nhận " : " Chi ") + money(amount) + ".";
+    case "payEachPlayer":
+      if (otherUid) chargePlayer(room, uid, amount, otherUid, card.text);
+      return card.text + " Chia " + money(amount) + " cho người chơi còn lại.";
+    case "collectFromEach":
+      if (otherUid) chargePlayer(room, otherUid, amount, uid, card.text);
+      return card.text + " Nhận " + money(amount) + " từ người chơi còn lại.";
+    case "payPerAsset": {
+      const bill = amount * ownedAssetCount(room, uid);
+      if (bill) chargePlayer(room, uid, bill, "", card.text);
+      return card.text + " Phí tính theo tài sản: " + money(bill) + ".";
+    }
+    case "collectPerAsset": {
+      const reward = amount * ownedAssetCount(room, uid);
+      player.cash += reward;
+      return card.text + " Nhận " + money(reward) + ".";
+    }
+    case "repair": {
+      const bill = buildingRepairCost(room, uid, Number(card.perHouse) || 0, Number(card.perHotel) || 0);
+      if (bill) chargePlayer(room, uid, bill, "", card.text);
+      return card.text + " Chi phí sửa nhà/khách sạn: " + money(bill) + ".";
+    }
+    case "jailPass":
+      player.jailPasses = Number(player.jailPasses || 0) + 1;
+      return card.text + " Bạn đang có " + player.jailPasses + " thẻ miễn vào tù.";
+    case "goToJail": {
+      const from = Number(player.position || 0);
+      player.position = 10;
+      player.jailTurns = 1;
+      room.lastMove = {uid,from,to:10,steps:0,kind:"teleport"};
+      return card.text;
+    }
+    default:
+      return card.text || "Thẻ Khí vận đã được áp dụng.";
+  }
+}
+function canDeclareBankruptcy(room, uid) {
+  return !!room?.debt && room.debt.uid === uid &&
+    !hasLiquidationOptions(SPACE_DATA, room.propertyOwners, room.houses || {}, room.mortgages || {}, uid);
+}
 // ===== Luật tiền thuê (hàm thuần túy, có test trong tests/board.test.js) =====
 // Các ô đất cùng tỉnh (cùng "group"). Chỉ tỉnh có từ 2 ô đất trở lên mới có thưởng sở hữu cả tỉnh.
 function provinceCells(group) {
@@ -389,9 +502,11 @@ async function createRoom() {
         creatorUid:uid,
         joinerUid:null,
         players:{
-          [uid]:{uid,name,color:TOKEN_COLORS[0],token:selectedToken,cash:START_CASH,position:0,jailTurns:0}
+          [uid]:{uid,name,color:TOKEN_COLORS[0],token:selectedToken,cash:START_CASH,position:0,jailTurns:0,jailPasses:0}
         },
         propertyOwners:{},
+        houses:{},
+        mortgages:{},
         turnUid:uid,
         turnNumber:1,
         lastRoll:null,
@@ -444,7 +559,7 @@ async function joinRoom() {
         const creatorName = room.players?.[room.creatorUid]?.name;
         const joinName = name === creatorName ? name.slice(0, 14) + " (2)" : name;
         room.players = room.players || {};
-        room.players[uid] = {uid,name:joinName,color:TOKEN_COLORS[1],token:selectedToken,cash:START_CASH,position:0,jailTurns:0};
+        room.players[uid] = {uid,name:joinName,color:TOKEN_COLORS[1],token:selectedToken,cash:START_CASH,position:0,jailTurns:0,jailPasses:0};
         room.joinerUid = uid;
         room.status = "playing";
         room.openingRound = 1;
@@ -1187,10 +1302,12 @@ function startComputerGame() {
     creatorUid:humanUid,
     joinerUid:COMPUTER_UID,
     players:{
-      [humanUid]:{uid:humanUid,name:cleanName($("playerName").value,"Bạn"),color:TOKEN_COLORS[0],token:selectedToken,cash:START_CASH,position:0,jailTurns:0},
-      [COMPUTER_UID]:{uid:COMPUTER_UID,name:"Máy Miền Tây",color:TOKEN_COLORS[1],token:alternateToken(selectedToken),cash:START_CASH,position:0,jailTurns:0,isComputer:true}
+      [humanUid]:{uid:humanUid,name:cleanName($("playerName").value,"Bạn"),color:TOKEN_COLORS[0],token:selectedToken,cash:START_CASH,position:0,jailTurns:0,jailPasses:0},
+      [COMPUTER_UID]:{uid:COMPUTER_UID,name:"Máy Miền Tây",color:TOKEN_COLORS[1],token:alternateToken(selectedToken),cash:START_CASH,position:0,jailTurns:0,jailPasses:0,isComputer:true}
     },
     propertyOwners:{},
+    houses:{},
+    mortgages:{},
     turnUid:humanUid,
     turnNumber:1,
     openingRound:1,
