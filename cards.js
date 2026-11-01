@@ -23,8 +23,8 @@ export const FORTUNE_CARDS = Object.freeze([
   { id: "neighbor-help", text: "Người chơi còn lại hỗ trợ bạn một khoản vốn nhỏ.", kind: "collectFromEach", amount: 60 },
   { id: "lucky-fee", text: "Được miễn một phần phí cầu phà.", kind: "money", amount: 70 },
   { id: "kindness", text: "Bạn san sẻ lộc cho người chơi còn lại.", kind: "payEachPlayer", amount: 30 },
-  { id: "jail-pass", text: "Được tặng thẻ ra tù miễn phí.", kind: "jailPass" },
-  { id: "go-to-jail", text: "Gặp sự cố trên chuyến đò, phải ghé đồn bến sông.", kind: "goToJail" }
+  { id: "fortune-jail-pass", text: "Được tặng thẻ ra tù miễn phí.", kind: "jailPass" },
+  { id: "fortune-go-to-jail", text: "Gặp sự cố trên chuyến đò, phải ghé đồn bến sông.", kind: "goToJail" }
 ]);
 
 export function drawCard(type, random = Math.random) {

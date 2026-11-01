@@ -38,10 +38,10 @@ test("bank debt can be repaid from liquidation proceeds without creditor transfe
   const room={players:{a:{cash:10}},debt:{uid:"a",amount:60,creditorUid:"",reason:"Thuế"}};
   applyDebtFunds(room,"a",25);
   assert.equal(room.debt.amount,35);
-  assert.equal(room.players.a.cash,0);
+  assert.equal(room.players.a.cash,10);
   applyDebtFunds(room,"a",50);
   assert.equal(room.debt,null);
-  assert.equal(room.players.a.cash,15);
+  assert.equal(room.players.a.cash,25);
 });
 
 test("jail fee debt resumes the same turn only when fully repaid",()=>{
