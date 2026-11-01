@@ -178,7 +178,7 @@ let rules;
 
   // B tung [3,3] → ô 6 (Hai Bà Trưng) rồi bỏ qua
   // B đến bến phà (ô đặc biệt) và bỏ mua → A và B đấu giá lần lượt.
-  await pb.page.evaluate(() => { const q = [0, 0]; Math.random = () => (q.length ? q.shift() : 0.5); });
+  await pb.page.evaluate(() => { const q = [0.2, 0.4]; Math.random = () => (q.length ? q.shift() : 0.5); });
   await pb.page.click("#rollButton");
   await pb.page.waitForFunction(() => /Mua/.test(document.querySelector("#pendingActions")?.textContent || ""), null, { timeout: 4000 });
   check("B đến bến phà và có lựa chọn mua", /Bến phà Rạch Miễu/.test(await text(pb.page, "#actionMessage")));
