@@ -57,6 +57,7 @@ const cases = [
   ["auction hợp lệ chờ giá đầu tiên", playing(), edit(playing, (r) => { r.auction = { index: 5, turnUid: B, currentBid: 0, highestUid: "", openedByUid: A, passedUid: "" }; }), true],
   ["auction có người trả giá hợp lệ", playing(), edit(playing, (r) => { r.auction = { index: 12, turnUid: A, currentBid: 20, highestUid: B, openedByUid: A, passedUid: "" }; }), true],
   ["auction index ngoài bàn cờ", playing(), edit(playing, (r) => { r.auction = { index: 50, turnUid: B, currentBid: 0, highestUid: "", openedByUid: A, passedUid: "" }; }), false],
+  ["auction không được dùng cho ô đất thường", playing(), edit(playing, (r) => { r.auction = { index: 3, turnUid: B, currentBid: 0, highestUid: "", openedByUid: A, passedUid: "" }; }), false],
   ["auction bidder không thuộc phòng", playing(), edit(playing, (r) => { r.auction = { index: 5, turnUid: C, currentBid: 0, highestUid: "", openedByUid: A, passedUid: "" }; }), false],
   ["auction người trả giá cao nhất không thuộc phòng", playing(), edit(playing, (r) => { r.auction = { index: 5, turnUid: B, currentBid: 10, highestUid: C, openedByUid: A, passedUid: "" }; }), false],
   ["auction giá âm", playing(), edit(playing, (r) => { r.auction = { index: 5, turnUid: B, currentBid: -10, highestUid: "", openedByUid: A, passedUid: "" }; }), false],

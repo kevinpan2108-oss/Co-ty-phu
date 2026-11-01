@@ -14,15 +14,17 @@ const spaceSource = app.match(/const SPACE_DATA = (\[[\s\S]*?\n\]);/)[1];
 const api = new Function(
   `const SPACE_DATA = ${spaceSource};
    const AUCTION_INCREMENT = 10;
+   const COMPUTER_UID = "__computer__";
    ${extractFunction("getSpaceId")}
    ${extractFunction("provinceCells")}
    ${extractFunction("ownsWholeProvince")}
    ${extractFunction("calcRent")}
    ${extractFunction("isAuctionSpace")}
    ${extractFunction("nextAuctionBid")}
-   return {SPACE_DATA, provinceCells, ownsWholeProvince, calcRent, isAuctionSpace, nextAuctionBid};`
+   ${extractFunction("isComputerActionDue")}
+   return {SPACE_DATA, provinceCells, ownsWholeProvince, calcRent, isAuctionSpace, nextAuctionBid, isComputerActionDue};`
 )();
-const { SPACE_DATA, provinceCells, ownsWholeProvince, calcRent, isAuctionSpace, nextAuctionBid } = api;
+const { SPACE_DATA, provinceCells, ownsWholeProvince, calcRent, isAuctionSpace, nextAuctionBid, isComputerActionDue } = api;
 
 const MEKONG_PROVINCES = [
   "Long An", "Tiền Giang", "Bến Tre", "Trà Vinh", "Vĩnh Long", "Đồng Tháp", "Cần Thơ",
@@ -110,4 +112,14 @@ test("the board renderer no longer injects floating 3D landmark art", async () =
   const renderer = source.slice(source.indexOf("function renderBoard()"), source.indexOf("function renderPlayers()"));
   assert.doesNotMatch(renderer, /artSvg|space-art/);
   assert.ok(source.includes("function isAuctionSpace(space)"));
+});
+
+
+test("the computer is scheduled only for its actual turn or auction bid", () => {
+  const human = "human";
+  const computer = "__computer__";
+  assert.equal(isComputerActionDue({ status: "playing", turnUid: computer }, computer), true);
+  assert.equal(isComputerActionDue({ status: "playing", turnUid: human, auction: { turnUid: computer } }, computer), true);
+  assert.equal(isComputerActionDue({ status: "playing", turnUid: computer, auction: { turnUid: human } }, computer), false);
+  assert.equal(isComputerActionDue({ status: "finished", turnUid: computer }, computer), false);
 });

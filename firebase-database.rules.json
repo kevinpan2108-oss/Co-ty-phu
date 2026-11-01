@@ -52,7 +52,7 @@
         },
         "auction": {
           ".validate": "newData.hasChildren(['index', 'turnUid', 'currentBid', 'highestUid', 'openedByUid', 'passedUid'])",
-          "index": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 39" },
+          "index": { ".validate": "newData.isNumber() && (newData.val() == 5 || newData.val() == 12 || newData.val() == 15 || newData.val() == 25 || newData.val() == 28 || newData.val() == 35)" },
           "turnUid": { ".validate": "newData.isString() && newData.parent().parent().child('players').hasChild(newData.val())" },
           "currentBid": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 1000000" },
           "highestUid": { ".validate": "newData.isString() && (newData.val() == '' || newData.parent().parent().child('players').hasChild(newData.val()))" },

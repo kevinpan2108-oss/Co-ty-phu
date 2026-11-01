@@ -1114,9 +1114,15 @@ function computerAuctionMaxBid(index) {
   const valueLimit = Math.floor((Number(space.price || 0) * 1.2) / AUCTION_INCREMENT) * AUCTION_INCREMENT;
   return Math.max(0, Math.min(cashLimit, valueLimit));
 }
+function isComputerActionDue(state, computerUid = COMPUTER_UID) {
+  if (!state || state.status !== "playing") return false;
+  // Trong phiên đấu giá, chỉ xét người đang được quyền trả giá; không dùng turnUid
+  // của lượt chơi gốc để gọi máy lặp khi tới lượt người thật.
+  if (state.auction) return state.auction.turnUid === computerUid;
+  return state.turnUid === computerUid;
+}
 function scheduleComputerTurn() {
-  if (!computerGame || computerBusy || computerTimer || roomState?.status !== "playing") return;
-  if (roomState.auction?.turnUid !== COMPUTER_UID && roomState.turnUid !== COMPUTER_UID) return;
+  if (!computerGame || computerBusy || computerTimer || !isComputerActionDue(roomState)) return;
   computerTimer = setTimeout(() => {
     computerTimer = null;
     playComputerTurn().catch((error) => notify("Máy chưa đi được: " + (error?.message || error)));
@@ -1125,8 +1131,7 @@ function scheduleComputerTurn() {
 
 async function playComputerTurn() {
   const auctionTurn = roomState?.auction?.turnUid === COMPUTER_UID;
-  if (!computerGame || computerBusy || roomState?.status !== "playing" ||
-      (!auctionTurn && roomState.turnUid !== COMPUTER_UID) || !currentUser) return;
+  if (!computerGame || computerBusy || !isComputerActionDue(roomState) || !currentUser) return;
   const humanUid = currentUser.uid;
   const before = JSON.parse(JSON.stringify(roomState));
   computerBusy = true;
