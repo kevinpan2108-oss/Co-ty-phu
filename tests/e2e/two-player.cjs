@@ -157,6 +157,10 @@ let rules;
   await pb.page.click("#rollButton");
   await pa.page.waitForFunction(() => document.querySelector("#rollButton")?.disabled === false && document.querySelector("#turnName")?.textContent.trim() === "An", null, { timeout: 6000 });
   check("An thắng lượt xí ngầu và được đi trước", /Đến lượt bạn/i.test(await text(pa.page, "#centerStatus")) && /Đợi đối thủ/i.test(await text(pb.page, "#centerStatus")));
+  await Promise.all([
+    pa.page.waitForFunction(() => !document.querySelector("#diceStage")?.classList.contains("show"), null, { timeout: 4000 }),
+    pb.page.waitForFunction(() => !document.querySelector("#diceStage")?.classList.contains("show"), null, { timeout: 4000 })
+  ]);
 
   await pc.page.fill("#roomCodeInput", code); await pc.page.fill("#playerName", "Chi"); await pc.page.click("#joinRoomButton"); await pc.page.waitForTimeout(600);
   check("người thứ ba bị từ chối", !(await pc.page.locator("#gameView").isVisible()) && /đã đủ 2 người/.test(await text(pc.page, "#lobbyMessage")), await text(pc.page, "#lobbyMessage"));
