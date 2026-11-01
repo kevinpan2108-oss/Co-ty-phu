@@ -1197,6 +1197,149 @@ async function buyProperty() {
   } catch (error) { notify("Không mua được đất: "+explainFirebaseError(error)); }
   finally { setBusy(false); }
 }
+async function buildHouse(index) {
+  if (busy) return;
+  setBusy(true);
+  try {
+    const uid = currentUser.uid;
+    const result = await updateCurrentRoom((room) => {
+      if (room === null) return room;
+      if (!room || room.status !== "playing" || room.turnUid !== uid || room.lastRoll || room.pending || room.auction || room.debt) return;
+      const player = room.players?.[uid];
+      const check = buildEligibility(SPACE_DATA, room.propertyOwners, room.houses || {}, room.mortgages || {}, uid, index, player?.cash);
+      if (!check.ok || !player) return;
+      player.cash -= check.cost;
+      room.houses = room.houses || {};
+      const key = getSpaceId(index);
+      room.houses[key] = Number(room.houses[key] || 0) + 1;
+      const label = room.houses[key] === 5 ? "khách sạn" : "căn nhà";
+      room.message = player.name + " xây " + label + " tại " + SPACE_DATA[index].name + " với chi phí " + money(check.cost) + ".";
+      room.updatedAt = Date.now();
+      return room;
+    });
+    if (result?.committed === false) notify("Chưa thể xây: cần sở hữu trọn bộ tỉnh, xây đều và đủ tiền.");
+  } catch (error) { notify("Không xây được nhà: " + explainFirebaseError(error)); }
+  finally { setBusy(false); }
+}
+async function sellHouse(index) {
+  if (busy) return;
+  setBusy(true);
+  try {
+    const uid = currentUser.uid;
+    const result = await updateCurrentRoom((room) => {
+      if (room === null) return room;
+      if (!room || room.status !== "playing" || room.pending || room.auction ||
+          (room.debt ? room.debt.uid !== uid : room.turnUid !== uid)) return;
+      const check = sellHouseEligibility(SPACE_DATA, room.propertyOwners, room.houses || {}, uid, index);
+      if (!check.ok) return;
+      const key = getSpaceId(index);
+      room.houses[key] = Number(room.houses[key] || 0) - 1;
+      if (room.houses[key] <= 0) delete room.houses[key];
+      applyDebtFunds(room, uid, check.refund);
+      if (room.debt?.uid === uid) room.message = "Đã bán một công trình tại " + SPACE_DATA[index].name + ", thu về " + money(check.refund) + ". Còn nợ " + money(room.debt.amount) + ".";
+      else room.message = "Đã bán một công trình tại " + SPACE_DATA[index].name + ", thu về " + money(check.refund) + ".";
+      room.updatedAt = Date.now();
+      return room;
+    });
+    if (result?.committed === false) notify("Chưa bán được nhà. Hãy bán đều từ ô đang có nhiều nhà nhất.");
+  } catch (error) { notify("Không bán được nhà: " + explainFirebaseError(error)); }
+  finally { setBusy(false); }
+}
+async function mortgageAsset(index) {
+  if (busy) return;
+  setBusy(true);
+  try {
+    const uid = currentUser.uid;
+    const result = await updateCurrentRoom((room) => {
+      if (room === null) return room;
+      if (!room || room.status !== "playing" || room.pending || room.auction ||
+          (room.debt ? room.debt.uid !== uid : room.turnUid !== uid)) return;
+      const check = mortgageEligibility(SPACE_DATA, room.propertyOwners, room.houses || {}, room.mortgages || {}, uid, index);
+      if (!check.ok) return;
+      const key = getSpaceId(index);
+      room.mortgages = room.mortgages || {};
+      room.mortgages[key] = check.amount;
+      applyDebtFunds(room, uid, check.amount);
+      room.message = room.debt?.uid === uid
+        ? "Đã cầm cố " + SPACE_DATA[index].name + ", nhận " + money(check.amount) + ". Còn nợ " + money(room.debt.amount) + "."
+        : "Đã cầm cố " + SPACE_DATA[index].name + " và nhận " + money(check.amount) + ". Tài sản tạm ngưng thu tiền thuê.";
+      room.updatedAt = Date.now();
+      return room;
+    });
+    if (result?.committed === false) notify("Chưa thể cầm cố. Hãy bán hết nhà trong cùng tỉnh trước.");
+  } catch (error) { notify("Không cầm cố được tài sản: " + explainFirebaseError(error)); }
+  finally { setBusy(false); }
+}
+async function redeemAsset(index) {
+  if (busy || roomState?.debt) return;
+  setBusy(true);
+  try {
+    const uid = currentUser.uid;
+    const result = await updateCurrentRoom((room) => {
+      if (room === null) return room;
+      if (!room || room.status !== "playing" || room.turnUid !== uid || room.pending || room.auction || room.debt) return;
+      const key = getSpaceId(index);
+      const amount = Number(room.mortgages?.[key] || 0);
+      const cost = redemptionCost(amount);
+      const player = room.players?.[uid];
+      if (!amount || !player || player.cash < cost) return;
+      player.cash -= cost;
+      delete room.mortgages[key];
+      room.message = player.name + " đã giải chấp " + SPACE_DATA[index].name + " với chi phí " + money(cost) + ".";
+      room.updatedAt = Date.now();
+      return room;
+    });
+    if (result?.committed === false) notify("Chưa thể giải chấp. Cần đủ tiền gốc và phí 10%.");
+  } catch (error) { notify("Không giải chấp được tài sản: " + explainFirebaseError(error)); }
+  finally { setBusy(false); }
+}
+async function declareBankruptcy() {
+  if (busy || !canDeclareBankruptcy(roomState, currentUser?.uid)) return;
+  if (!window.confirm("Bạn đã hết khả năng bán nhà và cầm cố tài sản. Tuyên bố phá sản và kết thúc ván?")) return;
+  setBusy(true);
+  try {
+    const uid = currentUser.uid;
+    const result = await updateCurrentRoom((room) => {
+      if (room === null) return room;
+      if (!room || room.status !== "playing" || room.debt?.uid !== uid ||
+          hasLiquidationOptions(SPACE_DATA, room.propertyOwners, room.houses || {}, room.mortgages || {}, uid)) return;
+      const debtor = room.players?.[uid];
+      const creditorUid = room.debt.creditorUid || "";
+      const creditor = creditorUid && room.players?.[creditorUid] ? creditorUid : "";
+      debtor.cash = 0;
+      debtor.bankrupt = true;
+      for (const [key, ownerUid] of Object.entries(room.propertyOwners || {})) {
+        if (ownerUid !== uid) continue;
+        if (creditor) room.propertyOwners[key] = creditor;
+        else {
+          delete room.propertyOwners[key];
+          delete room.houses?.[key];
+          delete room.mortgages?.[key];
+        }
+      }
+      room.debt = null;
+      room.status = "finished";
+      room.winner = creditor || Object.keys(room.players || {}).find((id) => id !== uid);
+      room.message = debtor.name + " không thể thanh toán và đã phá sản. " +
+        (room.players?.[room.winner]?.name || "Người chơi còn lại") + " chiến thắng.";
+      room.updatedAt = Date.now();
+      return room;
+    });
+    if (result?.committed === false) notify("Bạn vẫn còn tài sản có thể thanh lý. Hãy bán nhà hoặc cầm cố trước.");
+  } catch (error) { notify("Không thể xử lý phá sản: " + explainFirebaseError(error)); }
+  finally { setBusy(false); }
+}
+function handleDeedAction(event) {
+  const button = event.target.closest("button[data-deed-action]");
+  if (!button) return;
+  const index = Number(button.dataset.index);
+  switch (button.dataset.deedAction) {
+    case "build-house": buildHouse(index); break;
+    case "sell-house": sellHouse(index); break;
+    case "mortgage-asset": mortgageAsset(index); break;
+    case "redeem-asset": redeemAsset(index); break;
+  }
+}
 function isAuctionSpace(space) {
   return space?.type === "station" || space?.type === "utility";
 }
