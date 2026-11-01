@@ -1,6 +1,12 @@
 import { initializeApp, deleteApp } from "https://www.gstatic.com/firebasejs/13.1.0/firebase-app.js";
 import { animalFor, shortName, TOKEN_OPTIONS, tokenMarkup, tokenLabel } from "./board-art.js?v=2";
 import { shouldComputerBuy } from "./computer-player.js?v=1";
+import { CHANCE_CARDS, FORTUNE_CARDS, drawCard } from "./cards.js?v=1";
+import {
+  calculateDiceMove, propertyGroupIndices, ownsCompleteGroup, getHouseCost, getBuildingLabel,
+  buildEligibility, sellHouseEligibility, mortgageEligibility, mortgageValue, redemptionCost,
+  calcRent as calculateAssetRent, hasLiquidationOptions, finalDiceSpin
+} from "./economy.js?v=1";
 import { getDatabase, ref, set, get, onValue, runTransaction } from "https://www.gstatic.com/firebasejs/13.1.0/firebase-database.js";
 
 // Public Firebase Web App configuration for this game.
@@ -34,12 +40,12 @@ const AUCTION_INCREMENT = 10; // 100.000₫ mỗi lần nâng giá
 const SPACE_DATA = [
   {name:"XUẤT PHÁT",type:"start",icon:"🏁",corner:true,info:"Mỗi lần đi qua hoặc dừng lại, nhận 2.000.000₫."},
   {name:"Làng nổi Tân Lập",icon:"🛶",type:"property",price:60,rent:10,color:"#8d7b68",group:"Long An",info:"Khu du lịch sinh thái giữa rừng tràm ở Mộc Hóa, Long An; mùa nước nổi đi xuồng len giữa rừng."},
-  {name:"CƠ HỘI",type:"chance",icon:"🥥",info:"Rút một thẻ Cơ hội: có thể được tiền, cũng có thể mất tiền."},
+  {name:"CƠ HỘI",type:"chance",icon:"🥥",info:"Rút một thẻ Cơ hội: tiền thưởng, chi phí sửa chữa, phí theo tài sản hoặc sự kiện bất ngờ."},
   {name:"Chợ nổi Cái Bè",icon:"🍍",type:"property",price:60,rent:20,color:"#c9824b",group:"Tiền Giang",info:"Chợ nổi trên sông Tiền, ghe thuyền chở đầy trái cây."},
   {name:"THUẾ NÔNG SẢN",type:"tax",icon:"🌾",amount:100,info:"Nộp thuế sau mỗi vụ mùa."},
   {name:"Bến phà Rạch Miễu",type:"station",price:200,rent:40,color:"#2f5d6b",icon:"⛴️",info:"Nơi phà từng nối Tiền Giang với Bến Tre trước khi có cầu."},
   {name:"Chùa Vĩnh Tràng",icon:"🏯",type:"property",price:100,rent:30,color:"#c9824b",group:"Tiền Giang",info:"Ngôi chùa cổ ở Mỹ Tho, kiến trúc pha trộn Á – Âu."},
-  {name:"CƠ HỘI",type:"chance",icon:"🥥",info:"Rút một thẻ Cơ hội: có thể được tiền, cũng có thể mất tiền."},
+  {name:"KHÍ VẬN",type:"fortune",icon:"🍀",info:"Rút thẻ Khí vận: may mắn hoặc thử thách từ miền sông nước."},
   {name:"Làng kẹo dừa",icon:"🥥",type:"property",price:100,rent:40,color:"#4fb0a8",group:"Bến Tre",info:"Kẹo dừa là đặc sản nổi tiếng của xứ dừa Bến Tre."},
   {name:"Cồn Phụng",icon:"🏝️",type:"property",price:120,rent:50,color:"#4fb0a8",group:"Bến Tre",info:"Cồn nhỏ giữa sông Tiền, gắn với Đạo Dừa, nay là điểm du lịch."},
   {name:"VÀO TÙ / THĂM TÙ",type:"jail",icon:"🔒",corner:true,info:"Chỉ ghé thăm thì không sao."},
@@ -49,12 +55,12 @@ const SPACE_DATA = [
   {name:"Cù lao An Bình",icon:"🌴",type:"property",price:160,rent:80,color:"#e394a8",group:"Vĩnh Long",info:"Cù lao giữa sông Tiền với vườn trái cây và nhà vườn."},
   {name:"Bến Ninh Kiều",type:"station",price:200,rent:40,color:"#2f5d6b",icon:"🚤",info:"Bến sông thơ mộng của thành phố Cần Thơ."},
   {name:"Chợ nổi Trà Ôn",icon:"🛶",type:"property",price:180,rent:90,color:"#e394a8",group:"Vĩnh Long",info:"Chợ nổi họp trên sông Hậu, ghe xuồng tấp nập từ sáng sớm."},
-  {name:"CƠ HỘI",type:"chance",icon:"🥥",info:"Rút một thẻ Cơ hội: có thể được tiền, cũng có thể mất tiền."},
+  {name:"CƠ HỘI",type:"chance",icon:"🥥",info:"Rút một thẻ Cơ hội: tiền thưởng, chi phí sửa chữa, phí theo tài sản hoặc sự kiện bất ngờ."},
   {name:"Làng hoa Sa Đéc",icon:"🌸",type:"property",price:180,rent:100,color:"#f0a05a",group:"Đồng Tháp",info:"Làng hoa kiểng lâu đời của Đồng Tháp, rực rỡ nhất dịp Tết."},
   {name:"Tràm Chim",icon:"🌿",type:"property",price:200,rent:110,color:"#f0a05a",group:"Đồng Tháp",info:"Vườn quốc gia ở Đồng Tháp, nơi sếu đầu đỏ về trú đông."},
   {name:"CHỢ NỔI CÁI RĂNG",type:"free",icon:"🛶",corner:true,info:"Nghỉ chân ở chợ nổi Cái Răng, Cần Thơ, nơi mua bán trái cây ngay trên sông."},
   {name:"Nhà cổ Bình Thủy",icon:"🏛️",type:"property",price:220,rent:120,color:"#2f7fc1",group:"Cần Thơ",info:"Ngôi nhà cổ trăm năm tuổi ở Cần Thơ, kiến trúc kết hợp Đông – Tây."},
-  {name:"CƠ HỘI",type:"chance",icon:"🥥",info:"Rút một thẻ Cơ hội: có thể được tiền, cũng có thể mất tiền."},
+  {name:"KHÍ VẬN",type:"fortune",icon:"🍀",info:"Rút thẻ Khí vận: may mắn hoặc thử thách từ miền sông nước."},
   {name:"Vườn cò Bằng Lăng",icon:"🐦",type:"property",price:220,rent:130,color:"#2f7fc1",group:"Cần Thơ",info:"Sân chim ở Thốt Nốt, Cần Thơ, hàng ngàn con cò về đậu mỗi chiều."},
   {name:"Chợ nổi Ngã Bảy",icon:"🛶",type:"property",price:240,rent:140,color:"#7bb661",group:"Hậu Giang",info:"Chợ nổi ở Ngã Bảy, Hậu Giang, nơi nhiều dòng sông rạch gặp nhau."},
   {name:"Bến tàu Rạch Giá",type:"station",price:200,rent:40,color:"#2f5d6b",icon:"🚢",info:"Cửa ngõ đường biển của Kiên Giang, tàu từ đây ra đảo."},
@@ -65,24 +71,15 @@ const SPACE_DATA = [
   {name:"ĐI THẲNG VÀO TÙ",type:"gotojail",icon:"🚓",corner:true,info:"Dừng ở đây là bị đưa thẳng vào tù."},
   {name:"Điện gió Bạc Liêu",icon:"🌬️",type:"property",price:300,rent:180,color:"#e8c85a",group:"Bạc Liêu",info:"Những cánh quạt khổng lồ quay trên biển Bạc Liêu."},
   {name:"Rừng tràm Trà Sư",icon:"🌳",type:"property",price:300,rent:190,color:"#3f9a63",group:"An Giang",info:"Rừng tràm xanh mướt phủ bèo, đi xuồng len giữa rừng ở An Giang."},
-  {name:"CƠ HỘI",type:"chance",icon:"🥥",info:"Rút một thẻ Cơ hội: có thể được tiền, cũng có thể mất tiền."},
+  {name:"CƠ HỘI",type:"chance",icon:"🥥",info:"Rút một thẻ Cơ hội: tiền thưởng, chi phí sửa chữa, phí theo tài sản hoặc sự kiện bất ngờ."},
   {name:"Núi Sam Châu Đốc",icon:"⛰️",type:"property",price:320,rent:200,color:"#3f9a63",group:"An Giang",info:"Ngọn núi nổi lên giữa đồng bằng ở Châu Đốc, An Giang."},
   {name:"Cảng Hà Tiên",type:"station",price:200,rent:40,color:"#2f5d6b",icon:"⚓",info:"Cảng nhỏ ở vùng biển Kiên Giang, gần biên giới Campuchia."},
-  {name:"CƠ HỘI",type:"chance",icon:"🥥",info:"Rút một thẻ Cơ hội: có thể được tiền, cũng có thể mất tiền."},
+  {name:"KHÍ VẬN",type:"fortune",icon:"🍀",info:"Rút thẻ Khí vận: may mắn hoặc thử thách từ miền sông nước."},
   {name:"Đảo Phú Quốc",icon:"🏝️",type:"property",price:350,rent:220,color:"#1fb5c9",group:"Kiên Giang",info:"Đảo ngọc ngoài khơi Kiên Giang, nổi tiếng với nước mắm, hồ tiêu và biển xanh."},
   {name:"PHÍ CẦU PHÀ",type:"tax",icon:"🧾",amount:100,info:"Qua sông phải trả phí cầu phà."},
   {name:"Mũi Cà Mau",icon:"🧭",type:"property",price:400,rent:250,color:"#7c6bb5",group:"Cà Mau",info:"Điểm cực Nam của Tổ quốc, nơi đất liền gặp biển."}
 ];
-const CHANCE_CARDS = [
-  {text:"Mùa trái cây bội thu, thương lái đến tận vườn thu mua.",amount:100},
-  {text:"Nước lớn tràn bờ, phải sửa lại bờ bao.",amount:-80},
-  {text:"Trúng thưởng tại hội chợ nông sản.",amount:150},
-  {text:"Ghe bị hỏng máy giữa sông, tốn tiền sửa.",amount:-50},
-  {text:"Bán dưa hấu ở chợ nổi được giá.",amount:60},
-  {text:"Đóng góp xây cầu khỉ cho bà con.",amount:-100},
-  {text:"Khách du lịch ghé homestay vườn nhà.",amount:120},
-  {text:"Mùa nước nổi, mua lưới để giăng bắt cá linh.",amount:-60}
-];
+// Bộ thẻ Cơ hội và Khí vận nằm riêng trong cards.js để dễ cân bằng và kiểm thử.
 
 let firebaseApp = null;
 let db = null;
@@ -175,6 +172,119 @@ function compareOpeningRolls(a, b) {
   const total = (dice) => (Number(dice?.[0]) || 0) + (Number(dice?.[1]) || 0);
   return Math.sign(total(a) - total(b));
 }
+function houseMap(room = roomState) { return room?.houses || {}; }
+function mortgageMap(room = roomState) { return room?.mortgages || {}; }
+function rentForRoom(room, index, diceTotal) {
+  const space = SPACE_DATA[Number(index)];
+  const ownerUid = room?.propertyOwners?.[getSpaceId(index)];
+  return calculateAssetRent(SPACE_DATA, space, room?.propertyOwners, ownerUid, diceTotal, index, houseMap(room), mortgageMap(room));
+}
+function ownedAssetCount(room, uid) {
+  return Object.entries(room?.propertyOwners || {}).filter(([, owner]) => owner === uid).length;
+}
+function buildingRepairCost(room, uid, perHouse, perHotel) {
+  return Object.entries(room?.houses || {}).reduce((sum, [id, rawCount]) => {
+    const index = Number(String(id).slice(1));
+    if (room?.propertyOwners?.[id] !== uid || SPACE_DATA[index]?.type !== "property") return sum;
+    const count = Math.max(0, Math.min(5, Number(rawCount) || 0));
+    return sum + (count === 5 ? perHotel : count * perHouse);
+  }, 0);
+}
+function chargePlayer(room, uid, amount, creditorUid = "", reason = "", options = {}) {
+  const player = room?.players?.[uid];
+  const due = Math.max(0, Math.round(Number(amount) || 0));
+  if (!player || due <= 0) return { paid: 0, remaining: 0 };
+  if (room.debt && room.debt.uid !== uid) return { paid: 0, remaining: due, blocked: true };
+  const paid = Math.min(Math.max(0, Number(player.cash) || 0), due);
+  player.cash = Math.max(0, Number(player.cash || 0) - paid);
+  if (creditorUid && room.players?.[creditorUid]) room.players[creditorUid].cash += paid;
+  const remaining = due - paid;
+  if (remaining > 0) {
+    room.debt = {
+      uid,
+      amount: Number(room.debt?.amount || 0) + remaining,
+      creditorUid: creditorUid || room.debt?.creditorUid || "",
+      reason: [room.debt?.reason, reason].filter(Boolean).join("; ").slice(0, 120),
+      ...(options.resumeJail || room.debt?.resumeJail ? {resumeJail:true} : {})
+    };
+  }
+  return { paid, remaining };
+}
+function applyDebtFunds(room, uid, funds) {
+  const player = room?.players?.[uid];
+  let amount = Math.max(0, Math.round(Number(funds) || 0));
+  if (!player || amount <= 0) return;
+  const debt = room.debt;
+  if (debt?.uid === uid) {
+    const paid = Math.min(amount, Math.max(0, Number(debt.amount) || 0));
+    if (debt.creditorUid && room.players?.[debt.creditorUid]) room.players[debt.creditorUid].cash += paid;
+    debt.amount -= paid;
+    amount -= paid;
+    if (debt.amount <= 0) {
+      const resumeJail = debt.resumeJail === true;
+      room.debt = null;
+      if (resumeJail) {
+        player.jailTurns = 0;
+        room.turnUid = Object.keys(room.players || {}).find((id) => id !== uid);
+        room.turnNumber = Number(room.turnNumber || 1) + 1;
+        room.lastRoll = null;
+      }
+      room.message = player.name + " đã thanh toán đủ khoản nợ và có thể tiếp tục ván chơi.";
+    } else {
+      room.message = player.name + " đã trả " + money(paid) + ". Còn nợ " + money(debt.amount) + ".";
+    }
+  }
+  player.cash = Math.max(0, Number(player.cash || 0)) + amount;
+}
+function applyCardEffect(room, uid, card) {
+  const player = room?.players?.[uid];
+  if (!player || !card) return "Không rút được thẻ.";
+  const otherUid = Object.keys(room.players || {}).find((id) => id !== uid);
+  const amount = Math.abs(Number(card.amount) || 0);
+  switch (card.kind) {
+    case "money":
+      if (Number(card.amount) >= 0) player.cash += amount;
+      else chargePlayer(room, uid, amount, "", card.text);
+      return card.text + (Number(card.amount) >= 0 ? " Nhận " : " Chi ") + money(amount) + ".";
+    case "payEachPlayer":
+      if (otherUid) chargePlayer(room, uid, amount, otherUid, card.text);
+      return card.text + " Chia " + money(amount) + " cho người chơi còn lại.";
+    case "collectFromEach":
+      if (otherUid) chargePlayer(room, otherUid, amount, uid, card.text);
+      return card.text + " Nhận " + money(amount) + " từ người chơi còn lại.";
+    case "payPerAsset": {
+      const bill = amount * ownedAssetCount(room, uid);
+      if (bill) chargePlayer(room, uid, bill, "", card.text);
+      return card.text + " Phí tính theo tài sản: " + money(bill) + ".";
+    }
+    case "collectPerAsset": {
+      const reward = amount * ownedAssetCount(room, uid);
+      player.cash += reward;
+      return card.text + " Nhận " + money(reward) + ".";
+    }
+    case "repair": {
+      const bill = buildingRepairCost(room, uid, Number(card.perHouse) || 0, Number(card.perHotel) || 0);
+      if (bill) chargePlayer(room, uid, bill, "", card.text);
+      return card.text + " Chi phí sửa nhà/khách sạn: " + money(bill) + ".";
+    }
+    case "jailPass":
+      player.jailPasses = Number(player.jailPasses || 0) + 1;
+      return card.text + " Bạn đang có " + player.jailPasses + " thẻ miễn vào tù.";
+    case "goToJail": {
+      const from = Number(player.position || 0);
+      player.position = 10;
+      player.jailTurns = 1;
+      room.lastMove = {uid,from,to:10,steps:0,kind:"teleport"};
+      return card.text;
+    }
+    default:
+      return card.text || "Thẻ Khí vận đã được áp dụng.";
+  }
+}
+function canDeclareBankruptcy(room, uid) {
+  return !!room?.debt && room.debt.uid === uid &&
+    !hasLiquidationOptions(SPACE_DATA, room.propertyOwners, room.houses || {}, room.mortgages || {}, uid);
+}
 // ===== Luật tiền thuê (hàm thuần túy, có test trong tests/board.test.js) =====
 // Các ô đất cùng tỉnh (cùng "group"). Chỉ tỉnh có từ 2 ô đất trở lên mới có thưởng sở hữu cả tỉnh.
 function provinceCells(group) {
@@ -193,7 +303,6 @@ function calcRent(space, owners, ownerUid, diceTotal) {
   else if (space.type === "property" && ownsWholeProvince(owners, space.group, ownerUid)) { rent *= 2; wholeProvince = true; }
   return {rent, wholeProvince};
 }
-let cellInfoTimer = null;
 function showCellInfo(index, seconds = 7) {
   const space = SPACE_DATA[index];
   const box = $("cellInfo");
@@ -202,13 +311,23 @@ function showCellInfo(index, seconds = 7) {
   const owner = ownerUid ? roomState?.players?.[ownerUid] : null;
   const chips = [];
   if (space.price) chips.push("Giá " + money(space.price));
-  if (space.type === "station") chips.push("Thuê từ " + money(40) + ", gấp đôi mỗi bến sở hữu thêm");
-  else if (space.type === "utility") chips.push("Thuê 4× điểm xúc xắc (10× nếu có cả hai công ty)");
-  else if (space.rent) chips.push("Thuê " + money(space.rent));
+  if (space.type === "station" || space.type === "utility" || space.type === "property") {
+    const diceTotal = roomState?.lastRoll?.reduce((sum, value) => sum + Number(value || 0), 0) || 7;
+    const rent = owner ? rentForRoom(roomState, index, diceTotal) : null;
+    if (rent?.mortgaged) chips.push("Đang cầm cố · Tạm ngưng thu tiền thuê");
+    else if (rent) chips.push("Thuê hiện tại " + money(rent.rent));
+    else if (space.type === "station") chips.push("Thuê từ " + money(40) + ", tăng gấp đôi theo số bến");
+    else if (space.type === "utility") chips.push("Thuê theo điểm xúc xắc: 4× hoặc 10×");
+    else chips.push("Thuê cơ bản " + money(space.rent));
+  }
   if (space.type === "tax") chips.push("Nộp " + money(space.amount));
   if (owner) chips.push("Chủ: " + owner.name);
-  const count = space.type === "property" ? provinceCells(space.group).length : 0;
-  const bonus = count >= 2 ? `Sở hữu đủ ${count} ô của ${space.group}: tiền thuê gấp đôi.` : "";
+  const houses = Number(roomState?.houses?.[getSpaceId(index)] || 0);
+  if (houses === 5) chips.push("Có khách sạn");
+  else if (houses > 0) chips.push("Có " + houses + " căn nhà");
+  if (Number(roomState?.mortgages?.[getSpaceId(index)] || 0) > 0) chips.push("Khoản cầm cố " + money(roomState.mortgages[getSpaceId(index)]));
+  const count = space.type === "property" ? propertyGroupIndices(SPACE_DATA, space.group).length : 0;
+  const bonus = count >= 2 ? `Sở hữu đủ ${count} ô của ${space.group}: tiền thuê gấp đôi khi chưa xây nhà. Xây đều để tăng tiền thuê.` : "";
   box.innerHTML = `<div class="cell-info-head">${space.group ? `<i style="background:${safeColor(space.color)}"></i><span>${escapeHtml(space.group)}</span>` : ""}<strong>${escapeHtml(space.icon || "")} ${escapeHtml(space.name)}</strong></div>
     ${space.info ? `<p>${escapeHtml(space.info)}</p>` : ""}
     ${chips.length ? `<div class="cell-info-chips">${chips.map((c) => `<span>${escapeHtml(c)}</span>`).join("")}</div>` : ""}
@@ -225,11 +344,16 @@ function describeSpace(index) {
   const parts = [space.name];
   if (space.group) parts.push(space.group);
   if (space.price) parts.push("giá " + money(space.price));
-  if (space.type === "station") parts.push("thuê " + money(40) + ", gấp đôi cho mỗi bến sở hữu thêm");
-  else if (space.type === "utility") parts.push("thuê 4× điểm xúc xắc (10× nếu có cả hai công ty)");
-  else if (space.rent) parts.push("thuê " + money(space.rent));
-  if (space.type === "tax") parts.push("nộp " + money(space.amount));
   if (owner) parts.push("chủ: " + owner.name);
+  const houses = Number(roomState?.houses?.[getSpaceId(index)] || 0);
+  if (houses) parts.push(houses === 5 ? "có khách sạn" : "có " + houses + " căn nhà");
+  if (Number(roomState?.mortgages?.[getSpaceId(index)] || 0) > 0) parts.push("đang cầm cố, tạm ngưng thu tiền thuê");
+  if (space.type === "station") parts.push("thuê " + money(40) + ", tăng gấp đôi theo số bến không cầm cố");
+  else if (space.type === "utility") parts.push("thuê 4× điểm xúc xắc, 10× nếu có cả hai công ty không cầm cố");
+  else if (space.rent) parts.push("thuê cơ bản " + money(space.rent));
+  if (space.type === "tax") parts.push("nộp " + money(space.amount));
+  if (space.type === "chance") parts.push("rút thẻ Cơ hội");
+  if (space.type === "fortune") parts.push("rút thẻ Khí vận");
   return parts.join(" · ");
 }
 function getSpaceId(index) {
@@ -392,9 +516,11 @@ async function createRoom() {
         creatorUid:uid,
         joinerUid:null,
         players:{
-          [uid]:{uid,name,color:TOKEN_COLORS[0],token:selectedToken,cash:START_CASH,position:0,jailTurns:0}
+          [uid]:{uid,name,color:TOKEN_COLORS[0],token:selectedToken,cash:START_CASH,position:0,jailTurns:0,jailPasses:0}
         },
         propertyOwners:{},
+        houses:{},
+        mortgages:{},
         turnUid:uid,
         turnNumber:1,
         lastRoll:null,
@@ -447,7 +573,7 @@ async function joinRoom() {
         const creatorName = room.players?.[room.creatorUid]?.name;
         const joinName = name === creatorName ? name.slice(0, 14) + " (2)" : name;
         room.players = room.players || {};
-        room.players[uid] = {uid,name:joinName,color:TOKEN_COLORS[1],token:selectedToken,cash:START_CASH,position:0,jailTurns:0};
+        room.players[uid] = {uid,name:joinName,color:TOKEN_COLORS[1],token:selectedToken,cash:START_CASH,position:0,jailTurns:0,jailPasses:0};
         room.joinerUid = uid;
         room.status = "playing";
         room.openingRound = 1;
@@ -509,22 +635,34 @@ function renderBoard() {
   const center = board.querySelector(".board-center");
   SPACE_DATA.forEach((space,index) => {
     const [row,col] = getBoardCoords(index);
-    const ownerUid = roomState?.propertyOwners?.[getSpaceId(index)];
+    const id = getSpaceId(index);
+    const ownerUid = roomState?.propertyOwners?.[id];
     const owner = ownerUid ? roomState?.players?.[ownerUid] : null;
+    const houseCount = Number(roomState?.houses?.[id] || 0);
+    const mortgaged = Number(roomState?.mortgages?.[id] || 0) > 0;
     const div = document.createElement("div");
-    div.className = "space" + (space.corner ? " corner" : "") + (owner ? " owned" : "") + (stampUntil[index] > Date.now() ? " stamp" : "") + (space.corner ? "" : row === 0 ? " side-top" : row === 10 ? " side-bottom" : col === 0 ? " side-left" : " side-right");
+    div.className = "space" + (space.corner ? " corner" : "") + (owner ? " owned" : "") +
+      (mortgaged ? " mortgaged" : "") + (houseCount ? " built" : "") +
+      (stampUntil[index] > Date.now() ? " stamp" : "") +
+      (space.corner ? "" : row === 0 ? " side-top" : row === 10 ? " side-bottom" : col === 0 ? " side-left" : " side-right");
     if (owner) div.style.setProperty("--owner", safeColor(owner.color));
     div.style.gridRow = String(row+1);
     div.style.gridColumn = String(col+1);
     const colorBar = space.color || (space.type === "property" ? "#9b8067" : "transparent");
     const price = space.price ? moneyShort(space.price) : space.amount ? moneyShort(space.amount) : "";
+    const name = space.corner ? space.name : shortName(space.name);
+    const nameScale = Math.max(.58, Math.min(1, 16 / Math.max(16, name.length)));
     const description = describeSpace(index);
+    const buildingMark = houseCount === 5 ? "🏨" : houseCount > 0 ? "🏠".repeat(houseCount) : "";
     div.dataset.index = String(index);
     div.title = description;
     div.setAttribute("aria-label", description);
     div.innerHTML = `
       <span class="space-color" style="background:${colorBar}"></span>
-      <span class="space-text"><span class="space-name">${escapeHtml(space.corner ? space.name : shortName(space.name))}</span>${price && !space.corner ? `<span class="space-price">${price}</span>` : ""}</span>
+      ${owner ? `<span class="space-owner-mark" title="Tài sản của ${escapeHtml(owner.name)}" aria-hidden="true"></span>` : ""}
+      ${mortgaged ? '<span class="space-mortgage-mark" title="Đang cầm cố">C</span>' : ""}
+      ${buildingMark ? `<span class="space-buildings" aria-label="${houseCount === 5 ? "Khách sạn" : houseCount + " căn nhà"}">${buildingMark}</span>` : ""}
+      <span class="space-text" style="--name-scale:${nameScale.toFixed(2)}"><span class="space-name">${escapeHtml(name)}</span>${price && !space.corner ? `<span class="space-price">${price}</span>` : ""}</span>
       <span class="space-players">${tokensHtml(index)}</span>
     `;
     board.insertBefore(div, center);
@@ -556,16 +694,53 @@ function renderProperties() {
   const ownerMap = roomState.propertyOwners || {};
   const owned = Object.entries(ownerMap).map(([id,uid]) => {
     const index = Number(id.slice(1));
-    return {space:SPACE_DATA[index],uid};
+    return {space:SPACE_DATA[index],uid,index,id};
   }).filter(item => item.space);
-  if (!owned.length) {
-    $("propertyList").innerHTML = '<div class="empty-properties">Chưa có bất động sản nào được mua.<br>Hãy tung xúc xắc để sở hữu mảnh đất đầu tiên!</div>';
+  const debt = roomState.debt;
+  const rows = owned.map(({space,uid,index,id}) => {
+    const player = roomState.players?.[uid];
+    const houses = Number(roomState.houses?.[id] || 0);
+    const mortgage = Number(roomState.mortgages?.[id] || 0);
+    const canManage = uid === currentUser.uid && (!debt || debt.uid === uid) &&
+      (debt?.uid === uid || (roomState.turnUid === uid && !roomState.pending && !roomState.auction));
+    const canBuildNow = canManage && !debt && roomState.turnUid === uid && !roomState.lastRoll;
+    const controls = [];
+    if (canManage && houses > 0) {
+      const sell = sellHouseEligibility(SPACE_DATA, ownerMap, roomState.houses || {}, uid, index);
+      if (sell.ok) controls.push(`<button class="deed-action sell-house" data-deed-action="sell-house" data-index="${index}">Bán ${houses === 5 ? "khách sạn" : "nhà"} +${money(sell.refund)}</button>`);
+    }
+    if (canBuildNow && space.type === "property") {
+      const build = buildEligibility(SPACE_DATA, ownerMap, roomState.houses || {}, roomState.mortgages || {}, uid, index, player?.cash);
+      if (build.ok) controls.push(`<button class="deed-action build-house" data-deed-action="build-house" data-index="${index}">Xây ${houses === 4 ? "khách sạn" : "nhà"} · ${money(build.cost)}</button>`);
+    }
+    if (canManage && mortgage > 0) {
+      const redeem = redemptionCost(mortgage);
+      if (!debt && roomState.turnUid === uid && !roomState.pending && !roomState.auction && Number(player?.cash || 0) >= redeem) {
+        controls.push(`<button class="deed-action redeem-asset" data-deed-action="redeem-asset" data-index="${index}">Giải chấp · ${money(redeem)}</button>`);
+      } else {
+        controls.push(`<span class="deed-status mortgage-status">Đang cầm cố · ${money(mortgage)}</span>`);
+      }
+    } else if (canManage) {
+      const mort = mortgageEligibility(SPACE_DATA, ownerMap, roomState.houses || {}, roomState.mortgages || {}, uid, index);
+      if (mort.ok) controls.push(`<button class="deed-action mortgage-asset" data-deed-action="mortgage-asset" data-index="${index}">Cầm cố +${money(mort.amount)}</button>`);
+    }
+    const buildingText = houses === 5 ? "Khách sạn" : houses > 0 ? houses + " căn nhà" : "Chưa xây";
+    const mortgageText = mortgage > 0 ? " · Đang cầm cố" : "";
+    const detail = `${space.group ? escapeHtml(space.group) + " · " : ""}${escapeHtml(player?.name || "Người chơi")} · ${buildingText}${mortgageText}`;
+    return `<div class="property-row ${uid === currentUser.uid ? "mine" : "opponent"}" style="--owner:${safeColor(player?.color)}">
+      <i class="property-swatch" style="background:${safeColor(space.color || player?.color)}"></i>
+      <div class="property-row-main"><strong>${escapeHtml(space.name)}</strong><small>${detail}</small></div>
+      <div class="property-row-actions">${controls.join("")}</div>
+    </div>`;
+  });
+  const debtNote = debt?.uid === currentUser.uid
+    ? `<div class="debt-banner"><strong>Đang nợ ${money(debt.amount)}</strong><span>${escapeHtml(debt.reason || "Khoản thanh toán chưa đủ")}. Bán nhà hoặc cầm cố thêm tài sản để trả nợ.</span></div>`
+    : "";
+  if (!rows.length) {
+    $("propertyList").innerHTML = debtNote + '<div class="empty-properties">Chưa có bất động sản nào được mua.<br>Hãy tung xúc xắc để sở hữu mảnh đất đầu tiên!</div>';
     return;
   }
-  $("propertyList").innerHTML = owned.map(({space,uid}) => {
-    const player = roomState.players?.[uid];
-    return `<div class="property-row"><i class="property-swatch" style="background:${space.color || "#b9b59b"}"></i><div><strong>${escapeHtml(space.name)}</strong><small>${space.group ? escapeHtml(space.group) + " · " : ""}${escapeHtml(player?.name || "Người chơi")} · ${space.type === "station" ? "Thuê từ " + money(40) : space.type === "utility" ? "Thuê 4× xúc xắc" : "Thuê " + money(space.rent || 50)}</small></div></div>`;
-  }).join("");
+  $("propertyList").innerHTML = debtNote + rows.join("");
 }
 function renderActions() {
   const mine = myPlayer();
@@ -708,9 +883,9 @@ function resetEffects() {
   if (stage) stage.className = "dice-stage";
 }
 // Quân cờ nhảy từng ô tới đích. Đi quá xa (vào tù) thì dịch chuyển thẳng.
-function animateMove(uid, from, to, delay) {
-  const dist = (to - from + 40) % 40;
-  if (reduceMotion || dist === 0 || dist > 12) return 0;
+function animateMove(uid, from, to, delay, expectedSteps = null) {
+  const distance = Number.isInteger(expectedSteps) ? expectedSteps : (to - from + 40) % 40;
+  if (reduceMotion || distance < 1 || distance > 12 || (from + distance) % 40 !== to) return 0;
   displayPos[uid] = from;
   let step = 0;
   const tick = () => {
@@ -718,8 +893,8 @@ function animateMove(uid, from, to, delay) {
     movingUid = uid;
     displayPos[uid] = (from + step) % 40;
     const cell = document.querySelector(`#board .space[data-index="${displayPos[uid]}"]`);
-    if (cell) { cell.classList.remove("pass", "land"); void cell.offsetWidth; cell.classList.add(step >= dist ? "land" : "pass"); }
-    if (step >= dist) {
+    if (cell) { cell.classList.remove("pass", "land"); void cell.offsetWidth; cell.classList.add(step >= distance ? "land" : "pass"); }
+    if (step >= distance) {
       delete displayPos[uid];
       delete moveTimers[uid];
       movingUid = null;
@@ -730,9 +905,8 @@ function animateMove(uid, from, to, delay) {
     moveTimers[uid] = setTimeout(tick, HOP_MS);
   };
   moveTimers[uid] = setTimeout(tick, delay);
-  return delay + dist * HOP_MS;
+  return delay + distance * HOP_MS;
 }
-const CUBE_ROT = { 1: [0, 0], 2: [0, -90], 3: [-90, 0], 4: [90, 0], 5: [0, 90], 6: [0, 180] };
 function cubeHtml() {
   const faces = [1, 2, 3, 4, 5, 6].map((n) => `<span class="die face" data-v="${n}">${"<i></i>".repeat(9)}</span>`).join("");
   return `<div class="cube-wrap"><div class="cube">${faces}</div></div>`;
@@ -774,7 +948,7 @@ function animateDice(finalDice) {
     void stage.offsetWidth;
     cubes.forEach((cube, i) => {
       cube.style.transition = "";
-      setCube(cube, Number(finalDice[i]) || 1, [720 + 360 * i, 540 + 360 * (1 - i)]);
+      setCube(cube, Number(finalDice[i]) || 1, finalDiceSpin(i));
     });
   }
   setTimeout(finish, DICE_MS);
@@ -826,7 +1000,11 @@ function runEffects(previous, next) {
     if (!before) continue;
     let delay = (rolled || openingRolled) ? DICE_MS : 0;
     if (Number(before.position) !== Number(now.position)) {
-      delay = animateMove(uid, Number(before.position), Number(now.position), delay) || delay;
+      const move = next.lastMove;
+      const exactSteps = move?.uid === uid &&
+        Number(move.from) === Number(before.position) &&
+        Number(move.to) === Number(now.position) ? Number(move.steps) : null;
+      delay = animateMove(uid, Number(before.position), Number(now.position), delay, exactSteps) || delay;
     }
     if (Number(before.cash) !== Number(now.cash)) floatDelta(uid, Number(now.cash) - Number(before.cash), delay);
   }
@@ -840,7 +1018,6 @@ function runEffects(previous, next) {
     try { navigator.vibrate?.(80); } catch { /* không hỗ trợ rung */ }
   }
 }
-
 function renderRoom() {
   if (!roomState || !currentUser) return;
   $("roomCodeLabel").textContent = computerGame ? "VỚI MÁY" : currentRoomCode;
@@ -898,73 +1075,81 @@ async function rollOpeningDice() {
   if (computerGame && !computerBusy) scheduleComputerTurn();
 }
 async function rollDice() {
-  if (!roomState || busy) return;
+  if (!roomState || busy || roomState.debt) return;
   if (isOpeningRollPhase(roomState)) return rollOpeningDice();
   const mine = myPlayer();
   if (mine?.jailTurns) return releaseFromJail();
   setBusy(true);
   try {
-    const dice = [1+Math.floor(Math.random()*6),1+Math.floor(Math.random()*6)];
+    // Chọn kết quả một lần bên ngoài transaction. Nếu Firebase phải chạy lại updater,
+    // cùng một bộ xúc xắc và cùng một thẻ vẫn được dùng, không phát sinh kết quả lệch.
+    const dice = [1 + Math.floor(Math.random() * 6), 1 + Math.floor(Math.random() * 6)];
+    const planned = calculateDiceMove(mine.position, dice);
+    const landing = SPACE_DATA[planned.to];
+    const drawnCard = landing?.type === "chance" || landing?.type === "fortune"
+      ? drawCard(landing.type)
+      : null;
     const uid = currentUser.uid;
     const result = await updateCurrentRoom((room) => {
-      if (room === null) return room; // SDK chưa có dữ liệu: yêu cầu nạp từ server rồi gọi lại
-      if (!room || room.status !== "playing" || room.turnUid !== uid || room.pending || room.auction || room.lastRoll) return;
+      if (room === null) return room;
+      if (!room || room.status !== "playing" || room.turnUid !== uid || room.pending || room.auction || room.lastRoll || room.debt) return;
       const player = room.players?.[uid];
-      if (!player || player.jailTurns) return;
-      const total = dice[0]+dice[1];
-      const oldPos = Number(player.position || 0);
-      const newPos = (oldPos + total) % 40;
-      if (oldPos + total >= 40) player.cash += SALARY;
-      player.position = newPos;
-      room.lastRoll = dice;
+      if (!player || player.jailTurns || Number(player.position || 0) !== planned.from) return;
+      const move = calculateDiceMove(player.position, dice);
+      if (move.to !== planned.to || move.steps !== dice[0] + dice[1]) return;
+      if (move.passesStart) player.cash += SALARY;
+      player.position = move.to;
+      room.lastRoll = [...dice];
+      room.lastMove = {uid,from:move.from,to:move.to,steps:move.steps,dice:[...dice],turnNumber:Number(room.turnNumber || 1)};
       room.pending = null;
-      const space = SPACE_DATA[newPos];
-      const id = getSpaceId(newPos);
-      let text = player.name + " tung được " + dice[0] + " + " + dice[1] + " và đến " + space.name + ".";
+      const space = SPACE_DATA[move.to];
+      const id = getSpaceId(move.to);
+      let message = player.name + " tung được " + dice[0] + " + " + dice[1] + " = " + move.steps +
+        " bước và đến " + space.name + ".";
+      if (move.passesStart) message += " Đi qua Xuất phát, nhận " + money(SALARY) + ".";
       if (space.type === "property" || space.type === "station" || space.type === "utility") {
         const ownerUid = room.propertyOwners?.[id];
         if (!ownerUid) {
-          room.pending = {uid,index:newPos};
-          text += " Mảnh đất này chưa có chủ. Bạn có muốn mua không?";
+          room.pending = {uid,index:move.to};
+          message += " Tài sản này chưa có chủ. Bạn có muốn mua không?";
         } else if (ownerUid !== uid) {
           const owner = room.players[ownerUid];
-          const {rent, wholeProvince} = calcRent(space, room.propertyOwners, ownerUid, total);
-          const paid = Math.min(Number(player.cash||0),rent);
-          player.cash -= paid;
-          owner.cash = Number(owner.cash||0) + paid;
-          text += " Trả " + money(rent) + " tiền thuê cho " + owner.name + (wholeProvince ? " (chủ sở hữu đủ các ô của " + space.group + " nên thuê gấp đôi)" : "") + ".";
-          if (paid < rent) {
-            player.cash = 0; player.bankrupt = true;
-            room.status = "finished"; room.winner = ownerUid;
-            text = player.name + " phá sản! " + owner.name + " chiến thắng.";
+          const rentInfo = rentForRoom(room, move.to, move.steps);
+          if (rentInfo.rent > 0) {
+            const payment = chargePlayer(room, uid, rentInfo.rent, ownerUid, "Tiền thuê " + space.name);
+            message += " Tiền thuê " + money(rentInfo.rent) + " cho " + owner.name +
+              (rentInfo.houses === 5 ? " (khách sạn)" : rentInfo.houses > 0 ? " (" + rentInfo.houses + " nhà)" : rentInfo.wholeProvince ? " (sở hữu trọn bộ tỉnh, thuê gấp đôi)" : "") + ".";
+            if (payment.remaining > 0) message += " Bạn còn thiếu " + money(payment.remaining) + " và cần xử lý nợ.";
+          } else if (rentInfo.mortgaged) {
+            message += " Tài sản đang cầm cố nên tạm thời không thu tiền thuê.";
           }
         } else {
-          text += " Đây là tài sản của bạn.";
+          message += " Đây là tài sản của bạn.";
         }
       } else if (space.type === "tax") {
-        player.cash -= space.amount;
-        text += " Bạn phải nộp " + money(space.amount) + " tiền thuế.";
-        if (player.cash < 0) { player.cash=0; player.bankrupt=true; room.status="finished"; room.winner=otherPlayerUid(room); }
-      } else if (space.type === "chance") {
-        const card = CHANCE_CARDS[Math.floor(Math.random()*CHANCE_CARDS.length)];
-        player.cash += card.amount;
-        text += " " + card.text + (card.amount >= 0 ? " Nhận " : " Trả ") + money(Math.abs(card.amount)) + ".";
-        if (player.cash < 0) { player.cash=0; player.bankrupt=true; room.status="finished"; room.winner=otherPlayerUid(room); }
+        const payment = chargePlayer(room, uid, space.amount, "", "Thuế " + space.name);
+        message += " Nộp thuế " + money(space.amount) + ".";
+        if (payment.remaining > 0) message += " Bạn còn thiếu " + money(payment.remaining) + " và cần xử lý nợ.";
+      } else if (space.type === "chance" || space.type === "fortune") {
+        const cardText = applyCardEffect(room, uid, drawnCard);
+        message += " " + cardText;
       } else if (space.type === "gotojail") {
-        player.position = 10; player.jailTurns = 1;
-        text += " Bạn phải vào tù!";
+        player.position = 10;
+        player.jailTurns = 1;
+        room.lastMove = {uid,from:move.from,to:10,steps:0,kind:"teleport"};
+        message += " Bạn bị đưa thẳng vào tù, không nhận tiền Xuất phát.";
       } else if (space.type === "start") {
-        text += " Bạn dừng ngay tại Xuất phát.";
+        message += " Bạn dừng ngay tại Xuất phát.";
       } else if (space.type === "free") {
-        text += " Nghỉ chân một lượt.";
+        message += " Nghỉ chân tại chợ nổi Cái Răng.";
       } else if (space.type === "jail") {
-        text += " Bạn chỉ ghé thăm nhà tù.";
+        message += " Bạn chỉ ghé thăm nhà tù.";
       }
-      room.message = text;
+      room.message = message.slice(0, 300);
       room.updatedAt = Date.now();
       return room;
     });
-    if (!result.committed) notify("Chưa thể tung xúc xắc. Hãy kiểm tra lượt chơi.");
+    if (!result.committed) notify("Chưa thể tung xúc xắc. Hãy kiểm tra lượt chơi hoặc khoản nợ đang xử lý.");
   } catch (error) {
     notify("Lỗi khi tung xúc xắc: " + explainFirebaseError(error));
   } finally {
@@ -976,26 +1161,31 @@ async function releaseFromJail() {
   try {
     const uid = currentUser.uid;
     await updateCurrentRoom((room) => {
-      if (room === null) return room; // SDK chưa có dữ liệu: yêu cầu nạp từ server rồi gọi lại
-      // lastRoll != null nghĩa là người chơi vừa bị đưa vào tù ngay trong lượt này: chưa được nộp phạt.
-      if (!room || room.turnUid !== uid || room.status !== "playing" || room.lastRoll || room.pending) return;
+      if (room === null) return room;
+      if (!room || room.turnUid !== uid || room.status !== "playing" || room.lastRoll || room.pending || room.debt) return;
       const player = room.players?.[uid];
       if (!player?.jailTurns) return;
-      if (player.cash < JAIL_FEE) {
+      if (Number(player.jailPasses || 0) > 0) {
+        player.jailPasses -= 1;
         player.jailTurns = 0;
-        room.message = player.name + " không đủ tiền nộp phạt, được thả nhưng mất lượt.";
+        room.message = player.name + " dùng thẻ miễn vào tù và được ra ngoài miễn phí.";
       } else {
-        player.cash -= JAIL_FEE;
+        const payment = chargePlayer(room, uid, JAIL_FEE, "", "Phí ra tù", {resumeJail:true});
+        if (payment.remaining > 0) {
+          room.message = player.name + " chưa đủ " + money(JAIL_FEE) + " để nộp phạt. Hãy bán nhà hoặc cầm cố tài sản để trả nợ.";
+          room.updatedAt = Date.now();
+          return room;
+        }
         player.jailTurns = 0;
         room.message = player.name + " đã nộp " + money(JAIL_FEE) + " và ra tù. Lượt này kết thúc.";
       }
-      room.turnUid = Object.keys(room.players).find(id => id !== uid);
-      room.turnNumber = Number(room.turnNumber||1)+1;
+      room.turnUid = Object.keys(room.players).find((id) => id !== uid);
+      room.turnNumber = Number(room.turnNumber || 1) + 1;
       room.lastRoll = null;
       room.updatedAt = Date.now();
       return room;
     });
-  } catch (error) { notify("Không thể xử lý ra tù: "+explainFirebaseError(error)); }
+  } catch (error) { notify("Không thể xử lý ra tù: " + explainFirebaseError(error)); }
   finally { setBusy(false); }
   if (computerGame && !computerBusy) scheduleComputerTurn();
 }
@@ -1006,7 +1196,7 @@ async function buyProperty() {
     const uid = currentUser.uid;
     await updateCurrentRoom((room) => {
       if (room === null) return room; // SDK chưa có dữ liệu: yêu cầu nạp từ server rồi gọi lại
-      if (!room || room.turnUid !== uid || room.pending?.uid !== uid) return;
+      if (!room || room.turnUid !== uid || room.pending?.uid !== uid || room.debt) return;
       const space = SPACE_DATA[room.pending.index];
       const player = room.players?.[uid];
       const key = getSpaceId(room.pending.index);
@@ -1021,6 +1211,149 @@ async function buyProperty() {
     });
   } catch (error) { notify("Không mua được đất: "+explainFirebaseError(error)); }
   finally { setBusy(false); }
+}
+async function buildHouse(index) {
+  if (busy) return;
+  setBusy(true);
+  try {
+    const uid = currentUser.uid;
+    const result = await updateCurrentRoom((room) => {
+      if (room === null) return room;
+      if (!room || room.status !== "playing" || room.turnUid !== uid || room.lastRoll || room.pending || room.auction || room.debt) return;
+      const player = room.players?.[uid];
+      const check = buildEligibility(SPACE_DATA, room.propertyOwners, room.houses || {}, room.mortgages || {}, uid, index, player?.cash);
+      if (!check.ok || !player) return;
+      player.cash -= check.cost;
+      room.houses = room.houses || {};
+      const key = getSpaceId(index);
+      room.houses[key] = Number(room.houses[key] || 0) + 1;
+      const label = room.houses[key] === 5 ? "khách sạn" : "căn nhà";
+      room.message = player.name + " xây " + label + " tại " + SPACE_DATA[index].name + " với chi phí " + money(check.cost) + ".";
+      room.updatedAt = Date.now();
+      return room;
+    });
+    if (result?.committed === false) notify("Chưa thể xây: cần sở hữu trọn bộ tỉnh, xây đều và đủ tiền.");
+  } catch (error) { notify("Không xây được nhà: " + explainFirebaseError(error)); }
+  finally { setBusy(false); }
+}
+async function sellHouse(index) {
+  if (busy) return;
+  setBusy(true);
+  try {
+    const uid = currentUser.uid;
+    const result = await updateCurrentRoom((room) => {
+      if (room === null) return room;
+      if (!room || room.status !== "playing" || room.pending || room.auction ||
+          (room.debt ? room.debt.uid !== uid : room.turnUid !== uid)) return;
+      const check = sellHouseEligibility(SPACE_DATA, room.propertyOwners, room.houses || {}, uid, index);
+      if (!check.ok) return;
+      const key = getSpaceId(index);
+      room.houses[key] = Number(room.houses[key] || 0) - 1;
+      if (room.houses[key] <= 0) delete room.houses[key];
+      applyDebtFunds(room, uid, check.refund);
+      if (room.debt?.uid === uid) room.message = "Đã bán một công trình tại " + SPACE_DATA[index].name + ", thu về " + money(check.refund) + ". Còn nợ " + money(room.debt.amount) + ".";
+      else room.message = "Đã bán một công trình tại " + SPACE_DATA[index].name + ", thu về " + money(check.refund) + ".";
+      room.updatedAt = Date.now();
+      return room;
+    });
+    if (result?.committed === false) notify("Chưa bán được nhà. Hãy bán đều từ ô đang có nhiều nhà nhất.");
+  } catch (error) { notify("Không bán được nhà: " + explainFirebaseError(error)); }
+  finally { setBusy(false); }
+}
+async function mortgageAsset(index) {
+  if (busy) return;
+  setBusy(true);
+  try {
+    const uid = currentUser.uid;
+    const result = await updateCurrentRoom((room) => {
+      if (room === null) return room;
+      if (!room || room.status !== "playing" || room.pending || room.auction ||
+          (room.debt ? room.debt.uid !== uid : room.turnUid !== uid)) return;
+      const check = mortgageEligibility(SPACE_DATA, room.propertyOwners, room.houses || {}, room.mortgages || {}, uid, index);
+      if (!check.ok) return;
+      const key = getSpaceId(index);
+      room.mortgages = room.mortgages || {};
+      room.mortgages[key] = check.amount;
+      applyDebtFunds(room, uid, check.amount);
+      room.message = room.debt?.uid === uid
+        ? "Đã cầm cố " + SPACE_DATA[index].name + ", nhận " + money(check.amount) + ". Còn nợ " + money(room.debt.amount) + "."
+        : "Đã cầm cố " + SPACE_DATA[index].name + " và nhận " + money(check.amount) + ". Tài sản tạm ngưng thu tiền thuê.";
+      room.updatedAt = Date.now();
+      return room;
+    });
+    if (result?.committed === false) notify("Chưa thể cầm cố. Hãy bán hết nhà trong cùng tỉnh trước.");
+  } catch (error) { notify("Không cầm cố được tài sản: " + explainFirebaseError(error)); }
+  finally { setBusy(false); }
+}
+async function redeemAsset(index) {
+  if (busy || roomState?.debt) return;
+  setBusy(true);
+  try {
+    const uid = currentUser.uid;
+    const result = await updateCurrentRoom((room) => {
+      if (room === null) return room;
+      if (!room || room.status !== "playing" || room.turnUid !== uid || room.pending || room.auction || room.debt) return;
+      const key = getSpaceId(index);
+      const amount = Number(room.mortgages?.[key] || 0);
+      const cost = redemptionCost(amount);
+      const player = room.players?.[uid];
+      if (!amount || !player || player.cash < cost) return;
+      player.cash -= cost;
+      delete room.mortgages[key];
+      room.message = player.name + " đã giải chấp " + SPACE_DATA[index].name + " với chi phí " + money(cost) + ".";
+      room.updatedAt = Date.now();
+      return room;
+    });
+    if (result?.committed === false) notify("Chưa thể giải chấp. Cần đủ tiền gốc và phí 10%.");
+  } catch (error) { notify("Không giải chấp được tài sản: " + explainFirebaseError(error)); }
+  finally { setBusy(false); }
+}
+async function declareBankruptcy(skipConfirm = false) {
+  if (busy || !canDeclareBankruptcy(roomState, currentUser?.uid)) return;
+  if (!skipConfirm && !window.confirm("Bạn đã hết khả năng bán nhà và cầm cố tài sản. Tuyên bố phá sản và kết thúc ván?")) return;
+  setBusy(true);
+  try {
+    const uid = currentUser.uid;
+    const result = await updateCurrentRoom((room) => {
+      if (room === null) return room;
+      if (!room || room.status !== "playing" || room.debt?.uid !== uid ||
+          hasLiquidationOptions(SPACE_DATA, room.propertyOwners, room.houses || {}, room.mortgages || {}, uid)) return;
+      const debtor = room.players?.[uid];
+      const creditorUid = room.debt.creditorUid || "";
+      const creditor = creditorUid && room.players?.[creditorUid] ? creditorUid : "";
+      debtor.cash = 0;
+      debtor.bankrupt = true;
+      for (const [key, ownerUid] of Object.entries(room.propertyOwners || {})) {
+        if (ownerUid !== uid) continue;
+        if (creditor) room.propertyOwners[key] = creditor;
+        else {
+          delete room.propertyOwners[key];
+          delete room.houses?.[key];
+          delete room.mortgages?.[key];
+        }
+      }
+      room.debt = null;
+      room.status = "finished";
+      room.winner = creditor || Object.keys(room.players || {}).find((id) => id !== uid);
+      room.message = debtor.name + " không thể thanh toán và đã phá sản. " +
+        (room.players?.[room.winner]?.name || "Người chơi còn lại") + " chiến thắng.";
+      room.updatedAt = Date.now();
+      return room;
+    });
+    if (result?.committed === false) notify("Bạn vẫn còn tài sản có thể thanh lý. Hãy bán nhà hoặc cầm cố trước.");
+  } catch (error) { notify("Không thể xử lý phá sản: " + explainFirebaseError(error)); }
+  finally { setBusy(false); }
+}
+function handleDeedAction(event) {
+  const button = event.target.closest("button[data-deed-action]");
+  if (!button) return;
+  const index = Number(button.dataset.index);
+  switch (button.dataset.deedAction) {
+    case "build-house": buildHouse(index); break;
+    case "sell-house": sellHouse(index); break;
+    case "mortgage-asset": mortgageAsset(index); break;
+    case "redeem-asset": redeemAsset(index); break;
+  }
 }
 function isAuctionSpace(space) {
   return space?.type === "station" || space?.type === "utility";
@@ -1054,7 +1387,7 @@ async function passProperty() {
     const uid = currentUser.uid;
     await updateCurrentRoom((room) => {
       if (room === null) return room;
-      if (!room || room.turnUid !== uid || room.pending?.uid !== uid || room.auction) return;
+      if (!room || room.turnUid !== uid || room.pending?.uid !== uid || room.auction || room.debt) return;
       const index = Number(room.pending.index);
       const space = SPACE_DATA[index];
       room.pending = null;
@@ -1087,7 +1420,7 @@ async function placeAuctionBid() {
     const result = await updateCurrentRoom((room) => {
       if (room === null) return room;
       const auction = room?.auction;
-      if (!room || room.status !== "playing" || !auction || auction.turnUid !== uid || room.pending) return;
+      if (!room || room.status !== "playing" || !auction || auction.turnUid !== uid || room.pending || room.debt) return;
       const amount = nextAuctionBid(auction);
       const player = room.players?.[uid];
       if (!player || player.cash < amount) return;
@@ -1114,7 +1447,7 @@ async function passAuction() {
     const result = await updateCurrentRoom((room) => {
       if (room === null) return room;
       const auction = room?.auction;
-      if (!room || room.status !== "playing" || !auction || auction.turnUid !== uid || room.pending) return;
+      if (!room || room.status !== "playing" || !auction || auction.turnUid !== uid || room.pending || room.debt) return;
       if (auction.highestUid && auction.highestUid !== uid) {
         closeAuction(room, auction.highestUid);
       } else if (!auction.highestUid && auction.passedUid && auction.passedUid !== uid) {
@@ -1140,26 +1473,23 @@ async function endTurn() {
   try {
     const uid = currentUser.uid;
     await updateCurrentRoom((room) => {
-      if (room === null) return room; // SDK chưa có dữ liệu: yêu cầu nạp từ server rồi gọi lại
-      if (!room || room.status !== "playing" || !canAdvanceTurn(room) || room.turnUid !== uid || room.pending || room.auction || !room.lastRoll) return;
-      const player = room.players?.[uid];
-      const nextUid = Object.keys(room.players||{}).find(id => id !== uid);
+      if (room === null) return room;
+      if (!room || room.status !== "playing" || room.debt || !canAdvanceTurn(room) || room.turnUid !== uid || room.pending || room.auction || !room.lastRoll) return;
+      const nextUid = Object.keys(room.players || {}).find((id) => id !== uid);
       room.turnUid = nextUid;
-      room.turnNumber = Number(room.turnNumber||1)+1;
+      room.turnNumber = Number(room.turnNumber || 1) + 1;
       room.lastRoll = null;
       room.message = "Đến lượt " + (room.players?.[nextUid]?.name || "người chơi tiếp theo") + ".";
       room.updatedAt = Date.now();
       return room;
     });
-  } catch (error) { notify("Không thể kết thúc lượt: "+explainFirebaseError(error)); }
+  } catch (error) { notify("Không thể kết thúc lượt: " + explainFirebaseError(error)); }
   finally { setBusy(false); }
   if (computerGame && !computerBusy) scheduleComputerTurn();
 }
-
-// Không còn nút "Kết thúc lượt": tung xúc xắc (và quyết định mua nếu có) xong là tự chuyển lượt
-// sau khi hiệu ứng chạy xong.
 function scheduleAutoEnd() {
-  const ok = roomState && currentUser && roomState.status === "playing" && canAdvanceTurn(roomState) && roomState.turnUid === currentUser.uid &&
+  const ok = roomState && currentUser && roomState.status === "playing" && !roomState.debt &&
+    canAdvanceTurn(roomState) && roomState.turnUid === currentUser.uid &&
     roomState.lastRoll && !roomState.pending && !roomState.auction && !computerBusy && currentUser.uid !== COMPUTER_UID;
   if (!ok) return;
   const key = currentRoomCode + ":" + roomState.turnNumber;
@@ -1167,13 +1497,12 @@ function scheduleAutoEnd() {
   autoEndKey = key;
   clearTimeout(autoEndTimer);
   const fire = () => {
-    if (!roomState || roomState.turnUid !== currentUser?.uid || !roomState.lastRoll || roomState.pending || roomState.auction) return;
+    if (!roomState || roomState.debt || roomState.turnUid !== currentUser?.uid || !roomState.lastRoll || roomState.pending || roomState.auction) return;
     if (busy) { autoEndTimer = setTimeout(fire, 400); return; }
     endTurn();
   };
   autoEndTimer = setTimeout(fire, AUTO_END_MS);
 }
-
 function startComputerGame() {
   if (busy) return;
   const humanUid = getPlayerId();
@@ -1190,10 +1519,12 @@ function startComputerGame() {
     creatorUid:humanUid,
     joinerUid:COMPUTER_UID,
     players:{
-      [humanUid]:{uid:humanUid,name:cleanName($("playerName").value,"Bạn"),color:TOKEN_COLORS[0],token:selectedToken,cash:START_CASH,position:0,jailTurns:0},
-      [COMPUTER_UID]:{uid:COMPUTER_UID,name:"Máy Miền Tây",color:TOKEN_COLORS[1],token:alternateToken(selectedToken),cash:START_CASH,position:0,jailTurns:0,isComputer:true}
+      [humanUid]:{uid:humanUid,name:cleanName($("playerName").value,"Bạn"),color:TOKEN_COLORS[0],token:selectedToken,cash:START_CASH,position:0,jailTurns:0,jailPasses:0},
+      [COMPUTER_UID]:{uid:COMPUTER_UID,name:"Máy Miền Tây",color:TOKEN_COLORS[1],token:alternateToken(selectedToken),cash:START_CASH,position:0,jailTurns:0,jailPasses:0,isComputer:true}
     },
     propertyOwners:{},
+    houses:{},
+    mortgages:{},
     turnUid:humanUid,
     turnNumber:1,
     openingRound:1,
@@ -1232,6 +1563,7 @@ function computerAuctionMaxBid(index) {
 }
 function isComputerActionDue(state, computerUid = COMPUTER_UID) {
   if (!state || state.status !== "playing") return false;
+  if (state.debt) return state.debt.uid === computerUid;
   if (isOpeningRollPhase(state)) {
     const humanUid = state.creatorUid;
     return !!state.openingRolls?.[humanUid] && !state.openingRolls?.[computerUid];
@@ -1240,6 +1572,24 @@ function isComputerActionDue(state, computerUid = COMPUTER_UID) {
   // của lượt chơi gốc để gọi máy lặp khi tới lượt người thật.
   if (state.auction) return state.auction.turnUid === computerUid;
   return state.turnUid === computerUid;
+}
+async function resolveComputerDebt() {
+  const uid = COMPUTER_UID;
+  if (roomState?.debt?.uid !== uid) return;
+  // Thanh lý công trình trước, sau đó mới cầm cố đất.
+  for (let index = 0; index < SPACE_DATA.length; index++) {
+    if (sellHouseEligibility(SPACE_DATA, roomState.propertyOwners, roomState.houses || {}, uid, index).ok) {
+      await sellHouse(index);
+      return;
+    }
+  }
+  for (let index = 0; index < SPACE_DATA.length; index++) {
+    if (mortgageEligibility(SPACE_DATA, roomState.propertyOwners, roomState.houses || {}, roomState.mortgages || {}, uid, index).ok) {
+      await mortgageAsset(index);
+      return;
+    }
+  }
+  await declareBankruptcy(true);
 }
 function scheduleComputerTurn() {
   if (!computerGame || computerBusy || computerTimer || !isComputerActionDue(roomState)) return;
@@ -1258,7 +1608,9 @@ async function playComputerTurn() {
   currentUser.uid = COMPUTER_UID;
   try {
     await new Promise((resolve) => setTimeout(resolve, 650));
-    if (isOpeningRollPhase(roomState)) {
+    if (roomState.debt?.uid === COMPUTER_UID) {
+      await resolveComputerDebt();
+    } else if (isOpeningRollPhase(roomState)) {
       await rollOpeningDice();
     } else if (roomState.auction?.turnUid === COMPUTER_UID) {
       const index = Number(roomState.auction.index);
@@ -1275,7 +1627,7 @@ async function playComputerTurn() {
         if (computerShouldBuy(index)) await buyProperty();
         else await passProperty();
       }
-      if (roomState && roomState.status === "playing" &&
+      if (roomState && roomState.status === "playing" && !roomState.debt &&
           roomState.turnUid === COMPUTER_UID && roomState.lastRoll && !roomState.pending && !roomState.auction) {
         await new Promise((resolve) => setTimeout(resolve, 550));
         await endTurn();
@@ -1304,6 +1656,7 @@ $("joinRoomButton").addEventListener("click", joinRoom);
 $("playComputerButton").addEventListener("click", startComputerGame);
 $("rollButton").addEventListener("click", rollDice);
 $("propsButton").addEventListener("click", () => { $("propsModal").hidden = false; });
+$("propertyList").addEventListener("click", handleDeedAction);
 $("propsClose").addEventListener("click", () => { $("propsModal").hidden = true; });
 $("propsModal").addEventListener("click", (event) => { if (event.target === $("propsModal")) $("propsModal").hidden = true; });
 // Trên điện thoại: vào toàn màn hình và khóa ngang (nếu trình duyệt cho phép; nếu không giao diện tự xoay bằng CSS).

@@ -31,19 +31,31 @@
         },
         "openingRolls": {
           "$uid": {
-            ".validate": "newData.parent().parent().child('players').hasChild($uid) && newData.hasChildren(['0', '1'])",
-            "0": { ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 6" },
-            "1": { ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 6" }
+            "0": {
+              ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 6"
+            },
+            "1": {
+              ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 6"
+            },
+            ".validate": "newData.parent().parent().child('players').hasChild($uid) && newData.hasChildren(['0', '1'])"
           }
         },
         "openingLastRoll": {
           ".validate": "newData.hasChildren(['uid', 'round', 'dice'])",
-          "uid": { ".validate": "newData.isString() && newData.parent().parent().child('players').hasChild(newData.val())" },
-          "round": { ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 100" },
+          "uid": {
+            ".validate": "newData.isString() && newData.parent().parent().child('players').hasChild(newData.val())"
+          },
+          "round": {
+            ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 100"
+          },
           "dice": {
-            ".validate": "newData.hasChildren(['0', '1'])",
-            "0": { ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 6" },
-            "1": { ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 6" }
+            "0": {
+              ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 6"
+            },
+            "1": {
+              ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 6"
+            },
+            ".validate": "newData.hasChildren(['0', '1'])"
           }
         },
         "message": {
@@ -75,12 +87,24 @@
         },
         "auction": {
           ".validate": "newData.hasChildren(['index', 'turnUid', 'currentBid', 'highestUid', 'openedByUid', 'passedUid'])",
-          "index": { ".validate": "newData.isNumber() && (newData.val() == 5 || newData.val() == 12 || newData.val() == 15 || newData.val() == 25 || newData.val() == 28 || newData.val() == 35)" },
-          "turnUid": { ".validate": "newData.isString() && newData.parent().parent().child('players').hasChild(newData.val())" },
-          "currentBid": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 1000000" },
-          "highestUid": { ".validate": "newData.isString() && (newData.val() == '' || newData.parent().parent().child('players').hasChild(newData.val()))" },
-          "openedByUid": { ".validate": "newData.isString() && newData.parent().parent().child('players').hasChild(newData.val())" },
-          "passedUid": { ".validate": "newData.isString() && (newData.val() == '' || newData.parent().parent().child('players').hasChild(newData.val()))" }
+          "index": {
+            ".validate": "newData.isNumber() && (newData.val() == 5 || newData.val() == 12 || newData.val() == 15 || newData.val() == 25 || newData.val() == 28 || newData.val() == 35)"
+          },
+          "turnUid": {
+            ".validate": "newData.isString() && newData.parent().parent().child('players').hasChild(newData.val())"
+          },
+          "currentBid": {
+            ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 1000000"
+          },
+          "highestUid": {
+            ".validate": "newData.isString() && (newData.val() == '' || newData.parent().parent().child('players').hasChild(newData.val()))"
+          },
+          "openedByUid": {
+            ".validate": "newData.isString() && newData.parent().parent().child('players').hasChild(newData.val())"
+          },
+          "passedUid": {
+            ".validate": "newData.isString() && (newData.val() == '' || newData.parent().parent().child('players').hasChild(newData.val()))"
+          }
         },
         "propertyOwners": {
           "$spaceId": {
@@ -113,7 +137,68 @@
             },
             "bankrupt": {
               ".validate": "newData.isBoolean()"
+            },
+            "jailPasses": {
+              ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 10"
             }
+          }
+        },
+        "houses": {
+          "$spaceId": {
+            ".validate": "$spaceId.matches(/^s([0-9]|[12][0-9]|3[0-9])$/) && newData.isNumber() && newData.val() >= 1 && newData.val() <= 5 && newData.parent().parent().child('propertyOwners').hasChild($spaceId)"
+          }
+        },
+        "mortgages": {
+          "$spaceId": {
+            ".validate": "$spaceId.matches(/^s([0-9]|[12][0-9]|3[0-9])$/) && newData.isNumber() && newData.val() > 0 && newData.val() <= 400 && newData.parent().parent().child('propertyOwners').hasChild($spaceId)"
+          }
+        },
+        "debt": {
+          ".validate": "newData.hasChildren(['uid','amount','creditorUid','reason'])",
+          "uid": {
+            ".validate": "newData.isString() && newData.parent().parent().child('players').hasChild(newData.val())"
+          },
+          "amount": {
+            ".validate": "newData.isNumber() && newData.val() > 0 && newData.val() <= 1000000"
+          },
+          "creditorUid": {
+            ".validate": "newData.isString() && (newData.val() == '' || newData.parent().parent().child('players').hasChild(newData.val()))"
+          },
+          "reason": {
+            ".validate": "newData.isString() && newData.val().length <= 120"
+          },
+          "resumeJail": {
+            ".validate": "newData.isBoolean()"
+          }
+        },
+        "lastMove": {
+          ".validate": "newData.hasChildren(['uid','from','to','steps'])",
+          "uid": {
+            ".validate": "newData.isString() && newData.parent().parent().child('players').hasChild(newData.val())"
+          },
+          "from": {
+            ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 39"
+          },
+          "to": {
+            ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 39"
+          },
+          "steps": {
+            ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 12"
+          },
+          "kind": {
+            ".validate": "newData.isString()"
+          },
+          "turnNumber": {
+            ".validate": "newData.isNumber()"
+          },
+          "dice": {
+            "0": {
+              ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 6"
+            },
+            "1": {
+              ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 6"
+            },
+            ".validate": "newData.hasChildren(['0','1'])"
           }
         }
       }
