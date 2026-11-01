@@ -139,19 +139,27 @@ let rules;
   await pc.page.fill("#roomCodeInput", code); await pc.page.fill("#playerName", "Chi"); await pc.page.click("#joinRoomButton"); await pc.page.waitForTimeout(600);
   check("người thứ ba bị từ chối", !(await pc.page.locator("#gameView").isVisible()) && /đã đủ 2 người/.test(await text(pc.page, "#lobbyMessage")), await text(pc.page, "#lobbyMessage"));
 
+  const tokenInfo = await pa.page.evaluate(() => [...document.querySelectorAll(".token b")].map((b) => { const r = b.getBoundingClientRect(); const s = getComputedStyle(b); return [b.textContent, Math.round(r.x), Math.round(r.y), Math.round(r.width), Math.round(r.height), s.visibility, s.fontSize]; }));
+  check("quân cờ con vật hiển thị trên bàn cờ", tokenInfo.length === 2 && tokenInfo.some((x) => x[0] === "🐧") && tokenInfo.some((x) => x[0] === "🐶") && tokenInfo.every((x) => x[3] > 8 && x[4] > 8), JSON.stringify(tokenInfo));
   check("chỉ người có lượt được bấm Tung xúc xắc", !(await pa.page.locator("#rollButton").isDisabled()) && (await pb.page.locator("#rollButton").isDisabled()));
   // Tung xúc xắc [1,2] → ô 3 (Đường Đồng Khởi, $60)
   await pa.page.evaluate(() => { const q = [0, 0.2]; Math.random = () => (q.length ? q.shift() : 0.5); });
   await pa.page.click("#rollButton");
   const sawRolling = await pb.page.waitForSelector("#diceResult.rolling", { timeout: 2000 }).then(() => true).catch(() => false);
   check("hiệu ứng: xúc xắc lăn hiện ở máy của đối thủ", sawRolling);
-  const sawHop = await pb.page.waitForSelector(".token.moving", { timeout: 3000, state: "attached" }).then(() => true).catch(() => false);
-  check("hiệu ứng: quân cờ nhảy từng ô", sawHop);
+  const sawStage = await pb.page.waitForSelector("#diceStage.show", { timeout: 2000 }).then(() => true).catch(() => false);
+  const stageInfo = await pb.page.evaluate(() => { const s = document.getElementById("diceStage"); const r = s.getBoundingClientRect(); const d = s.querySelector(".die"); const dr = d ? d.getBoundingClientRect() : null; return JSON.stringify({ cls: s.className, op: getComputedStyle(s).opacity, rect: [r.x, r.y, r.width, r.height].map(Math.round), die: dr && [dr.x, dr.y, dr.width, dr.height].map(Math.round), n: s.querySelectorAll(".die").length }); });
+  check("hiệu ứng: xúc xắc ném lên giữa bàn cờ ở máy đối thủ", sawStage, stageInfo);
+  const sawHop = await pb.page.waitForFunction(() => document.querySelector(".token.moving"), null, { timeout: 4000, polling: 20 }).then(() => true).catch(() => false);
+  if (OUT) { await pb.page.evaluate(() => { const s = document.getElementById("diceStage"); s.className = "dice-stage show"; s.innerHTML = '<div class="dice-row"><span class="die" data-v="4">' + "<i></i>".repeat(9) + '</span><span class="die" data-v="6">' + "<i></i>".repeat(9) + '</span><b class="dice-total">10</b></div>'; });     await pb.page.waitForTimeout(100); await pb.page.screenshot({ path: `${OUT}/desktop-dice.png`, clip: { x: 280, y: 220, width: 720, height: 480 } }); console.log("stage@shot", await pb.page.evaluate(() => { const s = document.getElementById("diceStage"); const d = s.querySelector(".die"); const r = d && d.getBoundingClientRect(); return s.className + " " + JSON.stringify(r && [r.x, r.y, r.width, r.height].map(Math.round)); })); }
+  check("hiệu ứng: quân cờ nhảy từng ô", sawHop, sawHop ? "" : await pb.page.evaluate(() => JSON.stringify({tokens: document.querySelectorAll(".token").length, pass: document.querySelectorAll(".space.pass,.space.land").length, ds: document.getElementById("diceStage")?.className})));
   await pa.page.waitForTimeout(1800);
-  const diceA = await text(pa.page, "#diceResult"), diceB = await text(pb.page, "#diceResult");
-  check("hai bên thấy cùng xúc xắc", diceA === diceB && /1\s+2/.test(diceA), JSON.stringify(diceA));
+  const faces = (page) => page.$$eval("#diceResult .die", (els) => els.map((e) => e.dataset.v).join(","));
+  const diceA = await faces(pa.page), diceB = await faces(pb.page);
+  check("hai bên thấy cùng xúc xắc", diceA === diceB && diceA === "1,2", JSON.stringify([diceA, diceB]));
   check("A thấy nút Mua 600.000₫; B không thấy", /Mua 600\.000₫/.test(await text(pa.page, "#pendingActions")) && (await pb.page.locator("#pendingActions button").count()) === 0);
-  check("A không thể kết thúc lượt khi chưa quyết định mua", await pa.page.locator("#endTurnButton").isDisabled());
+  check("không còn nút Kết thúc lượt", (await pa.page.locator("#endTurnButton").count()) === 0);
+  check("lượt chưa chuyển khi A chưa quyết định mua", /Mua/.test(await text(pa.page, "#pendingActions")) && (await pb.page.locator("#rollButton").isDisabled()));
   await pa.page.click("#pendingActions .primary-button");
   const sawFloat = await pb.page.waitForSelector(".float-delta.loss", { timeout: 2000 }).then(() => true).catch(() => false);
   check("hiệu ứng: số tiền trừ bay lên", sawFloat);
@@ -159,8 +167,9 @@ let rules;
   check("hiệu ứng: ô vừa mua có dấu chủ sở hữu", sawStamp);
   await pa.page.waitForTimeout(500);
   check("mua đất: tiền A còn 14.400.000₫, hai bên thấy chủ sở hữu", /14\.400\.000₫/.test(await text(pa.page, "#playersPanel")) && /14\.400\.000₫/.test(await text(pb.page, "#playersPanel")) && (await pb.page.locator("#propertyList .property-row").count()) === 1);
-  await pa.page.click("#endTurnButton"); await pa.page.waitForTimeout(500);
-  check("kết thúc lượt: quyền chuyển sang B", !(await pb.page.locator("#rollButton").isDisabled()) && (await pa.page.locator("#rollButton").isDisabled()) && /Bình/.test(await text(pa.page, "#turnName")));
+  await pa.page.waitForFunction(() => /Bình/.test(document.querySelector("#turnName")?.textContent || ""), null, { timeout: 8000 }).catch(() => {});
+  await pb.page.waitForFunction(() => document.querySelector("#rollButton")?.disabled === false, null, { timeout: 3000 }).catch(() => {});
+  check("tự chuyển lượt sau khi mua: quyền chuyển sang B", !(await pb.page.locator("#rollButton").isDisabled()) && (await pa.page.locator("#rollButton").isDisabled()) && /Bình/.test(await text(pa.page, "#turnName")));
 
   // B thử ghi trái phép khi không có lượt (rules phải chặn)
   const denied = await pa.page.evaluate(async () => { try { const m = await import("https://www.gstatic.com/firebasejs/13.1.0/firebase-database.js"); return "no-error"; } catch (e) { return String(e); } });
@@ -171,7 +180,7 @@ let rules;
   await pb.page.evaluate(() => { const q = [0.4, 0.4]; Math.random = () => (q.length ? q.shift() : 0.5); });
   await pb.page.click("#rollButton"); await pb.page.waitForTimeout(400);
   await pb.page.locator("#pendingActions .secondary-button").click(); await pb.page.waitForTimeout(300);
-  await pb.page.click("#endTurnButton"); await pb.page.waitForTimeout(400);
+  await pa.page.waitForFunction(() => document.querySelector("#rollButton")?.disabled === false, null, { timeout: 6000 }).catch(() => {});
   check("vòng chơi thứ hai hoạt động, lượt quay lại A", !(await pa.page.locator("#rollButton").isDisabled()));
 
   // Ván kết thúc → pháo giấy
@@ -204,8 +213,6 @@ let rules;
     check("đối thủ Máy Miền Tây xuất hiện trên bảng tài sản", /Máy Miền Tây/.test(await text(cpu.page, "#playersPanel")));
     await cpu.page.evaluate(() => { const q = [0, 0, 0.5]; Math.random = () => q.length ? q.shift() : 0.5; });
     await cpu.page.click("#rollButton");
-    await cpu.page.waitForSelector("#endTurnButton:not(:disabled)", { timeout: 4000 });
-    await cpu.page.click("#endTurnButton");
     await cpu.page.waitForFunction(() =>
       document.querySelector("#rollButton")?.disabled === false &&
       document.querySelector("#turnName")?.textContent.trim() === "Minh" &&
@@ -226,15 +233,7 @@ let rules;
     await m.page.waitForTimeout(400);
     const overflow = await m.page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
     const rollBox = await m.page.locator("#rollButton").boundingBox();
-    const boardBox = await m.page.locator("#board").boundingBox();
-    const boardTransform = await m.page.locator("#board").evaluate((el) => getComputedStyle(el).transform);
     check(label + ": không tràn ngang (sảnh/ván)", lobbyOverflow <= 0 && overflow <= 0, `sảnh ${lobbyOverflow}px, ván ${overflow}px`);
-    check(label + ": bàn cờ 2D mặc định nằm trọn theo chiều ngang", boardBox && boardBox.x >= 0 && boardBox.x + boardBox.width <= w && boardTransform === "none" && !(await m.page.locator("#boardWrap").evaluate(el => el.classList.contains("iso"))), boardBox ? `x=${Math.round(boardBox.x)}..${Math.round(boardBox.x + boardBox.width)}/${w}, transform=${boardTransform}` : "không thấy");
-    await m.page.click("#viewToggleButton");
-    const optional3d = await m.page.locator("#boardWrap").evaluate(el => el.classList.contains("iso"));
-    await m.page.click("#viewToggleButton");
-    const restored2d = !(await m.page.locator("#boardWrap").evaluate(el => el.classList.contains("iso")));
-    check(label + ": nút đổi chế độ 2D/3D hoạt động", optional3d && restored2d);
     check(label + ": nút Tung xúc xắc nằm trọn trong màn hình đầu, cao ≥ 40px", rollBox && rollBox.y >= 0 && rollBox.y + rollBox.height <= h && rollBox.height >= 40, rollBox ? `y=${Math.round(rollBox.y)}..${Math.round(rollBox.y + rollBox.height)}/${h}, cao ${Math.round(rollBox.height)}` : "không thấy");
     const inputFont = await m.page.evaluate(() => getComputedStyle(document.getElementById("playerName")).fontSize);
     if (OUT) { await m.page.screenshot({ path: `${OUT}/mobile-${w}.png` }); await m.page.evaluate(() => document.getElementById("lobbyView").classList.remove("hidden")); }

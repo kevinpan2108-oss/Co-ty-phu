@@ -84,3 +84,14 @@ test("stations double per extra station and utilities depend on the dice", () =>
   assert.equal(calcRent(SPACE_DATA[utilities[0]], { [`s${utilities[0]}`]: "p1" }, "p1", 6).rent, 24);
   assert.equal(calcRent(SPACE_DATA[utilities[0]], { [`s${utilities[0]}`]: "p1", [`s${utilities[1]}`]: "p1" }, "p1", 6).rent, 60);
 });
+
+test("every purchasable place has its own landmark drawing", async () => {
+  const { artSvg, animalFor } = await import("../board-art.js");
+  for (let i = 0; i < SPACE_DATA.length; i++) {
+    const space = SPACE_DATA[i];
+    if (["property", "station", "utility"].includes(space.type)) {
+      assert.match(artSvg(space.name, "#fff"), /<svg/, `${space.name} needs art`);
+    }
+  }
+  assert.notEqual(animalFor("#0e7c86"), animalFor("#e8402a"));
+});

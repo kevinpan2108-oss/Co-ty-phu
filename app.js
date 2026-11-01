@@ -1,4 +1,5 @@
 import { initializeApp, deleteApp } from "https://www.gstatic.com/firebasejs/13.1.0/firebase-app.js";
+import { artSvg, animalFor } from "./board-art.js?v=1";
 import { shouldComputerBuy } from "./computer-player.js?v=1";
 import { getDatabase, ref, set, get, onValue, runTransaction } from "https://www.gstatic.com/firebasejs/13.1.0/firebase-database.js";
 
@@ -484,6 +485,7 @@ function renderBoard() {
     div.innerHTML = `
       <span class="space-color" style="background:${colorBar}"></span>
       ${icon ? `<span class="space-icon">${icon}</span>` : ""}
+      <span class="space-art">${artSvg(space.name, colorBar) || `<b class="art-emoji">${icon}</b>`}</span>
       <span class="space-name">${escapeHtml(space.name)}</span>
       ${price && !space.corner ? `<span class="space-price">${price}</span>` : ""}
       <span class="space-players">${tokensHtml(index)}</span>
@@ -533,7 +535,7 @@ function renderActions() {
   const playing = roomState.status === "playing" && getPlayerEntries(roomState).length === 2;
   const pending = roomState.pending;
   const dice = roomState.lastRoll;
-  if (!diceAnimating) $("diceResult").innerHTML = dice ? `<span>${Number(dice[0]) || 0}</span><span>${Number(dice[1]) || 0}</span>` : "<span>⚄</span><span>⚄</span>";
+  if (!diceAnimating) $("diceResult").innerHTML = dice ? diceHtml(dice) : diceHtml([0, 0]);
   $("actionMessage").textContent = roomState.message || (roomState.status === "waiting" ? "Đang chờ người chơi thứ hai..." : "Đến lượt bạn!");
   const buttons = $("pendingActions");
   buttons.innerHTML = "";
@@ -556,7 +558,6 @@ function renderActions() {
   const canPayJail = Number(mine?.jailTurns || 0) > 0 && !dice;
   $("rollButton").textContent = canPayJail ? "🔓 Nộp " + money(JAIL_FEE) + " để ra tù" : "🎲 Tung xúc xắc";
   $("rollButton").disabled = busy || !playing || !isMyTurn || !!pending || !!dice || roomState.status === "finished";
-  $("endTurnButton").disabled = busy || !playing || !isMyTurn || !!pending || !dice || roomState.status === "finished";
   document.title = roomState.status === "playing" && isMyTurn ? "● Đến lượt bạn - Cờ Tỷ Phú Online" : "Cờ Tỷ Phú Online";
   if (roomState.status === "waiting") {
     $("centerStatus").textContent = "Chờ người chơi thứ hai";
@@ -576,16 +577,24 @@ const reduceMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").mat
 const displayPos = {};            // uid -> ô đang hiển thị khi quân đang nhảy
 const moveTimers = {};            // uid -> timer của bước nhảy
 const stampUntil = {};            // chỉ số ô -> thời điểm hết hiệu ứng "vừa mua"
+function dieHtml(v) {
+  const n = Math.min(6, Math.max(0, Math.floor(Number(v)) || 0));
+  return `<span class="die" data-v="${n}">${"<i></i>".repeat(9)}</span>`;
+}
+function diceHtml(d) { return dieHtml(d?.[0]) + dieHtml(d?.[1]); }
+let autoEndKey = null;
+let autoEndTimer = null;
+const AUTO_END_MS = 2000;
 let movingUid = null;
 let diceAnimating = false;
 let diceTimer = null;
-const DICE_MS = 650;
-const HOP_MS = 150;
+const DICE_MS = 900;
+const HOP_MS = 190;
 
 function tokensHtml(index) {
   return getPlayerEntries(roomState)
     .filter(([uid, p]) => (displayPos[uid] ?? Number(p.position)) === index)
-    .map(([uid, p]) => `<i class="token${movingUid === uid ? " moving" : ""}" title="${escapeHtml(p.name)}" style="background:${safeColor(p.color)}"></i>`)
+    .map(([uid, p], i) => `<i class="token${movingUid === uid ? " moving" : ""}" title="${escapeHtml(p.name)}" style="--tc:${safeColor(p.color)}"><b>${animalFor(p.color, i)}</b></i>`)
     .join("");
 }
 function renderTokens() {
@@ -595,6 +604,7 @@ function renderTokens() {
   });
 }
 function resetEffects() {
+  autoEndKey = null; clearTimeout(autoEndTimer);
   clearInterval(diceTimer);
   diceAnimating = false;
   movingUid = null;
@@ -602,6 +612,8 @@ function resetEffects() {
   for (const uid of Object.keys(displayPos)) delete displayPos[uid];
   for (const key of Object.keys(stampUntil)) delete stampUntil[key];
   document.title = "Cờ Tỷ Phú Online";
+  const stage = $("diceStage");
+  if (stage) stage.className = "dice-stage";
 }
 // Quân cờ nhảy từng ô tới đích. Đi quá xa (vào tù) thì dịch chuyển thẳng.
 function animateMove(uid, from, to, delay) {
@@ -613,6 +625,8 @@ function animateMove(uid, from, to, delay) {
     step++;
     movingUid = uid;
     displayPos[uid] = (from + step) % 40;
+    const cell = document.querySelector(`#board .space[data-index="${displayPos[uid]}"]`);
+    if (cell) { cell.classList.remove("pass", "land"); void cell.offsetWidth; cell.classList.add(step >= dist ? "land" : "pass"); }
     if (step >= dist) {
       delete displayPos[uid];
       delete moveTimers[uid];
@@ -628,19 +642,27 @@ function animateMove(uid, from, to, delay) {
 }
 function animateDice(finalDice) {
   const box = $("diceResult");
+  const stage = $("diceStage");
   const finish = () => {
     clearInterval(diceTimer);
     diceAnimating = false;
     box.classList.remove("rolling");
-    box.innerHTML = `<span>${Number(finalDice[0]) || 0}</span><span>${Number(finalDice[1]) || 0}</span>`;
+    box.innerHTML = diceHtml(finalDice);
+    if (stage) {
+      stage.className = "dice-stage show landed";
+      stage.innerHTML = `<div class="dice-row">${diceHtml(finalDice)}<b class="dice-total">${(Number(finalDice[0]) || 0) + (Number(finalDice[1]) || 0)}</b></div>`;
+      setTimeout(() => { stage.className = "dice-stage"; }, 1300);
+    }
   };
   if (reduceMotion) return;
   diceAnimating = true;
   box.classList.add("rolling");
   const face = () => 1 + Math.floor(Math.random() * 6);
-  box.innerHTML = `<span>${face()}</span><span>${face()}</span>`;
+  const shuffle = () => { const d = [face(), face()]; box.innerHTML = diceHtml(d); if (stage) stage.innerHTML = `<div class="dice-row">${diceHtml(d)}</div>`; };
+  if (stage) stage.className = "dice-stage show rolling";
+  shuffle();
   clearInterval(diceTimer);
-  diceTimer = setInterval(() => { box.innerHTML = `<span>${face()}</span><span>${face()}</span>`; }, 80);
+  diceTimer = setInterval(shuffle, 90);
   setTimeout(finish, DICE_MS);
 }
 function floatDelta(uid, delta, delay) {
@@ -712,6 +734,7 @@ function renderRoom() {
   renderBoard();
   renderProperties();
   renderActions();
+  scheduleAutoEnd();
 }
 
 async function rollDice() {
@@ -873,6 +896,24 @@ async function endTurn() {
   if (computerGame && !computerBusy) scheduleComputerTurn();
 }
 
+// Không còn nút "Kết thúc lượt": tung xúc xắc (và quyết định mua nếu có) xong là tự chuyển lượt
+// sau khi hiệu ứng chạy xong.
+function scheduleAutoEnd() {
+  const ok = roomState && currentUser && roomState.status === "playing" && roomState.turnUid === currentUser.uid &&
+    roomState.lastRoll && !roomState.pending && !computerBusy && currentUser.uid !== COMPUTER_UID;
+  if (!ok) return;
+  const key = currentRoomCode + ":" + roomState.turnNumber;
+  if (autoEndKey === key) return;
+  autoEndKey = key;
+  clearTimeout(autoEndTimer);
+  const fire = () => {
+    if (!roomState || roomState.turnUid !== currentUser?.uid || !roomState.lastRoll || roomState.pending) return;
+    if (busy) { autoEndTimer = setTimeout(fire, 400); return; }
+    endTurn();
+  };
+  autoEndTimer = setTimeout(fire, AUTO_END_MS);
+}
+
 function startComputerGame() {
   if (busy) return;
   const humanUid = getPlayerId();
@@ -967,8 +1008,18 @@ $("createRoomButton").addEventListener("click", createRoom);
 $("joinRoomButton").addEventListener("click", joinRoom);
 $("playComputerButton").addEventListener("click", startComputerGame);
 $("rollButton").addEventListener("click", rollDice);
-$("endTurnButton").addEventListener("click", endTurn);
-$("leaveRoomButton").addEventListener("click", () => leaveRoom());
+$("viewToggleButton").addEventListener("click", () => {
+  const wrap = document.querySelector(".board-wrap");
+  const flat = wrap.classList.toggle("flat");
+  $("viewToggleButton").textContent = flat ? "Xem 3D" : "Xem phẳng";
+  try { localStorage.setItem("ctp-view", flat ? "flat" : "iso"); } catch { /* không lưu được */ }
+});
+(() => {
+  let flat = window.innerWidth <= 800;
+  try { const saved = localStorage.getItem("ctp-view"); if (saved) flat = saved === "flat"; } catch { /* bỏ qua */ }
+  document.querySelector(".board-wrap").classList.toggle("flat", flat);
+  $("viewToggleButton").textContent = flat ? "Xem 3D" : "Xem phẳng";
+})();$("leaveRoomButton").addEventListener("click", () => leaveRoom());
 $("board").addEventListener("click", (event) => {
   // Trên điện thoại ô quá nhỏ để hiện tên: chạm vào ô để xem thông tin.
   const cell = event.target.closest(".space");
@@ -1021,18 +1072,3 @@ async function boot() {
   await resumeLastRoom();
 }
 boot();
-
-// ===== Chế độ xem bàn cờ: 3D (isometric) hoặc phẳng. Chỉ đổi giao diện, không ghi gì lên database =====
-const VIEW_KEY = "ctp-board-view-v2";
-function applyBoardView(iso) {
-  $("boardWrap").classList.toggle("iso", iso);
-  const btn = $("viewToggleButton");
-  btn.textContent = iso ? "Bàn phẳng" : "Bàn 3D";
-  btn.setAttribute("aria-pressed", String(iso));
-}
-applyBoardView(store("get", VIEW_KEY) === "iso");
-$("viewToggleButton").addEventListener("click", () => {
-  const iso = !$("boardWrap").classList.contains("iso");
-  applyBoardView(iso);
-  store("set", VIEW_KEY, iso ? "iso" : "flat");
-});
