@@ -29,46 +29,46 @@ const TOKEN_COLORS = ["#0e7c86", "#e8402a"];
 // Dữ liệu bàn cờ lưu theo "đơn vị": 1 đơn vị = UNIT_VND đồng (xem money()). Giữ nguyên thang số
 // để dữ liệu trong database và Firebase Rules không phải đổi khi đổi cách hiển thị tiền.
 const SPACE_DATA = [
-  {name:"XUẤT PHÁT",type:"start",icon:"🏁",corner:true},
-  {name:"Chợ nổi Cái Bè",type:"property",price:60,rent:10,color:"#8a6a4b",group:"Tiền Giang"},
-  {name:"CƠ HỘI",type:"chance",icon:"🥥"},
-  {name:"Chùa Vĩnh Tràng",type:"property",price:60,rent:20,color:"#8a6a4b",group:"Tiền Giang"},
-  {name:"THUẾ NÔNG SẢN",type:"tax",icon:"🌾",amount:100},
-  {name:"Bến phà Rạch Miễu",type:"station",price:200,rent:40,color:"#2f5d6b",icon:"⛴️"},
-  {name:"Làng kẹo dừa",type:"property",price:100,rent:30,color:"#6fb7c4",group:"Bến Tre"},
-  {name:"CƠ HỘI",type:"chance",icon:"🥥"},
-  {name:"Cồn Phụng",type:"property",price:100,rent:40,color:"#6fb7c4",group:"Bến Tre"},
-  {name:"Sân chim Vàm Hồ",type:"property",price:120,rent:50,color:"#6fb7c4",group:"Bến Tre"},
-  {name:"VÀO TÙ / THĂM TÙ",type:"jail",icon:"🔒",corner:true},
-  {name:"Cù lao An Bình",type:"property",price:140,rent:60,color:"#d9828f",group:"Vĩnh Long"},
-  {name:"Điện lực Miền Tây",type:"utility",price:150,rent:50,color:"#e8d9a0",icon:"💡"},
-  {name:"Chợ nổi Trà Ôn",type:"property",price:140,rent:70,color:"#d9828f",group:"Vĩnh Long"},
-  {name:"Văn Thánh Miếu",type:"property",price:160,rent:80,color:"#d9828f",group:"Vĩnh Long"},
-  {name:"Bến Ninh Kiều",type:"station",price:200,rent:40,color:"#2f5d6b",icon:"🚤"},
-  {name:"Làng hoa Sa Đéc",type:"property",price:180,rent:90,color:"#f0a05a",group:"Đồng Tháp"},
-  {name:"CƠ HỘI",type:"chance",icon:"🥥"},
-  {name:"Tràm Chim",type:"property",price:180,rent:100,color:"#f0a05a",group:"Đồng Tháp"},
-  {name:"Gò Tháp",type:"property",price:200,rent:110,color:"#f0a05a",group:"Đồng Tháp"},
-  {name:"CHỢ NỔI CÁI RĂNG",type:"free",icon:"🛶",corner:true},
-  {name:"Chùa Dơi",type:"property",price:220,rent:120,color:"#e0654b",group:"Sóc Trăng"},
-  {name:"CƠ HỘI",type:"chance",icon:"🥥"},
-  {name:"Chùa Kh'Leang",type:"property",price:220,rent:130,color:"#e0654b",group:"Sóc Trăng"},
-  {name:"Chợ nổi Ngã Năm",type:"property",price:240,rent:140,color:"#e0654b",group:"Sóc Trăng"},
-  {name:"Bến tàu Rạch Giá",type:"station",price:200,rent:40,color:"#2f5d6b",icon:"🚢"},
-  {name:"Nhà Công tử Bạc Liêu",type:"property",price:260,rent:150,color:"#e8c85a",group:"Bạc Liêu"},
-  {name:"Điện gió Bạc Liêu",type:"property",price:260,rent:160,color:"#e8c85a",group:"Bạc Liêu"},
-  {name:"Nhà máy nước Cửu Long",type:"utility",price:150,rent:50,color:"#e8d9a0",icon:"💧"},
-  {name:"Vườn chim Bạc Liêu",type:"property",price:280,rent:170,color:"#e8c85a",group:"Bạc Liêu"},
-  {name:"ĐI THẲNG VÀO TÙ",type:"gotojail",icon:"🚓",corner:true},
-  {name:"Rừng tràm Trà Sư",type:"property",price:300,rent:180,color:"#5fae78",group:"An Giang"},
-  {name:"Núi Sam Châu Đốc",type:"property",price:300,rent:190,color:"#5fae78",group:"An Giang"},
-  {name:"CƠ HỘI",type:"chance",icon:"🥥"},
-  {name:"Miếu Bà Chúa Xứ",type:"property",price:320,rent:200,color:"#5fae78",group:"An Giang"},
-  {name:"Cảng Hà Tiên",type:"station",price:200,rent:40,color:"#2f5d6b",icon:"⚓"},
-  {name:"CƠ HỘI",type:"chance",icon:"🥥"},
-  {name:"Rừng U Minh Hạ",type:"property",price:350,rent:220,color:"#7c6bb5",group:"Cà Mau"},
-  {name:"PHÍ CẦU PHÀ",type:"tax",icon:"🧾",amount:100},
-  {name:"Mũi Cà Mau",type:"property",price:400,rent:250,color:"#7c6bb5",group:"Cà Mau"}
+  {name:"XUẤT PHÁT",type:"start",icon:"🏁",corner:true,info:"Mỗi lần đi qua hoặc dừng lại, nhận 2.000.000₫."},
+  {name:"Làng nổi Tân Lập",icon:"🛶",type:"property",price:60,rent:10,color:"#8d7b68",group:"Long An",info:"Khu du lịch sinh thái giữa rừng tràm ở Mộc Hóa, Long An; mùa nước nổi đi xuồng len giữa rừng."},
+  {name:"CƠ HỘI",type:"chance",icon:"🥥",info:"Rút một thẻ Cơ hội: có thể được tiền, cũng có thể mất tiền."},
+  {name:"Chợ nổi Cái Bè",icon:"🍍",type:"property",price:60,rent:20,color:"#c9824b",group:"Tiền Giang",info:"Chợ nổi trên sông Tiền, ghe thuyền chở đầy trái cây."},
+  {name:"THUẾ NÔNG SẢN",type:"tax",icon:"🌾",amount:100,info:"Nộp thuế sau mỗi vụ mùa."},
+  {name:"Bến phà Rạch Miễu",type:"station",price:200,rent:40,color:"#2f5d6b",icon:"⛴️",info:"Nơi phà từng nối Tiền Giang với Bến Tre trước khi có cầu."},
+  {name:"Chùa Vĩnh Tràng",icon:"🏯",type:"property",price:100,rent:30,color:"#c9824b",group:"Tiền Giang",info:"Ngôi chùa cổ ở Mỹ Tho, kiến trúc pha trộn Á – Âu."},
+  {name:"CƠ HỘI",type:"chance",icon:"🥥",info:"Rút một thẻ Cơ hội: có thể được tiền, cũng có thể mất tiền."},
+  {name:"Làng kẹo dừa",icon:"🥥",type:"property",price:100,rent:40,color:"#4fb0a8",group:"Bến Tre",info:"Kẹo dừa là đặc sản nổi tiếng của xứ dừa Bến Tre."},
+  {name:"Cồn Phụng",icon:"🏝️",type:"property",price:120,rent:50,color:"#4fb0a8",group:"Bến Tre",info:"Cồn nhỏ giữa sông Tiền, gắn với Đạo Dừa, nay là điểm du lịch."},
+  {name:"VÀO TÙ / THĂM TÙ",type:"jail",icon:"🔒",corner:true,info:"Chỉ ghé thăm thì không sao."},
+  {name:"Ao Bà Om",icon:"🌳",type:"property",price:140,rent:60,color:"#b04a6e",group:"Trà Vinh",info:"Ao vuông cổ giữa rừng cây sao, dầu cổ thụ của người Khmer Trà Vinh."},
+  {name:"Điện lực Miền Tây",type:"utility",price:150,rent:50,color:"#e8d9a0",icon:"💡",info:"Điện sáng đèn cho cả vùng sông nước."},
+  {name:"Chùa Âng",icon:"🛕",type:"property",price:140,rent:70,color:"#b04a6e",group:"Trà Vinh",info:"Ngôi chùa Khmer cổ, kiến trúc tinh xảo, nằm cạnh Ao Bà Om."},
+  {name:"Cù lao An Bình",icon:"🌴",type:"property",price:160,rent:80,color:"#e394a8",group:"Vĩnh Long",info:"Cù lao giữa sông Tiền với vườn trái cây và nhà vườn."},
+  {name:"Bến Ninh Kiều",type:"station",price:200,rent:40,color:"#2f5d6b",icon:"🚤",info:"Bến sông thơ mộng của thành phố Cần Thơ."},
+  {name:"Chợ nổi Trà Ôn",icon:"🛶",type:"property",price:180,rent:90,color:"#e394a8",group:"Vĩnh Long",info:"Chợ nổi họp trên sông Hậu, ghe xuồng tấp nập từ sáng sớm."},
+  {name:"CƠ HỘI",type:"chance",icon:"🥥",info:"Rút một thẻ Cơ hội: có thể được tiền, cũng có thể mất tiền."},
+  {name:"Làng hoa Sa Đéc",icon:"🌸",type:"property",price:180,rent:100,color:"#f0a05a",group:"Đồng Tháp",info:"Làng hoa kiểng lâu đời của Đồng Tháp, rực rỡ nhất dịp Tết."},
+  {name:"Tràm Chim",icon:"🌿",type:"property",price:200,rent:110,color:"#f0a05a",group:"Đồng Tháp",info:"Vườn quốc gia ở Đồng Tháp, nơi sếu đầu đỏ về trú đông."},
+  {name:"CHỢ NỔI CÁI RĂNG",type:"free",icon:"🛶",corner:true,info:"Nghỉ chân ở chợ nổi Cái Răng, Cần Thơ, nơi mua bán trái cây ngay trên sông."},
+  {name:"Nhà cổ Bình Thủy",icon:"🏛️",type:"property",price:220,rent:120,color:"#2f7fc1",group:"Cần Thơ",info:"Ngôi nhà cổ trăm năm tuổi ở Cần Thơ, kiến trúc kết hợp Đông – Tây."},
+  {name:"CƠ HỘI",type:"chance",icon:"🥥",info:"Rút một thẻ Cơ hội: có thể được tiền, cũng có thể mất tiền."},
+  {name:"Vườn cò Bằng Lăng",icon:"🐦",type:"property",price:220,rent:130,color:"#2f7fc1",group:"Cần Thơ",info:"Sân chim ở Thốt Nốt, Cần Thơ, hàng ngàn con cò về đậu mỗi chiều."},
+  {name:"Chợ nổi Ngã Bảy",icon:"🛶",type:"property",price:240,rent:140,color:"#7bb661",group:"Hậu Giang",info:"Chợ nổi ở Ngã Bảy, Hậu Giang, nơi nhiều dòng sông rạch gặp nhau."},
+  {name:"Bến tàu Rạch Giá",type:"station",price:200,rent:40,color:"#2f5d6b",icon:"🚢",info:"Cửa ngõ đường biển của Kiên Giang, tàu từ đây ra đảo."},
+  {name:"Chùa Dơi",icon:"🦇",type:"property",price:260,rent:150,color:"#e0654b",group:"Sóc Trăng",info:"Chùa Khmer nổi tiếng với đàn dơi quạ đậu trên cây."},
+  {name:"Chùa Kh'Leang",icon:"🛕",type:"property",price:260,rent:160,color:"#e0654b",group:"Sóc Trăng",info:"Ngôi chùa Khmer cổ ở Sóc Trăng."},
+  {name:"Nhà máy nước Cửu Long",type:"utility",price:150,rent:50,color:"#e8d9a0",icon:"💧",info:"Nước sạch cho bà con vùng sông Cửu Long."},
+  {name:"Nhà Công tử Bạc Liêu",icon:"🏠",type:"property",price:280,rent:170,color:"#e8c85a",group:"Bạc Liêu",info:"Ngôi nhà gắn với giai thoại Công tử Bạc Liêu giàu có một thời."},
+  {name:"ĐI THẲNG VÀO TÙ",type:"gotojail",icon:"🚓",corner:true,info:"Dừng ở đây là bị đưa thẳng vào tù."},
+  {name:"Điện gió Bạc Liêu",icon:"🌬️",type:"property",price:300,rent:180,color:"#e8c85a",group:"Bạc Liêu",info:"Những cánh quạt khổng lồ quay trên biển Bạc Liêu."},
+  {name:"Rừng tràm Trà Sư",icon:"🌳",type:"property",price:300,rent:190,color:"#3f9a63",group:"An Giang",info:"Rừng tràm xanh mướt phủ bèo, đi xuồng len giữa rừng ở An Giang."},
+  {name:"CƠ HỘI",type:"chance",icon:"🥥",info:"Rút một thẻ Cơ hội: có thể được tiền, cũng có thể mất tiền."},
+  {name:"Núi Sam Châu Đốc",icon:"⛰️",type:"property",price:320,rent:200,color:"#3f9a63",group:"An Giang",info:"Ngọn núi nổi lên giữa đồng bằng ở Châu Đốc, An Giang."},
+  {name:"Cảng Hà Tiên",type:"station",price:200,rent:40,color:"#2f5d6b",icon:"⚓",info:"Cảng nhỏ ở vùng biển Kiên Giang, gần biên giới Campuchia."},
+  {name:"CƠ HỘI",type:"chance",icon:"🥥",info:"Rút một thẻ Cơ hội: có thể được tiền, cũng có thể mất tiền."},
+  {name:"Đảo Phú Quốc",icon:"🏝️",type:"property",price:350,rent:220,color:"#1fb5c9",group:"Kiên Giang",info:"Đảo ngọc ngoài khơi Kiên Giang, nổi tiếng với nước mắm, hồ tiêu và biển xanh."},
+  {name:"PHÍ CẦU PHÀ",type:"tax",icon:"🧾",amount:100,info:"Qua sông phải trả phí cầu phà."},
+  {name:"Mũi Cà Mau",icon:"🧭",type:"property",price:400,rent:250,color:"#7c6bb5",group:"Cà Mau",info:"Điểm cực Nam của Tổ quốc, nơi đất liền gặp biển."}
 ];
 const CHANCE_CARDS = [
   {text:"Mùa trái cây bội thu, thương lái đến tận vườn thu mua.",amount:100},
@@ -135,12 +135,55 @@ function store(op, key, value) {
   } catch { /* chế độ riêng tư có thể chặn localStorage */ }
   return null;
 }
+// ===== Luật tiền thuê (hàm thuần túy, có test trong tests/board.test.js) =====
+// Các ô đất cùng tỉnh (cùng "group"). Chỉ tỉnh có từ 2 ô đất trở lên mới có thưởng sở hữu cả tỉnh.
+function provinceCells(group) {
+  return SPACE_DATA.map((sp, i) => (sp.type === "property" && sp.group === group ? i : -1)).filter((i) => i >= 0);
+}
+function ownsWholeProvince(owners, group, uid) {
+  const cells = group && uid ? provinceCells(group) : [];
+  return cells.length >= 2 && cells.every((i) => owners?.[getSpaceId(i)] === uid);
+}
+function calcRent(space, owners, ownerUid, diceTotal) {
+  const countOwned = (type) => Object.keys(owners || {}).filter((key) => SPACE_DATA[Number(key.slice(1))]?.type === type && owners[key] === ownerUid).length;
+  let rent = space.rent || 50;
+  let wholeProvince = false;
+  if (space.type === "station") rent = 40 * Math.pow(2, Math.max(0, countOwned("station") - 1));
+  else if (space.type === "utility") rent = diceTotal * (countOwned("utility") > 1 ? 10 : 4);
+  else if (space.type === "property" && ownsWholeProvince(owners, space.group, ownerUid)) { rent *= 2; wholeProvince = true; }
+  return {rent, wholeProvince};
+}
+let cellInfoTimer = null;
+function showCellInfo(index, seconds = 7) {
+  const space = SPACE_DATA[index];
+  const box = $("cellInfo");
+  if (!space || !box) return;
+  const ownerUid = roomState?.propertyOwners?.[getSpaceId(index)];
+  const owner = ownerUid ? roomState?.players?.[ownerUid] : null;
+  const chips = [];
+  if (space.price) chips.push("Giá " + money(space.price));
+  if (space.type === "station") chips.push("Thuê từ " + money(40) + ", gấp đôi mỗi bến sở hữu thêm");
+  else if (space.type === "utility") chips.push("Thuê 4× điểm xúc xắc (10× nếu có cả hai công ty)");
+  else if (space.rent) chips.push("Thuê " + money(space.rent));
+  if (space.type === "tax") chips.push("Nộp " + money(space.amount));
+  if (owner) chips.push("Chủ: " + owner.name);
+  const count = space.type === "property" ? provinceCells(space.group).length : 0;
+  const bonus = count >= 2 ? `Sở hữu đủ ${count} ô của ${space.group}: tiền thuê gấp đôi.` : "";
+  box.innerHTML = `<div class="cell-info-head">${space.group ? `<i style="background:${safeColor(space.color)}"></i><span>${escapeHtml(space.group)}</span>` : ""}<strong>${escapeHtml(space.icon || "")} ${escapeHtml(space.name)}</strong></div>
+    ${space.info ? `<p>${escapeHtml(space.info)}</p>` : ""}
+    ${chips.length ? `<div class="cell-info-chips">${chips.map((c) => `<span>${escapeHtml(c)}</span>`).join("")}</div>` : ""}
+    ${bonus ? `<p class="cell-info-bonus">${escapeHtml(bonus)}</p>` : ""}`;
+  box.classList.add("show");
+  clearTimeout(cellInfoTimer);
+  cellInfoTimer = setTimeout(() => box.classList.remove("show"), seconds * 1000);
+}
 function describeSpace(index) {
   const space = SPACE_DATA[index];
   if (!space) return "";
   const ownerUid = roomState?.propertyOwners?.[getSpaceId(index)];
   const owner = ownerUid ? roomState?.players?.[ownerUid] : null;
   const parts = [space.name];
+  if (space.group) parts.push(space.group);
   if (space.price) parts.push("giá " + money(space.price));
   if (space.type === "station") parts.push("thuê " + money(40) + ", gấp đôi cho mỗi bến sở hữu thêm");
   else if (space.type === "utility") parts.push("thuê 4× điểm xúc xắc (10× nếu có cả hai công ty)");
@@ -472,7 +515,7 @@ function renderProperties() {
   }
   $("propertyList").innerHTML = owned.map(({space,uid}) => {
     const player = roomState.players?.[uid];
-    return `<div class="property-row"><i class="property-swatch" style="background:${space.color || "#b9b59b"}"></i><div><strong>${escapeHtml(space.name)}</strong><small>${escapeHtml(player?.name || "Người chơi")} · ${space.type === "station" ? "Thuê từ " + money(40) : space.type === "utility" ? "Thuê 4× xúc xắc" : "Thuê " + money(space.rent || 50)}</small></div></div>`;
+    return `<div class="property-row"><i class="property-swatch" style="background:${space.color || "#b9b59b"}"></i><div><strong>${escapeHtml(space.name)}</strong><small>${space.group ? escapeHtml(space.group) + " · " : ""}${escapeHtml(player?.name || "Người chơi")} · ${space.type === "station" ? "Thuê từ " + money(40) : space.type === "utility" ? "Thuê 4× xúc xắc" : "Thuê " + money(space.rent || 50)}</small></div></div>`;
   }).join("");
 }
 function renderActions() {
@@ -692,22 +735,11 @@ async function rollDice() {
           text += " Mảnh đất này chưa có chủ. Bạn có muốn mua không?";
         } else if (ownerUid !== uid) {
           const owner = room.players[ownerUid];
-          let rent = space.rent || 50;
-          if (space.type === "station") {
-            const stationCount = Object.keys(room.propertyOwners || {}).filter(key => {
-              const i=Number(key.slice(1)); return SPACE_DATA[i]?.type==="station" && room.propertyOwners[key]===ownerUid;
-            }).length;
-            rent = 40 * Math.pow(2,Math.max(0,stationCount-1));
-          } else if (space.type === "utility") {
-            const utilityCount = Object.keys(room.propertyOwners || {}).filter(key => {
-              const i=Number(key.slice(1)); return SPACE_DATA[i]?.type==="utility" && room.propertyOwners[key]===ownerUid;
-            }).length;
-            rent = total * (utilityCount > 1 ? 10 : 4);
-          }
+          const {rent, wholeProvince} = calcRent(space, room.propertyOwners, ownerUid, total);
           const paid = Math.min(Number(player.cash||0),rent);
           player.cash -= paid;
           owner.cash = Number(owner.cash||0) + paid;
-          text += " Trả " + money(rent) + " tiền thuê cho " + owner.name + ".";
+          text += " Trả " + money(rent) + " tiền thuê cho " + owner.name + (wholeProvince ? " (chủ sở hữu đủ các ô của " + space.group + " nên thuê gấp đôi)" : "") + ".";
           if (paid < rent) {
             player.cash = 0; player.bankrupt = true;
             room.status = "finished"; room.winner = ownerUid;
@@ -932,7 +964,7 @@ $("leaveRoomButton").addEventListener("click", () => leaveRoom());
 $("board").addEventListener("click", (event) => {
   // Trên điện thoại ô quá nhỏ để hiện tên: chạm vào ô để xem thông tin.
   const cell = event.target.closest(".space");
-  if (cell && roomState) notify(describeSpace(Number(cell.dataset.index)));
+  if (cell && roomState) showCellInfo(Number(cell.dataset.index));
 });
 $("copyRoomButton").addEventListener("click", async () => {
   try {
