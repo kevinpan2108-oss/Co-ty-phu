@@ -745,3 +745,9 @@ body:has(#gameView:not(.hidden)){overflow:hidden}
   .token-option-art .token-svg{width:26px;height:26px}
   .token-option-label{font-size:10px}
 }
+
+
+/* New illustrated tokens stay compact on the foreshortened board. */
+#gameView .token .token-glyph{display:grid;place-items:center;width:28px;height:28px;line-height:1}
+#gameView .token .token-svg{width:26px!important;height:26px!important}
+#gameView .token .token-emoji{font-size:24px!important;line-height:1}
