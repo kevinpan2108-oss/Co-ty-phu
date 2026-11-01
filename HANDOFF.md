@@ -66,4 +66,4 @@ npm run test:e2e
 - `board-art.js`: hình SVG công trình theo tên ô (`ART_BY_NAME`) và con vật theo màu quân (`animalFor`: xanh = 🐧, đỏ = 🐶). Không đổi dữ liệu database nên không cần đăng lại Rules.
 - Đã bỏ nút "Kết thúc lượt": `scheduleAutoEnd()` tự gọi `endTurn()` sau ~2 giây khi đã tung xúc xắc và không còn việc chờ mua/bỏ qua.
 - Xúc xắc có chấm thật, ném lên giữa bàn ở cả hai máy (`#diceStage`), quân nhảy cung với gợn sóng từng ô.
-- Khi đổi CSS/JS nhớ tăng `?v=` trong `index.html` (hiện `flat2`).
+- Khi đổi CSS/JS nhớ tăng `?v=` trong `index.html` (hiện `cell4`).

@@ -85,3 +85,16 @@ const SPARE = ["🐱", "🐸", "🐼", "🦆"];
 export function animalFor(color, index = 0) {
   return ANIMALS[String(color).toLowerCase()] || SPARE[index % SPARE.length];
 }
+
+// Tên ngắn in trên ô cờ (tên đầy đủ hiện khi chạm vào ô).
+const SHORT_NAMES = {
+  "Làng nổi Tân Lập": "Tân Lập", "Chợ nổi Cái Bè": "Cái Bè", "Chùa Vĩnh Tràng": "Vĩnh Tràng", "Làng kẹo dừa": "Kẹo dừa",
+  "Cồn Phụng": "Cồn Phụng", "Ao Bà Om": "Ao Bà Om", "Chùa Âng": "Chùa Âng", "Cù lao An Bình": "An Bình",
+  "Chợ nổi Trà Ôn": "Trà Ôn", "Làng hoa Sa Đéc": "Sa Đéc", "Tràm Chim": "Tràm Chim", "Nhà cổ Bình Thủy": "Bình Thủy",
+  "Vườn cò Bằng Lăng": "Bằng Lăng", "Chợ nổi Ngã Bảy": "Ngã Bảy", "Chùa Dơi": "Chùa Dơi", "Chùa Kh'Leang": "Kh'Leang",
+  "Nhà Công tử Bạc Liêu": "Công tử", "Điện gió Bạc Liêu": "Điện gió", "Rừng tràm Trà Sư": "Trà Sư", "Núi Sam Châu Đốc": "Núi Sam",
+  "Đảo Phú Quốc": "Phú Quốc", "Mũi Cà Mau": "Cà Mau", "Bến phà Rạch Miễu": "Rạch Miễu", "Bến Ninh Kiều": "Ninh Kiều",
+  "Bến tàu Rạch Giá": "Rạch Giá", "Cảng Hà Tiên": "Hà Tiên", "Điện lực Miền Tây": "Điện lực", "Nhà máy nước Cửu Long": "Nước",
+  "THUẾ NÔNG SẢN": "Thuế", "PHÍ CẦU PHÀ": "Phí phà"
+};
+export function shortName(name) { return SHORT_NAMES[name] || name; }
