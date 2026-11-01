@@ -467,3 +467,155 @@ h1,h2,.brand strong,.center-title,.player-cash,.dice-illustration{font-family:va
   .space.side-left .space-price,.space.side-right .space-price{white-space:nowrap;font-size:clamp(7.5px,2.2cqw,11px);padding:1px 3px}
   .space .space-name{overflow-wrap:break-word}
 }
+
+/* ===================================================================
+   Màn hình game kiểu Monopoly mobile: toàn màn hình nằm ngang, bàn cờ 3D,
+   mọi thao tác gói trong khung game. Khối này ghi đè các kiểu cũ ở trên.
+   =================================================================== */
+body:has(#gameView:not(.hidden)){overflow:hidden}
+#gameView:not(.hidden){position:fixed;inset:0;z-index:60;display:block;padding:0;margin:0;background:linear-gradient(180deg,#bfe6fa 0%,#dff3ff 55%,#c9eccf 100%);overflow:hidden;color:#1d2b53}
+#gameView .stage{position:absolute;inset:0;container-type:size;overflow:hidden;font-family:var(--body,inherit)}
+@media(max-width:900px) and (orientation:portrait){
+  #gameView .stage{inset:auto;top:0;left:0;width:100dvh;height:100dvw;transform-origin:0 0;transform:translateX(100dvw) rotate(90deg)}
+}
+#gameView .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+
+/* Thẻ người chơi ở hai góc trên */
+#gameView .hud-top{position:absolute;left:0;right:0;top:0;padding:8px 10px;pointer-events:none;z-index:20}
+#gameView .players-panel{display:flex;justify-content:space-between;gap:10px;margin:0;padding:0}
+#gameView .player-card{pointer-events:auto;display:flex;align-items:center;gap:8px;min-width:0;width:min(34cqw,260px);padding:6px 12px 6px 6px;border:3px solid #1d2b53;border-radius:16px;background:var(--pc,#4aa3df);color:#fff;box-shadow:0 4px 0 rgba(29,43,83,.35);position:relative}
+#gameView .player-card:last-child{flex-direction:row-reverse;padding:6px 6px 6px 12px;text-align:right}
+#gameView .player-card.active{outline:4px solid #ffd23f;outline-offset:2px;animation:turnGlow 1.6s ease-in-out infinite}
+#gameView .player-avatar{flex:none;width:clamp(34px,9cqh,50px);height:clamp(34px,9cqh,50px);border-radius:50%;background:#fff;border:3px solid #1d2b53;display:grid;place-items:center;font-size:clamp(20px,6cqh,30px);line-height:1}
+#gameView .player-info{min-width:0;flex:1}
+#gameView .player-head{display:flex;align-items:center;gap:6px;justify-content:inherit}
+#gameView .player-card:last-child .player-head{flex-direction:row-reverse}
+#gameView .player-dot{display:none}
+#gameView .player-name{font-size:clamp(11px,3.3cqh,15px);font-weight:800;color:#fff;text-shadow:0 1px 0 rgba(0,0,0,.35);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#gameView .you-label{font-size:9px;background:#fff;color:#1d2b53;border-radius:99px;padding:1px 6px;font-weight:800}
+#gameView .player-cash{font-family:var(--display);font-size:clamp(15px,5.2cqh,24px);line-height:1.1;color:#fff;text-shadow:0 2px 0 rgba(0,0,0,.35);margin:0}
+#gameView .player-position{display:none}
+#gameView .room-pill{position:absolute;left:50%;top:8px;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:3px;pointer-events:none}
+#gameView .room-pill .section-kicker{background:rgba(255,255,255,.85);border-radius:99px;padding:2px 12px;font-size:11px;color:#1d2b53;border:2px solid #1d2b53}
+#gameView .turn-card{display:flex;align-items:center;gap:6px;background:#ffd23f;border:2px solid #1d2b53;border-radius:99px;padding:2px 12px;color:#1d2b53;font-size:11px;min-height:0;margin:0;box-shadow:none}
+#gameView .turn-card small{font-size:10px;color:#1d2b53}
+#gameView .turn-card strong{font-size:12px;color:#1d2b53}
+#gameView .turn-pulse{width:8px;height:8px;background:#e8402a}
+#gameView .game-notice{position:absolute;left:50%;top:70px;transform:translateX(-50%);z-index:40;max-width:60cqw;margin:0}
+#gameView .game-notice:empty{display:none}
+
+/* Bàn cờ 3D xéo */
+#gameView .board-wrap{position:absolute;inset:0;margin:0;padding:0;display:block;min-width:0}
+#gameView .board{--S:min(128cqh,61cqw);--rx:60deg;--rz:-45deg;position:absolute;left:50%;top:51%;width:var(--S);height:var(--S);margin:calc(var(--S) / -2) 0 0 calc(var(--S) / -2);font-size:calc(var(--S) / 12);padding:.1em;gap:.04em;grid-template-columns:minmax(0,1.5fr) repeat(9,minmax(0,1fr)) minmax(0,1.5fr);grid-template-rows:minmax(0,1.5fr) repeat(9,minmax(0,1fr)) minmax(0,1.5fr);transform-style:preserve-3d;transform:rotateX(var(--rx)) rotateZ(var(--rz));background:#d9f0b8;border:.07em solid #1d2b53;border-radius:.3em;box-shadow:none;container-type:normal}
+#gameView .board:before,#gameView .board:after{content:"";position:absolute;inset:-.07em;border-radius:.32em;background:#a67c3d;transform:translateZ(-.18em);pointer-events:none;border:.07em solid #1d2b53}
+#gameView .board:after{transform:translateZ(-.36em);background:#6b4a22;box-shadow:0 0 3em 1.2em rgba(29,43,83,.28)}
+#gameView .board-center{border-radius:.25em;background:#7fc4e8;overflow:hidden;transform-style:flat;color:#fff;border:.05em solid #1d2b53}
+#gameView .board-center .scene{opacity:.0;display:none}
+#gameView .board-center:before{display:block;content:"";position:absolute;inset:0;background:radial-gradient(circle at 30% 30%,rgba(255,255,255,.55) 0 6%,transparent 7%),repeating-linear-gradient(115deg,rgba(255,255,255,.18) 0 .08em,transparent .08em .5em);border:0;border-radius:0;width:auto;height:auto;transform:none}
+#gameView .center-title{font-size:.9em;font-family:var(--display);text-shadow:0 .05em 0 #1d2b53;color:#fff;letter-spacing:0}
+#gameView .center-subtitle{font-size:.28em;margin-top:.2em;color:#fff;text-shadow:0 .03em 0 #1d2b53;letter-spacing:.1em}
+#gameView .center-status{font-size:.3em;margin-top:.8em;background:#fff;color:#1d2b53;border:.08em solid #1d2b53;padding:.25em .9em}
+
+/* Ô cờ: dải màu cạnh trong + tên + giá nằm trên mặt bàn; công trình đứng riêng */
+#gameView .space{container-type:normal;transform-style:preserve-3d;overflow:visible;position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#fffaf0;border:.03em solid #1d2b53;border-radius:.08em;padding:0;box-shadow:none}
+#gameView .space .space-color{position:absolute;border-radius:0;box-shadow:none}
+#gameView .space.side-top .space-color{left:0;right:0;bottom:0;top:auto;height:.2em}
+#gameView .space.side-bottom .space-color{left:0;right:0;top:0;bottom:auto;height:.2em}
+#gameView .space.side-left .space-color{top:0;bottom:0;right:0;left:auto;width:.2em}
+#gameView .space.side-right .space-color{top:0;bottom:0;left:0;right:auto;width:.2em}
+#gameView .space.side-top{padding-bottom:.2em}#gameView .space.side-bottom{padding-top:.2em}
+#gameView .space.side-left{padding-right:.2em}#gameView .space.side-right{padding-left:.2em}
+#gameView .space .space-text{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.04em;flex:0 0 auto;text-align:center;max-width:100%}
+#gameView .space .space-name{display:block!important;font-size:.19em;line-height:1.05;font-weight:900;color:#1d2b53;margin:0;padding:0 .04em;overflow-wrap:normal;text-transform:uppercase}
+#gameView .space .space-price{font-size:.27em;line-height:1.1;font-weight:900;color:#d4382c;background:none;padding:0;margin:0}
+#gameView .space .space-icon{display:none}
+#gameView .space.corner{background:linear-gradient(145deg,#fff1b8,#ffd23f)}
+#gameView .space.corner .space-name{font-size:.2em;color:#1d2b53}
+#gameView .space.owned{box-shadow:inset 0 0 0 .07em var(--owner)}
+#gameView .space .space-art{display:block;position:absolute;left:50%;top:50%;width:1.35em;height:1.35em;margin:0;pointer-events:none;transform-origin:50% 100%;transform:translateZ(.02em) translate(-50%,-70%) rotateZ(calc(var(--rz) * -1)) rotateX(calc(var(--rx) * -1));z-index:3;display:flex;align-items:flex-end}
+#gameView .space .art-svg{width:100%;height:100%;filter:drop-shadow(0 .05em .03em rgba(0,0,0,.3))}
+#gameView .space .art-emoji{font-size:.9em;line-height:1}
+#gameView .space-players{position:absolute;left:50%;top:50%;bottom:auto;right:auto;width:max-content;display:flex;gap:0;transform-origin:50% 100%;transform:translateZ(.8em) translate(-50%,-30%) rotateZ(calc(var(--rz) * -1)) rotateX(calc(var(--rx) * -1)) translateY(.67em);z-index:5}
+#gameView .token{margin:0 -.12em}
+#gameView .token b{font-size:1.15em;filter:drop-shadow(0 .04em .03em rgba(0,0,0,.45))}
+#gameView .token:before{height:30%}
+
+/* Thông báo, hành động mua, nút ở đáy */
+#gameView .action-message{position:absolute;left:50%;top:62px;transform:translateX(-50%);z-index:25;max-width:min(48cqw,520px);min-height:0;margin:0;padding:6px 14px;border-radius:14px;background:rgba(255,255,255,.94);border:2px solid #1d2b53;color:#1d2b53;font-size:clamp(11px,3.3cqh,14px);line-height:1.3;text-align:center;box-shadow:0 3px 0 rgba(29,43,83,.3)}
+#gameView .pending-actions{position:absolute;left:50%;bottom:calc(8px + 11cqh);transform:translateX(-50%);z-index:45;display:flex;gap:12px;margin:0}
+#gameView .pending-actions:empty{display:none}
+#gameView .pending-actions button{min-height:48px;min-width:130px;font-size:16px;font-weight:800;border-radius:14px;border:3px solid #1d2b53;box-shadow:0 4px 0 rgba(29,43,83,.4)}
+#gameView .pending-actions .primary-button{background:#ffd23f;color:#1d2b53}
+#gameView .pending-actions .secondary-button{background:#fff;color:#1d2b53}
+#gameView .hud-bottom{position:absolute;left:0;right:0;bottom:0;padding:8px 10px;display:flex;justify-content:space-between;align-items:flex-end;pointer-events:none;z-index:30}
+#gameView .hud-menu,#gameView .hud-roll{display:flex;align-items:center;gap:8px;pointer-events:auto}
+#gameView .hud-button{width:clamp(44px,13cqh,56px);height:clamp(44px,13cqh,56px);border-radius:50%;border:3px solid #1d2b53;background:#fff;color:#1d2b53;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;padding:0;cursor:pointer;box-shadow:0 3px 0 rgba(29,43,83,.35)}
+#gameView .hud-button span{font-size:clamp(16px,5cqh,22px);line-height:1}
+#gameView .hud-button small{font-size:8px;font-weight:800;line-height:1.1}
+#gameView .hud-button.leave-button{background:#ffe0dc}
+#gameView .dice-result{margin:0;gap:6px}
+#gameView .dice-result .die{--s:clamp(26px,8cqh,34px)}
+#gameView .roll-button{min-width:clamp(140px,30cqw,210px);min-height:clamp(46px,14cqh,60px);font-size:clamp(15px,4.6cqh,20px);font-weight:900;border:3px solid #1d2b53;border-radius:30px;background:linear-gradient(180deg,#ffe066,#ffb703);color:#1d2b53;box-shadow:0 5px 0 #b86e00;margin:0;padding:0 20px}
+#gameView .roll-button:disabled{background:#d8dde6;color:#7d8699;box-shadow:0 5px 0 #aab1c0;opacity:1}
+#gameView .roll-button:not(:disabled){animation:rollPulse 1.4s ease-in-out infinite}
+@keyframes rollPulse{0%,100%{box-shadow:0 5px 0 #b86e00,0 0 0 0 rgba(255,210,63,.7)}50%{box-shadow:0 5px 0 #b86e00,0 0 0 10px rgba(255,210,63,0)}}
+@media(prefers-reduced-motion:reduce){#gameView .roll-button:not(:disabled){animation:none}}
+
+/* Cửa sổ Sổ đất */
+#gameView .modal{position:absolute;inset:0;z-index:80;background:rgba(20,30,60,.55);display:flex;align-items:center;justify-content:center;padding:12px}
+#gameView .modal[hidden]{display:none}
+#gameView .modal-card{position:relative;width:min(92cqw,520px);max-height:88cqh;overflow:auto;background:#fff8e6;border:3px solid #1d2b53;border-radius:18px;padding:14px 16px;color:#1d2b53}
+#gameView .modal-close{position:absolute;right:8px;top:8px;width:34px;height:34px;border-radius:50%;border:3px solid #1d2b53;background:#e8402a;color:#fff;font-size:20px;line-height:1;cursor:pointer}
+#gameView .panel-title{color:#1d2b53;margin-bottom:8px}
+#gameView .property-list{max-height:none}
+#gameView .property-row{background:#fff;border:2px solid #1d2b53;color:#1d2b53}
+#gameView .property-row strong{font-size:13px}#gameView .property-row small{font-size:11px;color:#4a5578}
+#gameView .empty-properties,#gameView .rules-mini p{font-size:12px;color:#4a5578}
+#gameView .rules-mini .section-kicker{color:#c46a00}
+
+/* Thông tin ô khi chạm */
+#gameView .cell-info{position:absolute;left:50%;bottom:calc(10px + 16cqh);transform:translateX(-50%);width:min(60cqw,440px);z-index:50;background:#fff;border:3px solid #1d2b53;color:#1d2b53}
+#gameView .cell-info p{color:#1d2b53}
+#gameView .cell-info-head span{color:#4a5578}
+#gameView .cell-info-chips span{background:#fff0d0;color:#b3541e}
+
+/* Xúc xắc 3D giữa màn hình */
+#gameView .dice-stage{position:absolute;left:50%;top:46%;transform:translate(-50%,-50%);z-index:55;width:max-content;pointer-events:none;opacity:0;display:flex;align-items:center;justify-content:center}
+#gameView .dice-stage.show{opacity:1}
+#gameView .dice-stage.show:before{content:"";position:absolute;width:calc(var(--ds) * 4.6);height:calc(var(--ds) * 4.6);left:50%;top:50%;transform:translate(-50%,-50%);background:rgba(255,255,255,.9);clip-path:polygon(100.0% 50.0%,85.6% 55.1%,98.0% 64.1%,82.7% 65.0%,92.1% 77.0%,77.2% 73.6%,82.7% 87.8%,69.5% 80.3%,70.8% 95.5%,60.1% 84.5%,57.1% 99.5%,50.0% 86.0%,42.9% 99.5%,39.9% 84.5%,29.2% 95.5%,30.5% 80.3%,17.3% 87.8%,22.8% 73.6%,7.9% 77.0%,17.3% 65.0%,2.0% 64.1%,14.4% 55.1%,0.0% 50.0%,14.4% 44.9%,2.0% 35.9%,17.3% 35.0%,7.9% 23.0%,22.8% 26.4%,17.3% 12.2%,30.5% 19.7%,29.2% 4.5%,39.9% 15.5%,42.9% 0.5%,50.0% 14.0%,57.1% 0.5%,60.1% 15.5%,70.8% 4.5%,69.5% 19.7%,82.7% 12.2%,77.2% 26.4%,92.1% 23.0%,82.7% 35.0%,98.0% 35.9%,85.6% 44.9%);z-index:-1;animation:burstIn .35s ease-out}
+@keyframes burstIn{0%{transform:translate(-50%,-50%) scale(.2);opacity:0}100%{transform:translate(-50%,-50%) scale(1);opacity:1}}
+#gameView .dice-stage{--ds:clamp(54px,17cqh,86px)}
+#gameView .dice-row{display:flex;gap:calc(var(--ds) * .4);align-items:center;position:relative}
+#gameView .cube-wrap{width:var(--ds);height:var(--ds);perspective:calc(var(--ds) * 7);--h:calc(var(--ds) / 2)}
+#gameView .cube{width:100%;height:100%;position:relative;transform-style:preserve-3d;transition:transform 1s cubic-bezier(.15,.7,.2,1)}
+#gameView .cube .die.face{position:absolute;inset:0;width:auto;height:auto;--s:var(--ds);border:2px solid #b8913d;background:linear-gradient(145deg,#fffdf2,#f3dfa6);backface-visibility:hidden;padding:calc(var(--ds) * .14);font-size:0;display:grid;box-shadow:inset 0 -3px 0 rgba(0,0,0,.08)}
+#gameView .cube .face[data-v="1"]{transform:translateZ(var(--h))}
+#gameView .cube .face[data-v="6"]{transform:rotateY(180deg) translateZ(var(--h))}
+#gameView .cube .face[data-v="2"]{transform:rotateY(90deg) translateZ(var(--h))}
+#gameView .cube .face[data-v="5"]{transform:rotateY(-90deg) translateZ(var(--h))}
+#gameView .cube .face[data-v="3"]{transform:rotateX(90deg) translateZ(var(--h))}
+#gameView .cube .face[data-v="4"]{transform:rotateX(-90deg) translateZ(var(--h))}
+#gameView .dice-stage.rolling .cube-wrap{animation:diceBounce 1s cubic-bezier(.3,.6,.4,1)}
+#gameView .dice-stage.rolling .cube-wrap:nth-child(2){animation-delay:.08s}
+@keyframes diceBounce{0%{transform:translateY(-260%) scale(.7)}45%{transform:translateY(0) scale(1.1)}60%{transform:translateY(-35%)}78%{transform:translateY(0)}88%{transform:translateY(-10%)}100%{transform:translateY(0)}}
+#gameView .dice-stage.rolling .die,#gameView .dice-stage.landed .die{animation:none}
+#gameView .dice-total{position:absolute;left:50%;top:calc(100% + .5em);transform:translateX(-50%);white-space:nowrap;background:#ffd23f;color:#1d2b53;border:3px solid #1d2b53;border-radius:99px;padding:2px 18px;font-family:var(--display);font-size:clamp(18px,6cqh,30px);animation:badgePop .35s ease-out both}
+@media(prefers-reduced-motion:reduce){#gameView .dice-stage.rolling .cube-wrap,#gameView .dice-stage.show:before{animation:none}#gameView .cube{transition:none}}
+
+#gameView .players-panel{flex-direction:row;align-items:flex-start}
+#gameView .space .space-name{font-size:.22em}
+#gameView .space .space-price{font-size:.34em}
+#gameView .die[data-v="0"]{opacity:.35}
+
+/* Chữ nằm phía thấp trên màn hình, công trình đứng phía cao để không che nhau */
+#gameView .space.side-left,#gameView .space.side-right{align-items:flex-start;justify-content:center}
+#gameView .space.side-left{padding-left:.1em}
+#gameView .space.side-right{padding-left:calc(.2em + .1em)}
+#gameView .space.side-top,#gameView .space.side-bottom{justify-content:flex-end;padding-bottom:.08em}
+#gameView .space.side-top{padding-bottom:calc(.2em + .06em)}
+#gameView .space.side-left .space-text,#gameView .space.side-right .space-text{align-items:flex-start;text-align:left}
+#gameView .space .space-art{width:1.15em;height:1.15em}
+#gameView .space.side-left .space-art,#gameView .space.side-right .space-art{left:74%;top:60%}
+#gameView .space.side-top .space-art,#gameView .space.side-bottom .space-art{left:50%;top:34%}
+#gameView .space.corner{align-items:center;justify-content:center;padding:0}
+#gameView .space.corner .space-art{left:50%;top:60%;width:1.5em;height:1.5em}
