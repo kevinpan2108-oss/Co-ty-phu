@@ -22,11 +22,12 @@ const api = new Function(
    ${extractFunction("isAuctionSpace")}
    ${extractFunction("nextAuctionBid")}
    ${extractFunction("isOpeningRollPhase")}
+   ${extractFunction("canAdvanceTurn")}
    ${extractFunction("compareOpeningRolls")}
    ${extractFunction("isComputerActionDue")}
-   return {SPACE_DATA, provinceCells, ownsWholeProvince, calcRent, isAuctionSpace, nextAuctionBid, isOpeningRollPhase, compareOpeningRolls, isComputerActionDue};`
+   return {SPACE_DATA, provinceCells, ownsWholeProvince, calcRent, isAuctionSpace, nextAuctionBid, isOpeningRollPhase, canAdvanceTurn, compareOpeningRolls, isComputerActionDue};`
 )();
-const { SPACE_DATA, provinceCells, ownsWholeProvince, calcRent, isAuctionSpace, nextAuctionBid, isOpeningRollPhase, compareOpeningRolls, isComputerActionDue } = api;
+const { SPACE_DATA, provinceCells, ownsWholeProvince, calcRent, isAuctionSpace, nextAuctionBid, isOpeningRollPhase, canAdvanceTurn, compareOpeningRolls, isComputerActionDue } = api;
 
 const MEKONG_PROVINCES = [
   "Long An", "Tiền Giang", "Bến Tre", "Trà Vinh", "Vĩnh Long", "Đồng Tháp", "Cần Thơ",
@@ -150,4 +151,11 @@ test("the lobby offers both classic and Vietnamese everyday tokens", async () =>
   assert.deepEqual(TOKEN_OPTIONS.map((item) => item.id), ["penguin","puppy","plastic-chair","vietnamese-coffee"]);
   assert.match(tokenMarkup("plastic-chair"), /<svg/);
   assert.match(tokenMarkup("vietnamese-coffee"), /<svg/);
+});
+
+
+test("rooms from older versions remain playable without an opening-roll phase", () => {
+  assert.equal(canAdvanceTurn({status:"playing",turnUid:"p1"}), true);
+  assert.equal(canAdvanceTurn({status:"playing",openingRound:1}), false);
+  assert.equal(canAdvanceTurn({status:"playing",openingRound:2,startPlayerUid:"p2"}), true);
 });

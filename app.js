@@ -167,6 +167,10 @@ function alternateToken(tokenId) {
 function isOpeningRollPhase(state) {
   return !!state && state.status === "playing" && Number(state.openingRound || 0) > 0 && !state.startPlayerUid;
 }
+function canAdvanceTurn(state) {
+  // Phòng cũ không có openingRound được xem như đã bắt đầu từ trước.
+  return !!state && (!Number(state.openingRound || 0) || !!state.startPlayerUid);
+}
 function compareOpeningRolls(a, b) {
   const total = (dice) => (Number(dice?.[0]) || 0) + (Number(dice?.[1]) || 0);
   return Math.sign(total(a) - total(b));
@@ -1137,7 +1141,7 @@ async function endTurn() {
     const uid = currentUser.uid;
     await updateCurrentRoom((room) => {
       if (room === null) return room; // SDK chưa có dữ liệu: yêu cầu nạp từ server rồi gọi lại
-      if (!room || room.status !== "playing" || !room.startPlayerUid || room.turnUid !== uid || room.pending || room.auction || !room.lastRoll) return;
+      if (!room || room.status !== "playing" || !canAdvanceTurn(room) || room.turnUid !== uid || room.pending || room.auction || !room.lastRoll) return;
       const player = room.players?.[uid];
       const nextUid = Object.keys(room.players||{}).find(id => id !== uid);
       room.turnUid = nextUid;
@@ -1155,7 +1159,7 @@ async function endTurn() {
 // Không còn nút "Kết thúc lượt": tung xúc xắc (và quyết định mua nếu có) xong là tự chuyển lượt
 // sau khi hiệu ứng chạy xong.
 function scheduleAutoEnd() {
-  const ok = roomState && currentUser && roomState.status === "playing" && roomState.startPlayerUid && roomState.turnUid === currentUser.uid &&
+  const ok = roomState && currentUser && roomState.status === "playing" && canAdvanceTurn(roomState) && roomState.turnUid === currentUser.uid &&
     roomState.lastRoll && !roomState.pending && !roomState.auction && !computerBusy && currentUser.uid !== COMPUTER_UID;
   if (!ok) return;
   const key = currentRoomCode + ":" + roomState.turnNumber;
