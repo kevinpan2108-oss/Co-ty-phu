@@ -1,0 +1,31 @@
+name: Validate Co Ty Phu Online
+
+on:
+  pull_request:
+    branches: ["main", "feat/online-mvp"]
+  push:
+    branches: ["feat/**", "fix/**"]
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Check JavaScript syntax
+        run: npm run check
+      - name: Run unit and smoke tests
+        run: npm test
+      - name: Install Playwright and Chromium for two-player E2E
+        run: |
+          npm install --no-save playwright
+          npx playwright install --with-deps chromium
+      - name: Run two-browser end-to-end tests
+        run: npm run test:e2e

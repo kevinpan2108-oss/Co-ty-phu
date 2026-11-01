@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#14333a" />
+  <meta name="description" content="Cờ Tỷ Phú Online: bàn cờ tỷ phú miền Tây sông nước cho hai người chơi trong phòng riêng." />
+  <title>Cờ Tỷ Phú Online</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;800&family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./style.css?v=dicefix1" />
+</head>
+<body>
+  <div class="ambient ambient-one"></div>
+  <div class="ambient ambient-two"></div>
+  <main class="app-shell">
+    <header class="topbar">
+      <a class="brand" href="./" aria-label="Cờ Tỷ Phú Online">
+        <span class="brand-mark">₫</span>
+        <span><strong>Cờ Tỷ Phú</strong><small>Miền Tây sông nước</small></span>
+      </a>
+      <div class="topbar-right">
+        <span id="connectionBadge" class="connection-badge offline" role="button" tabindex="0"><i></i> Chưa kết nối</span>
+      </div>
+    </header>
+
+    <section id="lobbyView" class="lobby-layout">
+      <div class="hero-copy">
+        <h1>Sông nước miền Tây,<br>ai mua được nhiều đất hơn?</h1>
+        <p class="hero-subtitle">Rủ bạn bè cùng đấu online hoặc thử sức với đối thủ máy. Tung xúc xắc, mua đất qua cả 13 tỉnh thành đồng bằng sông Cửu Long, từ Long An đến mũi Cà Mau.</p>
+        <ul class="province-chips" aria-label="13 tỉnh thành trên bàn cờ">
+          <li><i style="background:#8d7b68"></i>Long An</li>
+          <li><i style="background:#c9824b"></i>Tiền Giang</li>
+          <li><i style="background:#4fb0a8"></i>Bến Tre</li>
+          <li><i style="background:#b04a6e"></i>Trà Vinh</li>
+          <li><i style="background:#e394a8"></i>Vĩnh Long</li>
+          <li><i style="background:#f0a05a"></i>Đồng Tháp</li>
+          <li><i style="background:#2f7fc1"></i>Cần Thơ</li>
+          <li><i style="background:#7bb661"></i>Hậu Giang</li>
+          <li><i style="background:#e0654b"></i>Sóc Trăng</li>
+          <li><i style="background:#e8c85a"></i>Bạc Liêu</li>
+          <li><i style="background:#3f9a63"></i>An Giang</li>
+          <li><i style="background:#1fb5c9"></i>Kiên Giang</li>
+          <li><i style="background:#7c6bb5"></i>Cà Mau</li>
+        </ul>
+      </div>
+
+      <div class="lobby-card">
+        <div class="card-heading">
+          <h2>Vào bàn thôi!</h2>
+          <span class="dice-illustration" aria-hidden="true">⚄</span>
+        </div>
+        <label class="field-label" for="playerName">Tên người chơi</label>
+        <input id="playerName" class="text-input" maxlength="18" placeholder="Nhập tên (tối đa 18 ký tự)" autocomplete="nickname" />
+        <div class="token-select">
+          <div class="token-select-heading"><span class="field-label">Chọn quân đại diện</span><small>Token sẽ đi theo bạn trong ván</small></div>
+          <div id="tokenPicker" class="token-picker" role="group" aria-label="Chọn token người chơi"></div>
+        </div>
+        <button id="createRoomButton" class="primary-button" type="button"><span>＋</span> Tạo phòng mới</button>
+        <div class="or-divider"><span>hoặc vào phòng của bạn bè</span></div>
+        <label class="field-label" for="roomCodeInput">Mã phòng 6 ký tự</label>
+        <div class="join-row">
+          <input id="roomCodeInput" class="text-input room-input" maxlength="6" placeholder="VD: A2B4C6" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" />
+          <button id="joinRoomButton" class="secondary-button" type="button">Tham gia</button>
+        </div>
+        <div class="or-divider"><span>hoặc chơi một mình</span></div>
+        <button id="playComputerButton" class="secondary-button computer-button" type="button">🤖 Chơi với máy</button>
+        <p class="card-footnote">Chọn chơi online với bạn bè hoặc đấu với máy ngay trên thiết bị.</p>
+        <p id="lobbyMessage" class="inline-message" role="status"></p>
+      </div>
+    </section>
+
+    <section id="gameView" class="game-layout hidden">
+      <div class="stage" id="stage">
+        <div class="hud-top">
+          <div id="playersPanel" class="players-panel"></div>
+          <div class="room-pill">
+            <span class="section-kicker"><span id="gameModeLabel">Phòng</span> <b id="roomCodeLabel">------</b></span>
+            <h2 id="gameTitle" class="sr-only">Đại chiến bất động sản</h2>
+            <div class="turn-card"><span class="turn-pulse"></span><small>Đến lượt</small> <strong id="turnName">Chờ đối thủ...</strong></div>
+          </div>
+        </div>
+        <div id="gameNotice" class="game-notice" role="status" aria-live="polite"></div>
+        <div class="board-wrap">
+          <div class="board" id="board">
+            <div class="board-center">
+              <svg class="scene" viewBox="0 0 400 300" preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false">
+                <defs>
+                  <linearGradient id="skyGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0" stop-color="#244f68"/><stop offset=".5" stop-color="#e98a5a"/><stop offset="1" stop-color="#f7c873"/>
+                  </linearGradient>
+                  <linearGradient id="riverGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0" stop-color="#2f8793"/><stop offset="1" stop-color="#0f3943"/>
+                  </linearGradient>
+                  <radialGradient id="sunGlow" cx=".5" cy=".5" r=".5">
+                    <stop offset="0" stop-color="#ffe9a8" stop-opacity=".95"/><stop offset="1" stop-color="#ffe9a8" stop-opacity="0"/>
+                  </radialGradient>
+                </defs>
+                <rect width="400" height="300" fill="url(#skyGrad)"/>
+                <g class="cloud cloud-a" fill="#fff" opacity=".55"><ellipse cx="80" cy="46" rx="34" ry="8"/><ellipse cx="100" cy="40" rx="22" ry="8"/></g>
+                <g class="cloud cloud-b" fill="#fff" opacity=".4"><ellipse cx="260" cy="70" rx="30" ry="7"/><ellipse cx="278" cy="64" rx="18" ry="7"/></g>
+                <g class="crane" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path d="M150 96 q6 -7 12 0 q6 -7 12 0"/><path d="M190 80 q5 -6 10 0 q5 -6 10 0"/></g>
+                <circle cx="290" cy="158" r="74" fill="url(#sunGlow)"/>
+                <circle cx="290" cy="160" r="22" fill="#ffe08a"/>
+                <path d="M0 170 Q60 152 120 166 T250 164 T400 168 V180 H0Z" fill="#1d4a3a"/>
+                <g fill="none" stroke-linecap="round" stroke="#1f5a3a" stroke-width="3.5">
+                  <path d="M52 170 C56 142 50 118 58 94" stroke="#2a2118" stroke-width="4"/>
+                  <path d="M58 94 C40 82 22 88 12 102"/><path d="M58 94 C44 76 28 72 14 76"/>
+                  <path d="M58 94 C70 80 88 80 100 92"/><path d="M58 94 C66 74 82 68 96 70"/><path d="M58 94 C58 78 60 68 62 60"/>
+                  <path d="M348 170 C344 146 350 126 342 104" stroke="#2a2118" stroke-width="4"/>
+                  <path d="M342 104 C326 92 308 96 298 110"/><path d="M342 104 C330 86 314 82 300 86"/>
+                  <path d="M342 104 C356 90 374 92 386 104"/><path d="M342 104 C352 84 368 80 382 82"/><path d="M342 104 C342 88 340 78 338 70"/>
+                </g>
+                <rect y="176" width="400" height="124" fill="url(#riverGrad)"/>
+                <ellipse cx="290" cy="192" rx="28" ry="3" fill="#ffe08a" opacity=".55"/>
+                <ellipse cx="290" cy="203" rx="18" ry="2.5" fill="#ffe08a" opacity=".35"/>
+                <g class="wave wave-a"><path d="M-80 204 q20 -6 40 0 t40 0 t40 0 t40 0 t40 0 t40 0 t40 0 t40 0 t40 0 t40 0 t40 0 t40 0 t40 0 t40 0 t40 0" fill="none" stroke="#fff" stroke-opacity=".28" stroke-width="2"/></g>
+                <g class="wave wave-b"><path d="M-80 234 q20 -6 40 0 t40 0 t40 0 t40 0 t40 0 t40 0 t40 0 t40 0 t40 0 t40 0 t40 0 t40 0 t40 0 t40 0 t40 0" fill="none" stroke="#fff" stroke-opacity=".2" stroke-width="2"/></g>
+                <g class="wave wave-c"><path d="M-80 266 q20 -6 40 0 t40 0 t40 0 t40 0 t40 0 t40 0 t40 0 t40 0 t40 0 t40 0 t40 0 t40 0 t40 0 t40 0 t40 0" fill="none" stroke="#fff" stroke-opacity=".14" stroke-width="2"/></g>
+                <g transform="translate(330 252)">
+                  <path d="M0 0 q-7 -11 0 -17 q7 6 0 17z" fill="#f4a3b8"/><path d="M0 0 q-12 -5 -13 -13 q9 0 13 13z" fill="#f08aa5"/><path d="M0 0 q12 -5 13 -13 q-9 0 -13 13z" fill="#f08aa5"/>
+                  <ellipse cx="0" cy="2" rx="17" ry="3" fill="#3f9a63" opacity=".8"/>
+                </g>
+                <g class="boat-drift"><g class="boat-bob">
+                  <ellipse cx="150" cy="222" rx="62" ry="4" fill="#000" opacity=".2"/>
+                  <path d="M92 196 H208 Q200 214 176 216 H122 Q98 214 92 196Z" fill="#e2573a"/>
+                  <path d="M92 196 Q80 188 78 176 Q92 184 98 192Z" fill="#e2573a"/>
+                  <path d="M96 204 H204" stroke="#f2b632" stroke-width="4"/>
+                  <circle cx="106" cy="200" r="4.6" fill="#fff"/><circle cx="105" cy="200" r="2" fill="#1b1b1b"/>
+                  <path d="M120 196 Q150 158 192 196Z" fill="#f2b632"/>
+                  <path d="M156 172 L136 196 M156 172 V196 M156 172 L176 196" stroke="#c98f1a" stroke-width="1.5" fill="none"/>
+                  <rect x="196" y="178" width="6" height="19" rx="2" fill="#2a2118"/>
+                  <path d="M189 180 L199 166 L209 180Z" fill="#f7ecd0"/>
+                  <path d="M199 186 L224 216" stroke="#5d3624" stroke-width="2.5" stroke-linecap="round"/>
+                </g></g>
+              </svg>
+              <div class="center-title">Cờ Tỷ Phú</div>
+              <div class="center-subtitle">Miền Tây sông nước</div>
+              <div id="centerStatus" class="center-status">Đang chờ người chơi...</div>
+            </div>
+          </div>
+        </div>
+        <div id="diceStage" class="dice-stage" aria-hidden="true"></div>
+        <div id="cellInfo" class="cell-info" role="status" aria-live="polite"></div>
+        <div id="actionMessage" class="action-message">Tạo phòng hoặc tham gia để bắt đầu.</div>
+        <div id="pendingActions" class="pending-actions"></div>
+        <div class="hud-bottom">
+          <div class="hud-menu">
+            <button id="propsButton" class="hud-button" type="button" aria-label="Sổ đất"><span>📋</span><small>Sổ đất</small></button>
+            <button id="copyRoomButton" class="hud-button" type="button" aria-label="Sao chép mã phòng"><span>🔗</span><small>Mã phòng</small></button>
+            <button id="leaveRoomButton" class="hud-button leave-button" type="button" aria-label="Rời phòng"><span>🚪</span><small>Rời</small></button>
+          </div>
+          <div class="hud-roll">
+            <div class="dice-result" id="diceResult"></div>
+            <button id="rollButton" class="primary-button roll-button" type="button" disabled>🎲 Tung xúc xắc</button>
+          </div>
+        </div>
+        <div id="propsModal" class="modal" hidden>
+          <div class="modal-card">
+            <button id="propsClose" class="modal-close" type="button" aria-label="Đóng">×</button>
+            <div class="panel-title">Sổ đất</div>
+            <div id="propertyList" class="property-list"><div class="empty-properties">Chưa có bất động sản nào được mua.</div></div>
+            <div class="rules-mini">
+              <span class="section-kicker">Mẹo nhỏ</span>
+              <p>Đi qua ô Xuất phát nhận <b>2.000.000₫</b>.</p>
+              <p>Sở hữu nhiều bến phà hoặc công ty, tiền thuê tăng gấp bội.</p>
+              <p>Sở hữu trọn bộ tỉnh để xây nhà/khách sạn; phải xây và bán đều giữa các ô.</p>
+              <p>Có thể bán nhà rồi cầm cố đất để xử lý khoản nợ. Giải chấp cần trả thêm 10% phí.</p>
+              <p>Đất đang cầm cố tạm ngưng thu tiền thuê. Chạm vào ô để xem tài sản, công trình và chủ sở hữu.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <footer class="footer"><span>© 2026 Cờ Tỷ Phú Online</span><span>Làm để chơi với bạn bè</span></footer>
+  </main>
+
+  <script type="module" src="./app.js?v=dicefix1"></script>
+</body>
+</html>
