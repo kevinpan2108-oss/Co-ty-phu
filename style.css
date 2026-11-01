@@ -332,30 +332,12 @@ h1,h2,.brand strong,.center-title,.player-cash,.dice-illustration{font-family:va
 @media(max-width:800px){.dice-total{font-size:15px}}
 
 /* ===== Bàn cờ 3D xéo, công trình đứng, quân cờ con vật ===== */
-.space-art{display:none}
 .token{width:auto;height:auto;background:none;background-image:none;border:0;box-shadow:none;position:relative;display:grid;place-items:center;font-style:normal;padding-bottom:3px}
 .token b{font-style:normal;font-weight:400;font-size:clamp(11px,1.5vw,18px);line-height:1;filter:drop-shadow(0 2px 2px rgba(0,0,0,.45));position:relative;z-index:1}
 .token:before{content:"";position:absolute;bottom:0;left:6%;right:6%;height:36%;border-radius:50%;background:var(--tc,#fff);box-shadow:0 2px 4px rgba(0,0,0,.45),inset 0 0 0 1.5px rgba(255,255,255,.85)}
 .space-players{gap:0}
-.board-wrap.flat .space-art{display:none}
-.board-wrap:not(.flat){--rx:56deg;--rz:45deg;padding:0 0 4px}
-.board-wrap:not(.flat) .board{transform-style:preserve-3d;transform:rotateX(var(--rx)) rotateZ(var(--rz)) scale(.7);margin:-22% 0;background:repeating-linear-gradient(90deg,#9a6a45 0 46px,#8d5e3b 46px 48px);border-width:6px}
-.board-wrap:not(.flat) .board:before,.board-wrap:not(.flat) .board:after{content:"";position:absolute;inset:-6px;border-radius:20px;background:#4a2c18;transform:translateZ(-7px);pointer-events:none}
-.board-wrap:not(.flat) .board:after{transform:translateZ(-14px);background:#3a2112;box-shadow:0 0 60px 30px rgba(0,0,0,.35)}
-.board-wrap:not(.flat) .space{transform-style:preserve-3d;overflow:visible;border-radius:4px}
-.board-wrap:not(.flat) .board-center{transform-style:flat}
-.board-wrap:not(.flat) .space-icon{display:none}
-.board-wrap:not(.flat) .space-name{font-size:clamp(5px,.7vw,9px);margin-top:9px}
-.board-wrap:not(.flat) .space-art{display:block;position:absolute;left:50%;bottom:30%;width:195%;pointer-events:none;transform-origin:50% 100%;transform:translateZ(1px) translateX(-50%) rotateZ(calc(var(--rz) * -1)) rotateX(calc(var(--rx) * -1));z-index:3}
-.board-wrap:not(.flat) .space.corner .space-art{width:170%;bottom:22%}
 .art-svg{display:block;width:100%;height:auto;overflow:visible;filter:drop-shadow(0 3px 3px rgba(0,0,0,.35))}
 .art-emoji{display:block;font-size:clamp(22px,3.4vw,44px);line-height:1;text-align:center;font-weight:400;filter:drop-shadow(0 3px 3px rgba(0,0,0,.35))}
-.board-wrap:not(.flat) .space-players{left:50%;right:auto;bottom:48%;width:max-content;justify-content:center;transform:translateZ(40px) translateX(-50%) rotateZ(calc(var(--rz) * -1)) rotateX(calc(var(--rx) * -1)) translateY(33px);transform-origin:50% 100%;z-index:4}
-.board-wrap:not(.flat) .token b{font-size:clamp(20px,3vw,36px)}
-.board-wrap:not(.flat) .space.owned{box-shadow:inset 0 -6px 0 var(--owner),0 1px 2px rgba(0,0,0,.25)}
-.board-wrap:not(.flat) .space.stamp,.board-wrap:not(.flat) .space.land{transform:translateZ(8px)}
-.board-wrap.flat .board{margin:0}
-@media(max-width:800px){.board-wrap:not(.flat) .board{transform:rotateX(var(--rx)) rotateZ(var(--rz)) scale(.68);margin:-24% 0}}
 
 .dice-row{display:flex;gap:14px;align-items:flex-end;position:relative}
 .dice-row .dice-total{position:absolute;left:50%;top:calc(100% + 8px);transform:translateX(-50%);white-space:nowrap}
@@ -363,3 +345,68 @@ h1,h2,.brand strong,.center-title,.player-cash,.dice-illustration{font-family:va
 
 .board-wrap{position:relative}
 .dice-stage{inset:auto;left:50%;top:46%;width:max-content;transform:translate(-50%,-50%);z-index:20}
+
+/* ===== Bàn cờ phẳng, sáng, dễ nhìn (thay bản 3D) ===== */
+.board{padding:6px;gap:2px;border-radius:16px;border:4px solid #1f5560;background:#2c7a85;box-shadow:0 14px 34px rgba(0,0,0,.35),inset 0 0 0 2px rgba(255,255,255,.12);width:min(100%,min(82vh,860px))}
+.board-center{border-radius:10px;background:linear-gradient(160deg,#d8f0b8,#9bd8a6 55%,#7cc7b0);color:#14424a}
+.board-center:before,.board-center:after{display:none}
+.board-center .scene{opacity:.9}
+.center-title{color:#fff;text-shadow:0 2px 0 rgba(20,66,74,.55),0 6px 18px rgba(20,66,74,.35)}
+.center-subtitle{color:#e9fff0;text-shadow:0 1px 2px rgba(20,66,74,.6)}
+.center-status{background:rgba(255,255,255,.85);border:0;color:#14424a;font-weight:800;font-size:clamp(8px,1.1vw,12px);letter-spacing:.04em}
+.space{container-type:size;overflow:visible;background:#fffdf3;border:0;border-radius:6px;box-shadow:0 1px 0 rgba(0,0,0,.18),inset 0 0 0 1px rgba(20,66,74,.12);padding:0;justify-content:space-between}
+.space .space-color{height:26%;max-height:9px;min-height:5px;border-radius:6px 6px 0 0;box-shadow:none}
+.space.corner{background:linear-gradient(160deg,#fff3c4,#f2cf76);justify-content:center}
+.space-icon{display:none}
+.space-art{display:flex;align-items:center;justify-content:center;flex:1;min-height:0;width:100%;margin-top:min(26%,9px);position:static;transform:none;pointer-events:none}
+.art-svg{width:86%;height:100%;filter:none}
+.art-emoji{font-size:clamp(16px,4.6vw,34px);filter:none}
+.space-name{display:none;margin:0;font-size:clamp(6px,.7vw,9px);line-height:1.1;color:#14424a;padding:0 2px}
+@container (min-width:54px){.space-name{display:block}}
+.space-price{margin:0 0 2px;font-size:clamp(7.5px,2.1vw,12px);font-weight:900;color:#14424a;line-height:1.1}
+.space.corner .space-name{display:block;font-size:clamp(6px,1.9vw,10px);font-weight:900;color:#6b3f06}
+.space.owned{box-shadow:inset 0 0 0 3px var(--owner),0 1px 0 rgba(0,0,0,.18)}
+.space-players{top:30%;bottom:auto;left:50%;right:auto;transform:translateX(-50%);width:max-content;gap:0;z-index:6}
+.token{margin:0 -4px}
+.token b{font-size:clamp(17px,5.2vw,32px)}
+.token:before{height:30%}
+.space.stamp,.space.land,.space.pass{z-index:7}
+
+/* ===== Điện thoại: bàn cờ tràn màn hình, nút tung xúc xắc dính đáy ===== */
+@media(max-width:800px){
+  .app-shell{padding:10px 8px 12px}
+  .topbar{padding-bottom:8px}
+  .game-heading{margin:6px 0}
+  .game-heading h2{display:none}
+  .game-heading-actions{gap:6px}
+  .game-heading .soft-button{min-height:34px;padding:6px 12px;font-size:12px}
+  .game-content{display:flex;flex-direction:column;gap:8px}
+  .side-panel{display:contents}
+  .side-panel .panel-title,.turn-card,.legend-card{display:none}
+  .players-panel{order:1;display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .player-card{padding:8px 10px}
+  .player-position{display:none}
+  .player-cash{font-size:17px;margin-top:2px}
+  .board-wrap{order:2;margin:0 -4px}
+  .board{width:100%;padding:4px;border-width:3px;border-radius:14px}
+  .action-card{order:3;position:sticky;bottom:8px;z-index:40;grid-template-columns:auto 1fr;background:rgba(14,48,56,.96);border:1px solid rgba(255,255,255,.18);box-shadow:0 10px 30px rgba(0,0,0,.5);border-radius:16px;padding:10px;backdrop-filter:blur(6px)}
+  .action-message{font-size:12px;line-height:1.35;max-height:4.1em;overflow:auto}
+  .dice-result .die{--s:34px}
+  .roll-button{min-height:48px;font-size:15px;font-weight:800}
+  .right-panel{order:4;min-height:0}
+  .dice-stage .die{--s:clamp(46px,14vw,64px)}
+  .center-title{font-size:clamp(20px,7vw,34px)}
+  .center-subtitle{font-size:clamp(6px,2vw,9px)}
+  .center-status{margin-top:14px;padding:4px 9px}
+  .token b{font-size:clamp(18px,6.2vw,30px)}
+}
+@media(max-width:560px){
+  .space-name{display:none!important}
+  .space.corner .space-name{display:block!important;font-size:6.5px}
+}
+@media(max-width:800px){
+  .game-heading{display:flex;flex-direction:row;align-items:center;justify-content:space-between;gap:8px;margin:2px 0 4px}
+  .game-heading .soft-button{flex:0 0 auto;width:auto}
+  .game-notice:empty{display:none}
+  .topbar{margin-bottom:4px}
+}
