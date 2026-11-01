@@ -283,20 +283,254 @@ h1,h2,.brand strong,.center-title,.player-cash,.dice-illustration{font-family:va
 .cell-info-chips span{padding:4px 10px;border-radius:99px;background:rgba(242,182,50,.14);color:#ffe08a;font-size:12px;font-weight:600}
 .cell-info p.cell-info-bonus{color:#ffe08a;font-weight:600}
 
-/* ===== Bàn cờ 3D isometric (class .iso trên .board-wrap; bỏ class này là về bàn phẳng) ===== */
-.board-wrap.iso{container-type:inline-size;border-radius:20px;background:linear-gradient(#a9d8f2,#dff1fb 70%,#eef8fd);padding:4px 0 26px;overflow:hidden}
-.iso .board{--bw:min(68cqw,64vh);width:var(--bw);margin:calc(var(--bw)*-.1) 0 calc(var(--bw)*-.06);transform:rotateX(58deg) rotateZ(-45deg);transform-origin:50% 50%;background:#cfd3d8;border:3px solid #aeb4bb;border-radius:12px;gap:2px;padding:6px;box-shadow:-1px 1px 0 #8f959c, -2px 2px 0 #8f959c, -3px 3px 0 #8f959c, -4px 4px 0 #8f959c, -5px 5px 0 #8f959c, -6px 6px 0 #8f959c, -7px 7px 0 #8f959c, -8px 8px 0 #8f959c, -9px 9px 0 #8f959c, -10px 10px 0 #8f959c, -11px 11px 0 #8f959c, -12px 12px 0 #8f959c, -13px 13px 0 #8f959c, -14px 14px 0 #8f959c,-18px 22px 28px rgba(20,50,80,.32)}
-.iso .board-center{background:radial-gradient(ellipse at 50% 45%,#9ed44f,#7cb83a 70%,#6aa42e);border-radius:6px;padding-top:4%;justify-content:flex-start}
-.iso .board-center .scene{display:none}
-.iso .center-title{font-size:clamp(18px,3.4cqw,40px);color:#fff;text-shadow:0 2px 0 rgba(40,90,20,.6)}
-.iso .center-subtitle{color:#f3ffe0;text-shadow:0 1px 4px rgba(40,90,20,.7)}
-.iso .center-status{background:rgba(255,255,255,.85);color:#2d5a1c;border-color:rgba(60,120,30,.5);bottom:8%}
-.iso .space{background:#fbf6e6;border:1px solid rgba(80,90,100,.25);box-shadow:-1px 1px 0 #b9b29c, -2px 2px 0 #b9b29c, -3px 3px 0 #b9b29c, -4px 4px 0 #b9b29c}
-.iso .space.corner{background:#e9f4fb}
-.iso .space.owned{box-shadow:inset 0 -6px 0 var(--owner),-1px 1px 0 #b9b29c, -2px 2px 0 #b9b29c, -3px 3px 0 #b9b29c, -4px 4px 0 #b9b29c}
-.iso .space-name{font-size:clamp(4px,.5cqw,8px)}
-.iso .space-price{font-size:clamp(5px,.62cqw,9px);font-weight:800}
-.iso .space-icon{font-size:clamp(9px,1.4cqw,18px)}
-.iso .token{width:11px;height:20px;border-radius:50%;rotate:45deg;background-image:radial-gradient(circle at 35% 30%,rgba(255,255,255,.7),transparent 45%);box-shadow:-3px 3px 4px rgba(0,0,0,.35)}
-.iso .token.moving{box-shadow:-6px 6px 6px rgba(0,0,0,.3)}
-@container (max-width:520px){.iso .space-name{display:none}.iso .token{width:8px;height:14px}}
+/* ===== Bàn cờ miền Tây: nghiêng 3D nhẹ, rõ ô và không cắt mép ===== */
+.board-wrap.iso{
+  --board-tilt: -8deg;
+  container-type: inline-size;
+  position:relative;
+  isolation:isolate;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  width:100%;
+  min-width:0;
+  min-height:min(100cqw,86vh);
+  padding:clamp(22px,3.2cqw,42px) 0;
+  border:1px solid rgba(175,218,205,.18);
+  border-radius:28px;
+  overflow:visible;
+  perspective:1500px;
+  background:
+    radial-gradient(ellipse at 50% 18%,rgba(101,174,157,.22),transparent 56%),
+    radial-gradient(ellipse at 50% 100%,rgba(18,111,119,.18),transparent 48%),
+    linear-gradient(145deg,#123f47 0%,#0d3038 56%,#09262f 100%);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 18px 42px rgba(0,0,0,.22);
+}
+.board-wrap.iso::before{
+  content:"";
+  position:absolute;
+  z-index:-1;
+  width:82%;
+  aspect-ratio:1;
+  left:50%;
+  top:50%;
+  transform:translate(-48%,-47%) rotate(var(--board-tilt)) translate(12px,19px);
+  border:1px solid rgba(255,226,173,.42);
+  border-radius:24px;
+  background:
+    linear-gradient(145deg,rgba(255,224,161,.5),transparent 24%),
+    linear-gradient(135deg,#bd8952 0%,#98613a 48%,#65402e 100%);
+  box-shadow:0 30px 42px rgba(0,0,0,.34),inset 0 2px 0 rgba(255,245,213,.35);
+  pointer-events:none;
+}
+.board-wrap.iso::after{
+  content:"";
+  position:absolute;
+  z-index:-2;
+  inset:12px;
+  border-radius:22px;
+  opacity:.32;
+  background:
+    repeating-linear-gradient(165deg,transparent 0 34px,rgba(171,221,209,.09) 35px 36px,transparent 37px 72px),
+    radial-gradient(ellipse at 15% 78%,rgba(48,157,157,.24),transparent 35%);
+  pointer-events:none;
+}
+.iso .board{
+  --bw:min(84cqw,72vh,760px);
+  position:relative;
+  z-index:1;
+  width:var(--bw);
+  max-width:100%;
+  margin:0;
+  aspect-ratio:1;
+  transform:rotateX(13deg) rotateZ(var(--board-tilt));
+  transform-origin:50% 50%;
+  transform-style:preserve-3d;
+  backface-visibility:hidden;
+  display:grid;
+  grid-template-columns:repeat(11,minmax(0,1fr));
+  grid-template-rows:repeat(11,minmax(0,1fr));
+  gap:3px;
+  padding:9px;
+  border:8px solid #70452f;
+  border-radius:20px;
+  outline:1px solid rgba(255,226,173,.5);
+  background:
+    linear-gradient(145deg,#d5a36c 0%,#a96d43 45%,#71442f 100%);
+  box-shadow:
+    0 3px 0 #71452f,
+    0 7px 0 #593727,
+    0 11px 0 #422a24,
+    0 17px 0 #30231f,
+    0 34px 48px rgba(0,0,0,.42),
+    inset 0 2px 0 rgba(255,238,204,.48),
+    inset 0 -3px 0 rgba(48,29,22,.28);
+  transition:transform .35s cubic-bezier(.2,.7,.2,1),box-shadow .35s;
+}
+.iso .board-center{
+  background:
+    linear-gradient(145deg,rgba(8,44,41,.36),rgba(9,51,48,.52)),
+    radial-gradient(ellipse at 50% 42%,#39745b,#1b5147 68%,#123d3b);
+  border:1px solid rgba(255,225,158,.3);
+  border-radius:9px;
+  padding:4%;
+  justify-content:center;
+  box-shadow:inset 0 0 0 5px rgba(242,208,141,.08),inset 0 18px 38px rgba(0,0,0,.18);
+}
+.iso .board-center .scene{
+  display:block;
+  opacity:.66;
+  filter:saturate(.78) contrast(1.05);
+}
+.iso .board-center::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  z-index:0;
+  border-radius:inherit;
+  background:linear-gradient(180deg,rgba(6,35,32,.12),rgba(6,35,32,.42));
+  pointer-events:none;
+}
+.iso .center-title{
+  position:relative;
+  z-index:2;
+  font-size:clamp(22px,3.8cqw,44px);
+  color:#fff7df;
+  letter-spacing:.005em;
+  text-shadow:0 2px 0 rgba(24,48,34,.5),0 7px 18px rgba(0,0,0,.3);
+}
+.iso .center-subtitle{
+  position:relative;
+  z-index:2;
+  color:#f7e9c7;
+  text-shadow:0 2px 8px rgba(0,0,0,.45);
+  font-size:clamp(8px,1.15cqw,13px);
+  letter-spacing:.12em;
+}
+.iso .center-status{
+  z-index:3;
+  bottom:7%;
+  max-width:88%;
+  white-space:normal;
+  text-align:center;
+  padding:7px 12px;
+  background:rgba(9,38,36,.86);
+  color:#ffe3a1;
+  border:1px solid rgba(255,225,158,.52);
+  box-shadow:0 5px 14px rgba(0,0,0,.22);
+  font-size:clamp(8px,1cqw,12px);
+  letter-spacing:.015em;
+}
+.iso .space{
+  position:relative;
+  border:1px solid rgba(98,79,48,.26);
+  border-radius:5px;
+  background:linear-gradient(145deg,#fffaf0 0%,#f4e9ce 72%,#e9d9b8 100%);
+  box-shadow:0 2px 0 #c8b99a,0 4px 7px rgba(54,42,28,.17);
+  overflow:hidden;
+  transition:transform .18s,box-shadow .18s,filter .18s;
+}
+.iso .space:not(.corner):hover{
+  z-index:4;
+  filter:brightness(1.04);
+  transform:translateY(-2px);
+  box-shadow:0 4px 0 #bba987,0 7px 12px rgba(54,42,28,.22);
+}
+.iso .space.corner{
+  background:linear-gradient(145deg,#fff4d7,#e8d2a5);
+}
+.iso .space .space-color{
+  height:clamp(4px,.62cqw,7px);
+  box-shadow:0 1px 2px rgba(0,0,0,.15);
+}
+.iso .space-name{
+  font-size:clamp(6px,.72cqw,9px);
+  line-height:1.15;
+  font-weight:800;
+  color:#29413d;
+}
+.iso .space-price{
+  font-size:clamp(6px,.72cqw,9px);
+  color:#725d40;
+  font-weight:900;
+}
+.iso .space-icon{
+  font-size:clamp(12px,1.65cqw,20px);
+  filter:drop-shadow(0 2px 1px rgba(74,55,30,.18));
+}
+.iso .space.corner .space-icon{font-size:clamp(17px,2.2cqw,27px)}
+.iso .space.owned{
+  box-shadow:inset 0 -5px 0 var(--owner),0 2px 0 #c8b99a,0 4px 7px rgba(54,42,28,.17);
+}
+.iso .space.stamp{z-index:5}
+.iso .space-players{bottom:4px}
+.iso .token{
+  width:13px;
+  height:13px;
+  border:2px solid rgba(255,255,255,.92);
+  border-radius:50%;
+  background-image:radial-gradient(circle at 32% 25%,rgba(255,255,255,.8),transparent 42%),linear-gradient(145deg,var(--token-light,rgba(255,255,255,.2)),transparent);
+  box-shadow:0 2px 0 rgba(0,0,0,.28),0 4px 6px rgba(0,0,0,.24);
+  rotate:0deg;
+}
+.iso .token.moving{box-shadow:0 5px 8px rgba(0,0,0,.3)}
+.iso .cell-info{
+  position:relative;
+  z-index:6;
+  border-color:rgba(255,226,173,.25);
+  background:rgba(7,31,35,.94);
+  box-shadow:0 12px 28px rgba(0,0,0,.28);
+}
+.iso .cell-info.show{border-color:rgba(255,226,173,.52)}
+@media(max-width:1150px){
+  .board-wrap.iso{min-height:0;padding:30px 0 38px}
+  .iso .board{--bw:min(84cqw,72vh,720px)}
+}
+@media(max-width:800px){
+  .board-wrap.iso{
+    min-height:0;
+    padding:26px 0 36px;
+    border-radius:22px;
+    perspective:1100px;
+  }
+  .board-wrap.iso::before{width:84%;border-radius:18px;transform:translate(-48%,-47%) rotate(-7deg) translate(9px,14px)}
+  .iso .board{
+    --bw:min(84cqw,62vh,720px);
+    transform:rotateX(11deg) rotateZ(-7deg);
+    border-width:6px;
+    border-radius:16px;
+    gap:2px;
+    padding:6px;
+    box-shadow:0 3px 0 #71452f,0 7px 0 #593727,0 11px 0 #382722,0 24px 32px rgba(0,0,0,.38),inset 0 2px 0 rgba(255,238,204,.4);
+  }
+  .iso .board-center{border-radius:6px;padding:3%}
+  .iso .center-title{font-size:clamp(20px,4cqw,34px)}
+  .iso .center-status{font-size:clamp(8px,1.8cqw,11px);bottom:5%}
+  .iso .space{border-radius:3px}
+  .iso .space .space-color{height:4px}
+  .iso .space-icon{font-size:clamp(11px,2.7cqw,18px)}
+  .iso .space.corner .space-icon{font-size:clamp(15px,3.4cqw,22px)}
+  .iso .space-name{font-size:clamp(6px,1.25cqw,8px)}
+  .iso .space-price{font-size:clamp(6px,1.2cqw,8px)}
+}
+@media(max-width:560px){
+  .board-wrap.iso{padding:23px 0 30px}
+  .iso .board{
+    --bw:min(84cqw,54vh,560px);
+    transform:rotateX(8deg) rotateZ(-5deg);
+    border-width:5px;
+    padding:5px;
+    gap:2px;
+  }
+  .iso .space-name{display:none}
+  .iso .space .space-icon{font-size:15px;margin-top:6px}
+  .iso .space.corner .space-icon{font-size:19px;margin:0}
+  .iso .space-price{font-size:7px;margin-top:2px}
+  .iso .token{width:9px;height:9px;border-width:1.5px}
+  .iso .center-title{font-size:clamp(18px,5cqw,27px)}
+  .iso .center-subtitle{font-size:clamp(7px,1.8cqw,10px)}
+}
+@media(prefers-reduced-motion:reduce){
+  .iso .board,.iso .space{transition:none}
+}
