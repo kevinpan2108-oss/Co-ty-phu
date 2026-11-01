@@ -60,3 +60,10 @@ npm run test:e2e
 5. Âm thanh xúc xắc/mua đất/thắng có nút tắt, mặc định tắt.
 6. Dọn phòng cũ; báo người còn lại khi một người rời phòng giữa ván.
 7. Chống gian lận cần Cloud Functions vì client hiện tự tính tiền/xúc xắc.
+
+## Cập nhật: bàn cờ 3D, công trình, quân con vật (nhánh feat/mekong-board-polish)
+- Bàn cờ xem 3D xéo (nút "Xem phẳng/Xem 3D", mặc định phẳng trên điện thoại ≤800px). CSS ở cuối `style.css`.
+- `board-art.js`: hình SVG công trình theo tên ô (`ART_BY_NAME`) và con vật theo màu quân (`animalFor`: xanh = 🐧, đỏ = 🐶). Không đổi dữ liệu database nên không cần đăng lại Rules.
+- Đã bỏ nút "Kết thúc lượt": `scheduleAutoEnd()` tự gọi `endTurn()` sau ~2 giây khi đã tung xúc xắc và không còn việc chờ mua/bỏ qua.
+- Xúc xắc có chấm thật, ném lên giữa bàn ở cả hai máy (`#diceStage`), quân nhảy cung với gợn sóng từng ô.
+- Khi đổi CSS/JS nhớ tăng `?v=` trong `index.html` (hiện `iso8`).

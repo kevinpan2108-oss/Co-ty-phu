@@ -1,4 +1,5 @@
 import { initializeApp, deleteApp } from "https://www.gstatic.com/firebasejs/13.1.0/firebase-app.js";
+import { artSvg, animalFor } from "./board-art.js?v=1";
 import { shouldComputerBuy } from "./computer-player.js?v=1";
 import { getDatabase, ref, set, get, onValue, runTransaction } from "https://www.gstatic.com/firebasejs/13.1.0/firebase-database.js";
 
@@ -484,6 +485,7 @@ function renderBoard() {
     div.innerHTML = `
       <span class="space-color" style="background:${colorBar}"></span>
       ${icon ? `<span class="space-icon">${icon}</span>` : ""}
+      <span class="space-art">${artSvg(space.name, colorBar) || `<b class="art-emoji">${icon}</b>`}</span>
       <span class="space-name">${escapeHtml(space.name)}</span>
       ${price && !space.corner ? `<span class="space-price">${price}</span>` : ""}
       <span class="space-players">${tokensHtml(index)}</span>
@@ -556,7 +558,6 @@ function renderActions() {
   const canPayJail = Number(mine?.jailTurns || 0) > 0 && !dice;
   $("rollButton").textContent = canPayJail ? "🔓 Nộp " + money(JAIL_FEE) + " để ra tù" : "🎲 Tung xúc xắc";
   $("rollButton").disabled = busy || !playing || !isMyTurn || !!pending || !!dice || roomState.status === "finished";
-  $("endTurnButton").disabled = busy || !playing || !isMyTurn || !!pending || !dice || roomState.status === "finished";
   document.title = roomState.status === "playing" && isMyTurn ? "● Đến lượt bạn - Cờ Tỷ Phú Online" : "Cờ Tỷ Phú Online";
   if (roomState.status === "waiting") {
     $("centerStatus").textContent = "Chờ người chơi thứ hai";
@@ -581,6 +582,9 @@ function dieHtml(v) {
   return `<span class="die" data-v="${n}">${"<i></i>".repeat(9)}</span>`;
 }
 function diceHtml(d) { return dieHtml(d?.[0]) + dieHtml(d?.[1]); }
+let autoEndKey = null;
+let autoEndTimer = null;
+const AUTO_END_MS = 2000;
 let movingUid = null;
 let diceAnimating = false;
 let diceTimer = null;
@@ -590,7 +594,7 @@ const HOP_MS = 190;
 function tokensHtml(index) {
   return getPlayerEntries(roomState)
     .filter(([uid, p]) => (displayPos[uid] ?? Number(p.position)) === index)
-    .map(([uid, p]) => `<i class="token${movingUid === uid ? " moving" : ""}" title="${escapeHtml(p.name)}" style="background:${safeColor(p.color)}"></i>`)
+    .map(([uid, p], i) => `<i class="token${movingUid === uid ? " moving" : ""}" title="${escapeHtml(p.name)}" style="--tc:${safeColor(p.color)}"><b>${animalFor(p.color, i)}</b></i>`)
     .join("");
 }
 function renderTokens() {
@@ -600,6 +604,7 @@ function renderTokens() {
   });
 }
 function resetEffects() {
+  autoEndKey = null; clearTimeout(autoEndTimer);
   clearInterval(diceTimer);
   diceAnimating = false;
   movingUid = null;
@@ -645,7 +650,7 @@ function animateDice(finalDice) {
     box.innerHTML = diceHtml(finalDice);
     if (stage) {
       stage.className = "dice-stage show landed";
-      stage.innerHTML = diceHtml(finalDice) + `<b class="dice-total">${(Number(finalDice[0]) || 0) + (Number(finalDice[1]) || 0)}</b>`;
+      stage.innerHTML = `<div class="dice-row">${diceHtml(finalDice)}<b class="dice-total">${(Number(finalDice[0]) || 0) + (Number(finalDice[1]) || 0)}</b></div>`;
       setTimeout(() => { stage.className = "dice-stage"; }, 1300);
     }
   };
@@ -653,7 +658,7 @@ function animateDice(finalDice) {
   diceAnimating = true;
   box.classList.add("rolling");
   const face = () => 1 + Math.floor(Math.random() * 6);
-  const shuffle = () => { const d = [face(), face()]; box.innerHTML = diceHtml(d); if (stage) stage.innerHTML = diceHtml(d); };
+  const shuffle = () => { const d = [face(), face()]; box.innerHTML = diceHtml(d); if (stage) stage.innerHTML = `<div class="dice-row">${diceHtml(d)}</div>`; };
   if (stage) stage.className = "dice-stage show rolling";
   shuffle();
   clearInterval(diceTimer);
@@ -729,6 +734,7 @@ function renderRoom() {
   renderBoard();
   renderProperties();
   renderActions();
+  scheduleAutoEnd();
 }
 
 async function rollDice() {
@@ -890,6 +896,24 @@ async function endTurn() {
   if (computerGame && !computerBusy) scheduleComputerTurn();
 }
 
+// Không còn nút "Kết thúc lượt": tung xúc xắc (và quyết định mua nếu có) xong là tự chuyển lượt
+// sau khi hiệu ứng chạy xong.
+function scheduleAutoEnd() {
+  const ok = roomState && currentUser && roomState.status === "playing" && roomState.turnUid === currentUser.uid &&
+    roomState.lastRoll && !roomState.pending && !computerBusy && currentUser.uid !== COMPUTER_UID;
+  if (!ok) return;
+  const key = currentRoomCode + ":" + roomState.turnNumber;
+  if (autoEndKey === key) return;
+  autoEndKey = key;
+  clearTimeout(autoEndTimer);
+  const fire = () => {
+    if (!roomState || roomState.turnUid !== currentUser?.uid || !roomState.lastRoll || roomState.pending) return;
+    if (busy) { autoEndTimer = setTimeout(fire, 400); return; }
+    endTurn();
+  };
+  autoEndTimer = setTimeout(fire, AUTO_END_MS);
+}
+
 function startComputerGame() {
   if (busy) return;
   const humanUid = getPlayerId();
@@ -984,8 +1008,18 @@ $("createRoomButton").addEventListener("click", createRoom);
 $("joinRoomButton").addEventListener("click", joinRoom);
 $("playComputerButton").addEventListener("click", startComputerGame);
 $("rollButton").addEventListener("click", rollDice);
-$("endTurnButton").addEventListener("click", endTurn);
-$("leaveRoomButton").addEventListener("click", () => leaveRoom());
+$("viewToggleButton").addEventListener("click", () => {
+  const wrap = document.querySelector(".board-wrap");
+  const flat = wrap.classList.toggle("flat");
+  $("viewToggleButton").textContent = flat ? "Xem 3D" : "Xem phẳng";
+  try { localStorage.setItem("ctp-view", flat ? "flat" : "iso"); } catch { /* không lưu được */ }
+});
+(() => {
+  let flat = window.innerWidth <= 800;
+  try { const saved = localStorage.getItem("ctp-view"); if (saved) flat = saved === "flat"; } catch { /* bỏ qua */ }
+  document.querySelector(".board-wrap").classList.toggle("flat", flat);
+  $("viewToggleButton").textContent = flat ? "Xem 3D" : "Xem phẳng";
+})();$("leaveRoomButton").addEventListener("click", () => leaveRoom());
 $("board").addEventListener("click", (event) => {
   // Trên điện thoại ô quá nhỏ để hiện tên: chạm vào ô để xem thông tin.
   const cell = event.target.closest(".space");
