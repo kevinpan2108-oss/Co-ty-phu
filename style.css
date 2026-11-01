@@ -701,3 +701,21 @@ body:has(#gameView:not(.hidden)){overflow:hidden}
 @media(prefers-reduced-motion:reduce){
   #gameView .dice-stage.rolling .cube-wrap{animation:none}
 }
+
+
+/* Final compact sizing for the buy/pass overlay */
+#gameView .pending-actions button{
+  box-sizing:border-box;
+  width:clamp(82px,10cqw,100px);
+  min-width:0!important;
+  max-width:100px;
+  height:34px;
+  min-height:32px;
+  max-height:36px;
+  padding:4px 6px;
+  font-size:11px;
+  line-height:1.1;
+}
+@media(max-height:500px) and (orientation:landscape){
+  #gameView .pending-actions button{height:30px;min-height:28px;max-height:32px}
+}
