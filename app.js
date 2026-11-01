@@ -7,6 +7,7 @@ import {
   buildEligibility, sellHouseEligibility, mortgageEligibility, mortgageValue, redemptionCost,
   calcRent as calculateAssetRent, hasLiquidationOptions, finalDiceSpin
 } from "./economy.js?v=1";
+import { cubeTransform } from "./dice-visuals.js?v=1";
 import { getDatabase, ref, set, get, onValue, runTransaction } from "https://www.gstatic.com/firebasejs/13.1.0/firebase-database.js";
 
 // Public Firebase Web App configuration for this game.
@@ -852,6 +853,8 @@ const AUTO_END_MS = 2000;
 let movingUid = null;
 let diceAnimating = false;
 let diceTimer = null;
+let diceFinishTimer = null;
+let diceAnimationId = 0;
 const DICE_MS = 1200;
 const HOP_MS = 190;
 
@@ -873,6 +876,10 @@ function renderTokens() {
 function resetEffects() {
   autoEndKey = null; clearTimeout(autoEndTimer);
   clearInterval(diceTimer);
+  clearTimeout(diceFinishTimer);
+  diceTimer = null;
+  diceFinishTimer = null;
+  diceAnimationId += 1;
   diceAnimating = false;
   movingUid = null;
   for (const uid of Object.keys(moveTimers)) { clearTimeout(moveTimers[uid]); delete moveTimers[uid]; }
@@ -912,46 +919,80 @@ function cubeHtml() {
   return `<div class="cube-wrap"><div class="cube">${faces}</div></div>`;
 }
 function setCube(el, value, spin) {
-  const [bx, by] = CUBE_ROT[value] || [0, 0];
-  el.style.transform = `rotateX(${spin[0]}deg) rotateY(${spin[1]}deg) rotateX(${bx}deg) rotateY(${by}deg)`;
+  el.style.transform = cubeTransform(value, spin);
 }
 // Hai khối xúc xắc 3D lăn giữa bàn cờ rồi dừng đúng mặt. Cộng thêm bội số của 360° nên mặt cuối không đổi.
 function animateDice(finalDice) {
   const box = $("diceResult");
   const stage = $("diceStage");
-  const total = (Number(finalDice[0]) || 0) + (Number(finalDice[1]) || 0);
+  const result = [0, 1].map((i) => {
+    const value = Number(finalDice?.[i]);
+    return Number.isInteger(value) && value >= 1 && value <= 6 ? value : 1;
+  });
+  const total = result[0] + result[1];
+
+  // Vô hiệu hóa mọi animation cũ trước khi bắt đầu animation mới.
+  clearInterval(diceTimer);
+  clearTimeout(diceFinishTimer);
+  diceTimer = null;
+  diceFinishTimer = null;
+  const animationId = ++diceAnimationId;
+
   const finish = () => {
+    // Timer cũ không được phép dừng một lượt xúc xắc mới hơn.
+    if (animationId !== diceAnimationId) return;
     clearInterval(diceTimer);
+    clearTimeout(diceFinishTimer);
+    diceTimer = null;
+    diceFinishTimer = null;
     diceAnimating = false;
     box.classList.remove("rolling");
-    box.innerHTML = diceHtml(finalDice);
+    box.innerHTML = diceHtml(result);
     if (stage) {
       stage.classList.remove("rolling");
       stage.classList.add("landed");
       stage.querySelector(".dice-row")?.insertAdjacentHTML("beforeend", `<b class="dice-total">${total}</b>`);
-      setTimeout(() => { stage.className = "dice-stage"; }, 1500);
+      setTimeout(() => {
+        if (animationId === diceAnimationId) stage.className = "dice-stage";
+      }, 1500);
     }
   };
-  if (reduceMotion) return;
+
+  if (reduceMotion) {
+    finish();
+    return;
+  }
+
   diceAnimating = true;
   box.classList.add("rolling");
   const face = () => 1 + Math.floor(Math.random() * 6);
   const shuffle = () => { box.innerHTML = diceHtml([face(), face()]); };
   shuffle();
-  clearInterval(diceTimer);
   diceTimer = setInterval(shuffle, 90);
-  if (stage) {
-    stage.className = "dice-stage show rolling";
-    stage.innerHTML = `<div class="dice-row">${cubeHtml()}${cubeHtml()}</div>`;
-    const cubes = stage.querySelectorAll(".cube");
-    cubes.forEach((cube) => { cube.style.transition = "none"; setCube(cube, face(), [0, 0]); });
-    void stage.offsetWidth;
-    cubes.forEach((cube, i) => {
-      cube.style.transition = "";
-      setCube(cube, Number(finalDice[i]) || 1, finalDiceSpin(i));
-    });
+
+  // Luôn đặt giờ kết thúc trước khi dựng khối 3D. Nếu dựng mặt xúc xắc bị lỗi,
+  // animation vẫn phải tự dừng và hiện kết quả cuối cùng.
+  diceFinishTimer = setTimeout(finish, DICE_MS);
+
+  try {
+    if (stage) {
+      stage.className = "dice-stage show rolling";
+      stage.innerHTML = `<div class="dice-row">${cubeHtml()}${cubeHtml()}</div>`;
+      const cubes = stage.querySelectorAll(".cube");
+      cubes.forEach((cube) => {
+        cube.style.transition = "none";
+        setCube(cube, face(), [0, 0]);
+      });
+      void stage.offsetWidth;
+      cubes.forEach((cube, i) => {
+        cube.style.transition = "";
+        setCube(cube, result[i], finalDiceSpin(i));
+      });
+    }
+  } catch (error) {
+    console.error("Không thể dựng hiệu ứng xúc xắc 3D:", error);
+    finish();
   }
-  setTimeout(finish, DICE_MS);
 }
 function floatDelta(uid, delta, delay) {
   if (!delta) return;
