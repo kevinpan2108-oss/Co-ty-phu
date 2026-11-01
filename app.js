@@ -294,8 +294,14 @@ function ownsWholeProvince(owners, group, uid) {
   const cells = group && uid ? provinceCells(group) : [];
   return cells.length >= 2 && cells.every((i) => owners?.[getSpaceId(i)] === uid);
 }
-function calcRent(space, owners, ownerUid, diceTotal, index, houses = {}, mortgages = {}) {
-  return calculateAssetRent(SPACE_DATA, space, owners, ownerUid, diceTotal, index, houses, mortgages);
+function calcRent(space, owners, ownerUid, diceTotal) {
+  const countOwned = (type) => Object.keys(owners || {}).filter((key) => SPACE_DATA[Number(key.slice(1))]?.type === type && owners[key] === ownerUid).length;
+  let rent = space.rent || 50;
+  let wholeProvince = false;
+  if (space.type === "station") rent = 40 * Math.pow(2, Math.max(0, countOwned("station") - 1));
+  else if (space.type === "utility") rent = diceTotal * (countOwned("utility") > 1 ? 10 : 4);
+  else if (space.type === "property" && ownsWholeProvince(owners, space.group, ownerUid)) { rent *= 2; wholeProvince = true; }
+  return {rent, wholeProvince};
 }
 function showCellInfo(index, seconds = 7) {
   const space = SPACE_DATA[index];
@@ -695,8 +701,9 @@ function renderProperties() {
     const player = roomState.players?.[uid];
     const houses = Number(roomState.houses?.[id] || 0);
     const mortgage = Number(roomState.mortgages?.[id] || 0);
-    const canManage = uid === currentUser.uid && (!debt || debt.uid === uid);
-    const canBuildNow = canManage && !debt && roomState.turnUid === uid && !roomState.lastRoll && !roomState.pending && !roomState.auction;
+    const canManage = uid === currentUser.uid && (!debt || debt.uid === uid) &&
+      (debt?.uid === uid || (roomState.turnUid === uid && !roomState.pending && !roomState.auction));
+    const canBuildNow = canManage && !debt && roomState.turnUid === uid && !roomState.lastRoll;
     const controls = [];
     if (canManage && houses > 0) {
       const sell = sellHouseEligibility(SPACE_DATA, ownerMap, roomState.houses || {}, uid, index);

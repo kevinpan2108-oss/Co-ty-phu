@@ -145,12 +145,12 @@
         },
         "houses": {
           "$spaceId": {
-            ".validate": "$spaceId.matches(/^s([0-9]|[12][0-9]|3[0-9])$/) && newData.isNumber() && newData.val() >= 1 && newData.val() <= 5"
+            ".validate": "$spaceId.matches(/^s([0-9]|[12][0-9]|3[0-9])$/) && newData.isNumber() && newData.val() >= 1 && newData.val() <= 5 && newData.parent().parent().child('propertyOwners').hasChild($spaceId)"
           }
         },
         "mortgages": {
           "$spaceId": {
-            ".validate": "$spaceId.matches(/^s([0-9]|[12][0-9]|3[0-9])$/) && newData.isNumber() && newData.val() > 0 && newData.val() <= 400"
+            ".validate": "$spaceId.matches(/^s([0-9]|[12][0-9]|3[0-9])$/) && newData.isNumber() && newData.val() > 0 && newData.val() <= 400 && newData.parent().parent().child('propertyOwners').hasChild($spaceId)"
           }
         },
         "debt": {
