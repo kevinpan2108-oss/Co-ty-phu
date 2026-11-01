@@ -177,11 +177,42 @@ let rules;
   check("ghi dữ liệu sai cấu trúc bị Rules chặn", hack.ok === false);
 
   // B tung [3,3] → ô 6 (Hai Bà Trưng) rồi bỏ qua
-  await pb.page.evaluate(() => { const q = [0.4, 0.4]; Math.random = () => (q.length ? q.shift() : 0.5); });
-  await pb.page.click("#rollButton"); await pb.page.waitForTimeout(400);
-  await pb.page.locator("#pendingActions .secondary-button").click(); await pb.page.waitForTimeout(300);
-  await pa.page.waitForFunction(() => document.querySelector("#rollButton")?.disabled === false, null, { timeout: 6000 }).catch(() => {});
-  check("vòng chơi thứ hai hoạt động, lượt quay lại A", !(await pa.page.locator("#rollButton").isDisabled()));
+  // B đến bến phà (ô đặc biệt) và bỏ mua → A và B đấu giá lần lượt.
+  await pb.page.evaluate(() => { const q = [0, 0]; Math.random = () => (q.length ? q.shift() : 0.5); });
+  await pb.page.click("#rollButton");
+  await pb.page.waitForFunction(() => /Mua/.test(document.querySelector("#pendingActions")?.textContent || ""), null, { timeout: 4000 });
+  check("B đến bến phà và có lựa chọn mua", /Bến phà Rạch Miễu/.test(await text(pb.page, "#actionMessage")));
+  await pb.page.locator("#pendingActions .secondary-button").click();
+  await pa.page.waitForFunction(() => /Ra giá/.test(document.querySelector("#pendingActions")?.textContent || ""), null, { timeout: 4000 });
+  check("bỏ mua bến phà mở phiên đấu giá", /đấu giá/i.test(await text(pa.page, "#actionMessage")));
+  check("giá mở đấu giá là 100.000₫", (await text(pa.page, "#pendingActions")).includes("100.000₫"));
+  await pa.page.locator("#pendingActions .primary-button").click();
+  await pb.page.waitForFunction(() => /Nâng giá/.test(document.querySelector("#pendingActions")?.textContent || ""), null, { timeout: 4000 });
+  check("người chơi còn lại được quyền nâng giá", (await text(pb.page, "#pendingActions")).includes("200.000₫"));
+  await pb.page.locator("#pendingActions .primary-button").click();
+  await pa.page.waitForFunction(() => /Bỏ lượt/.test(document.querySelector("#pendingActions")?.textContent || ""), null, { timeout: 4000 });
+  await pa.page.locator("#pendingActions .secondary-button").click();
+  await pb.page.waitForFunction(() => document.querySelector("#board .space[data-index='5'].owned"), null, { timeout: 4000 });
+  check("người trả giá cao nhất sở hữu bến phà", await pb.page.locator("#board .space[data-index='5']").evaluate(el => el.classList.contains("owned")));
+  check("tiền đấu giá 200.000₫ được trừ đúng", (await text(pb.page, "#playersPanel")).includes("14.800.000₫"));
+  await pb.page.waitForFunction(() => document.querySelector("#rollButton")?.disabled === true, null, { timeout: 8000 }).catch(() => {});
+  await pa.page.waitForFunction(() => document.querySelector("#rollButton")?.disabled === false, null, { timeout: 4000 }).catch(() => {});
+  check("sau đấu giá tự động kết thúc lượt và trả lượt cho A", !(await pa.page.locator("#rollButton").isDisabled()));
+
+  // A đến công ty điện, cả hai cùng bỏ giá → ô không có chủ và lượt vẫn tự kết thúc.
+  await pa.page.evaluate(() => { const q = [0.4, 0.9]; Math.random = () => (q.length ? q.shift() : 0.5); });
+  await pa.page.click("#rollButton");
+  await pa.page.waitForFunction(() => /Mua/.test(document.querySelector("#pendingActions")?.textContent || ""), null, { timeout: 4000 });
+  check("A đến ô công ty điện", /Điện lực Miền Tây/.test(await text(pa.page, "#actionMessage")));
+  await pa.page.locator("#pendingActions .secondary-button").click();
+  await pb.page.waitForFunction(() => /Bỏ đấu giá/.test(document.querySelector("#pendingActions")?.textContent || ""), null, { timeout: 4000 });
+  await pb.page.locator("#pendingActions .secondary-button").click();
+  await pa.page.waitForFunction(() => /Bỏ đấu giá/.test(document.querySelector("#pendingActions")?.textContent || ""), null, { timeout: 4000 });
+  await pa.page.locator("#pendingActions .secondary-button").click();
+  await pa.page.waitForFunction(() => !document.querySelector("#pendingActions")?.textContent.includes("đấu giá"), null, { timeout: 4000 });
+  check("cả hai bỏ đấu giá thì ô không có chủ", !(await pa.page.locator("#board .space[data-index='12']").evaluate(el => el.classList.contains("owned"))));
+  await pb.page.waitForFunction(() => document.querySelector("#rollButton")?.disabled === false, null, { timeout: 8000 }).catch(() => {});
+  check("khi không ai trả giá, ván tự chuyển lượt", !(await pb.page.locator("#rollButton").isDisabled()));
 
   // Ván kết thúc → pháo giấy
   store.rooms[code] = { ...store.rooms[code], status: "finished", winner: store.rooms[code].creatorUid };
@@ -211,16 +242,24 @@ let rules;
     await cpu.page.waitForSelector("#gameView:not(.hidden)");
     check("chế độ đấu với máy mở được bàn cờ riêng", await cpu.page.locator("#gameModeLabel").innerText().then(x => /đơn/i.test(x)) && (await text(cpu.page, "#roomCodeLabel")).includes("VỚI MÁY"));
     check("đối thủ Máy Miền Tây xuất hiện trên bảng tài sản", /Máy Miền Tây/.test(await text(cpu.page, "#playersPanel")));
-    await cpu.page.evaluate(() => { const q = [0, 0, 0.5]; Math.random = () => q.length ? q.shift() : 0.5; });
+    // Người chơi đến bến phà, bỏ mua; Máy Miền Tây tự cân nhắc trả giá.
+    await cpu.page.evaluate(() => { const q = [0.2, 0.4]; Math.random = () => q.length ? q.shift() : 0.5; });
     await cpu.page.click("#rollButton");
+    await cpu.page.waitForFunction(() => /Mua/.test(document.querySelector("#pendingActions")?.textContent || ""), null, { timeout: 4000 });
+    await cpu.page.locator("#pendingActions .secondary-button").click();
+    await cpu.page.waitForFunction(() => /Nâng giá|Bỏ đấu giá/.test(document.querySelector("#pendingActions")?.textContent || ""), null, { timeout: 5000 });
+    check("Máy Miền Tây tự tham gia đấu giá bến phà", /Nâng giá/.test(await text(cpu.page, "#pendingActions")));
+    await cpu.page.locator("#pendingActions .secondary-button").click();
+    await cpu.page.waitForFunction(() => document.querySelector("#board .space[data-index='5'].owned"), null, { timeout: 8000 });
+    check("Máy thắng đấu giá khi người chơi bỏ lượt", await cpu.page.locator("#board .space[data-index='5']").evaluate(el => el.classList.contains("owned")));
     await cpu.page.waitForFunction(() =>
       document.querySelector("#rollButton")?.disabled === false &&
       document.querySelector("#turnName")?.textContent.trim() === "Minh" &&
       /Đến lượt bạn/i.test(document.querySelector("#centerStatus")?.textContent || ""),
       null,
-      { timeout: 12000 }
+      { timeout: 15000 }
     );
-    check("máy tự tung xúc xắc, xử lý ô đất và trả lượt cho người chơi", true);
+    check("máy tự xử lý đấu giá và hoàn tất lượt", true);
     await cpu.context.close();
   }
 

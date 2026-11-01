@@ -74,3 +74,11 @@ npm run test:e2e
 - Thẻ người chơi ở hai góc trên, nút Tung xúc xắc ở góc dưới phải, Sổ đất / Mã phòng / Rời ở góc dưới trái; Sổ đất mở trong cửa sổ `#propsModal`.
 - Xúc xắc là hai khối 3D lăn rồi dừng đúng mặt (`animateDice`, `CUBE_ROT`). Đừng đặt animation `transform` lên nút Tung xúc xắc vì Playwright coi là "không ổn định".
 - `?v=` hiện là `land5`.
+
+
+## Gameplay polish: mặt ô gọn, token nhỏ, xúc xắc ném, đấu giá
+- Các ô không còn render SVG công trình nổi trên mặt bàn; tên và giá được ưu tiên. Quân chim cánh cụt/cún con thu nhỏ để giảm che chữ.
+- Xúc xắc 3D có đường bay từ góc dưới phải vào giữa bàn; bỏ mảng sao trắng và viền ngoài ở từng mặt xúc xắc.
+- Khi bỏ mua bến phà (station) hoặc công ty điện/nước (utility), mở đấu giá hai người: mỗi lượt tăng 100.000₫ hoặc bỏ lượt; ai cao nhất thắng, cả hai bỏ thì tài sản để trống. Máy Miền Tây cũng tự trả giá theo giới hạn ngân sách.
+- firebase-database.rules.json bổ sung kiểm tra cấu trúc auction; dữ liệu phòng cũ không có trường auction vẫn tương thích.
+- Query cache CSS/JS: auction1.

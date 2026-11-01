@@ -17,9 +17,11 @@ const api = new Function(
    ${extractFunction("provinceCells")}
    ${extractFunction("ownsWholeProvince")}
    ${extractFunction("calcRent")}
-   return {SPACE_DATA, provinceCells, ownsWholeProvince, calcRent};`
+   ${extractFunction("isAuctionSpace")}
+   ${extractFunction("nextAuctionBid")}
+   return {SPACE_DATA, provinceCells, ownsWholeProvince, calcRent, isAuctionSpace, nextAuctionBid};`
 )();
-const { SPACE_DATA, provinceCells, ownsWholeProvince, calcRent } = api;
+const { SPACE_DATA, provinceCells, ownsWholeProvince, calcRent, isAuctionSpace, nextAuctionBid } = api;
 
 const MEKONG_PROVINCES = [
   "Long An", "Tiền Giang", "Bến Tre", "Trà Vinh", "Vĩnh Long", "Đồng Tháp", "Cần Thơ",
@@ -85,13 +87,26 @@ test("stations double per extra station and utilities depend on the dice", () =>
   assert.equal(calcRent(SPACE_DATA[utilities[0]], { [`s${utilities[0]}`]: "p1", [`s${utilities[1]}`]: "p1" }, "p1", 6).rent, 60);
 });
 
-test("every purchasable place has its own landmark drawing", async () => {
-  const { artSvg, animalFor } = await import("../board-art.js");
-  for (let i = 0; i < SPACE_DATA.length; i++) {
-    const space = SPACE_DATA[i];
-    if (["property", "station", "utility"].includes(space.type)) {
-      assert.match(artSvg(space.name, "#fff"), /<svg/, `${space.name} needs art`);
-    }
-  }
-  assert.notEqual(animalFor("#0e7c86"), animalFor("#e8402a"));
+test("only stations and utilities enter the auction flow", () => {
+  const stations = SPACE_DATA.filter((space) => space.type === "station");
+  const utilities = SPACE_DATA.filter((space) => space.type === "utility");
+  const properties = SPACE_DATA.filter((space) => space.type === "property");
+  assert.equal(stations.length, 4);
+  assert.equal(utilities.length, 2);
+  assert.ok(stations.every(isAuctionSpace));
+  assert.ok(utilities.every(isAuctionSpace));
+  assert.ok(properties.every((space) => !isAuctionSpace(space)));
+});
+
+test("auction starts at 100,000₫ and rises in 100,000₫ steps", () => {
+  assert.equal(nextAuctionBid({ currentBid: 0 }), 10);
+  assert.equal(nextAuctionBid({ currentBid: 10 }), 20);
+  assert.equal(nextAuctionBid({ currentBid: 120 }), 130);
+});
+
+test("the board renderer no longer injects floating 3D landmark art", async () => {
+  const source = await readFile(new URL("../app.js", import.meta.url), "utf8");
+  const renderer = source.slice(source.indexOf("function renderBoard()"), source.indexOf("function renderPlayers()"));
+  assert.doesNotMatch(renderer, /artSvg|space-art/);
+  assert.ok(source.includes("function isAuctionSpace(space)"));
 });
