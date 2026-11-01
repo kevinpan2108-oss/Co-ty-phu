@@ -141,6 +141,7 @@ let rules;
 
   const tokenInfo = await pa.page.evaluate(() => [...document.querySelectorAll(".token b")].map((b) => { const r = b.getBoundingClientRect(); const s = getComputedStyle(b); return [b.textContent, Math.round(r.x), Math.round(r.y), Math.round(r.width), Math.round(r.height), s.visibility, s.fontSize]; }));
   check("quân cờ con vật hiển thị trên bàn cờ", tokenInfo.length === 2 && tokenInfo.some((x) => x[0] === "🐧") && tokenInfo.some((x) => x[0] === "🐶") && tokenInfo.every((x) => x[3] > 8 && x[4] > 8), JSON.stringify(tokenInfo));
+  check("token đã thu nhỏ, không lấn át ô cờ", tokenInfo.every((x) => x[3] < 46 && x[4] < 38), JSON.stringify(tokenInfo));
   check("chỉ người có lượt được bấm Tung xúc xắc", !(await pa.page.locator("#rollButton").isDisabled()) && (await pb.page.locator("#rollButton").isDisabled()));
   // Tung xúc xắc [1,2] → ô 3 (Đường Đồng Khởi, $60)
   await pa.page.evaluate(() => { const q = [0, 0.2]; Math.random = () => (q.length ? q.shift() : 0.5); });
@@ -150,6 +151,12 @@ let rules;
   const sawStage = await pb.page.waitForSelector("#diceStage.show", { timeout: 2000 }).then(() => true).catch(() => false);
   const stageInfo = await pb.page.evaluate(() => { const s = document.getElementById("diceStage"); const r = s.getBoundingClientRect(); const d = s.querySelector(".die"); const dr = d ? d.getBoundingClientRect() : null; return JSON.stringify({ cls: s.className, op: getComputedStyle(s).opacity, rect: [r.x, r.y, r.width, r.height].map(Math.round), die: dr && [dr.x, dr.y, dr.width, dr.height].map(Math.round), n: s.querySelectorAll(".die").length }); });
   check("hiệu ứng: xúc xắc ném lên giữa bàn cờ ở máy đối thủ", sawStage, stageInfo);
+  const diceStyle = await pb.page.evaluate(() => {
+    const stage = document.getElementById("diceStage");
+    const face = stage.querySelector(".die.face");
+    return { burst: getComputedStyle(stage, "::before").display, border: face ? getComputedStyle(face).borderTopWidth : null };
+  });
+  check("xúc xắc không còn tia trắng hoặc viền trắng", diceStyle.burst === "none" && diceStyle.border === "0px", JSON.stringify(diceStyle));
   const sawHop = await pb.page.waitForFunction(() => document.querySelector(".token.moving"), null, { timeout: 4000, polling: 20 }).then(() => true).catch(() => false);
   if (OUT) { await pb.page.screenshot({ path: `${OUT}/dice-live.png` }); await pb.page.evaluate(() => { const s = document.getElementById("diceStage"); s.className = "dice-stage show"; s.innerHTML = '<div class="dice-row"><span class="die" data-v="4">' + "<i></i>".repeat(9) + '</span><span class="die" data-v="6">' + "<i></i>".repeat(9) + '</span><b class="dice-total">10</b></div>'; });     await pb.page.waitForTimeout(100); await pb.page.screenshot({ path: `${OUT}/desktop-dice.png`, clip: { x: 280, y: 220, width: 720, height: 480 } }); console.log("stage@shot", await pb.page.evaluate(() => { const s = document.getElementById("diceStage"); const d = s.querySelector(".die"); const r = d && d.getBoundingClientRect(); return s.className + " " + JSON.stringify(r && [r.x, r.y, r.width, r.height].map(Math.round)); })); }
   check("hiệu ứng: quân cờ nhảy từng ô", sawHop, sawHop ? "" : await pb.page.evaluate(() => JSON.stringify({tokens: document.querySelectorAll(".token").length, pass: document.querySelectorAll(".space.pass,.space.land").length, ds: document.getElementById("diceStage")?.className})));
@@ -158,6 +165,8 @@ let rules;
   const diceA = await faces(pa.page), diceB = await faces(pb.page);
   check("hai bên thấy cùng xúc xắc", diceA === diceB && diceA === "1,2", JSON.stringify([diceA, diceB]));
   check("A thấy nút Mua 600.000₫; B không thấy", /Mua 600\.000₫/.test(await text(pa.page, "#pendingActions")) && (await pb.page.locator("#pendingActions button").count()) === 0);
+  const buyBoxes = await pa.page.locator("#pendingActions button").evaluateAll((els) => els.map((el) => { const r = el.getBoundingClientRect(); return [Math.round(r.width), Math.round(r.height)]; }));
+  check("hộp Mua/Bỏ qua đã gọn, không che mặt bàn", buyBoxes.length === 2 && buyBoxes.every(([w,h]) => w <= 120 && h <= 40), JSON.stringify(buyBoxes));
   check("không còn nút Kết thúc lượt", (await pa.page.locator("#endTurnButton").count()) === 0);
   check("lượt chưa chuyển khi A chưa quyết định mua", /Mua/.test(await text(pa.page, "#pendingActions")) && (await pb.page.locator("#rollButton").isDisabled()));
   await pa.page.click("#pendingActions .primary-button");
