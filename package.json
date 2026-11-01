@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "check": "node --check app.js",
-    "test": "node --test"
+    "test": "node --test",
+    "test:e2e": "node tests/e2e/two-player.cjs"
   }
 }

@@ -1,73 +1,64 @@
-# Cờ Tỷ Phú Online
+# Cờ Tỷ Phú Miền Tây
 
-Web game giao dịch bất động sản bằng tiếng Việt, dành cho **2 người chơi online trong cùng một phòng**.
+Web game tiếng Việt với bàn cờ lấy cảm hứng từ Đồng bằng sông Cửu Long. Có hai cách chơi:
 
-## Trạng thái MVP
+- **Chơi online 2 người:** tạo phòng, chia sẻ mã 6 ký tự và đồng bộ ván qua Firebase Realtime Database.
+- **Chơi với máy:** đấu với đối thủ cục bộ “Máy Miền Tây”; không tạo phòng và không cần một người thứ hai.
 
-Đang phát triển trên nhánh `feat/online-mvp`.
+## Nội dung và giao diện
 
-- [x] Giao diện responsive cho màn hình máy tính và điện thoại.
-- [x] Tạo phòng 6 ký tự / tham gia phòng bằng mã.
-- [x] Đồng bộ phòng và trạng thái lượt chơi bằng Firebase Realtime Database.
-- [x] Bàn cờ 40 ô, xúc xắc, nhận lương khi qua Xuất phát.
-- [x] Mua đất, trả tiền thuê, thuế, thẻ Cơ hội, nhà tù.
-- [x] Workflow triển khai GitHub Pages.
-- [x] Chế độ chơi đơn với máy: máy tự tung xúc xắc, xử lý lượt và cân nhắc mua tài sản.
-- [ ] Kiểm thử thực tế hai thiết bị với Firebase project.
-- [ ] Cân bằng luật, hoàn thiện giao dịch và xử lý tình huống phá sản.
-- [ ] Review độc lập trước khi merge vào `main`.
-
-## Chạy thử giao diện
-
-Mở `index.html` bằng VS Code Live Server hoặc một static web server. Đây là ứng dụng JavaScript thuần, Firebase SDK được tải qua CDN.
+- Bàn cờ 40 ô với địa danh thuộc đủ 13 tỉnh/thành ĐBSCL trong bộ dữ liệu game.
+- 22 ô bất động sản, chia nhóm theo tỉnh; sở hữu toàn bộ ô của một tỉnh sẽ được nhân đôi tiền thuê.
+- Khung thông tin ô: tên địa danh, giới thiệu, giá mua, tiền thuê và thưởng sở hữu trọn tỉnh.
+- Phong cách miền Tây sông nước, cảnh hoàng hôn, khung bàn cờ và bảng màu riêng.
+- Xúc xắc có hiệu ứng lăn; quân cờ di chuyển từng ô; hiệu ứng tiền, dấu chủ sở hữu và pháo giấy khi thắng.
+- Tôn trọng cài đặt giảm chuyển động của thiết bị.
 
 ## Chơi online hai người
 
-Firebase đã được cấu hình sẵn trong game. Người chơi **không cần nhập Firebase Web App JSON**.
+Firebase đã được cấu hình sẵn trong game. Người chơi **không cần nhập Firebase Web App JSON và không cần đăng nhập**.
 
 1. Mở link game trên cả hai thiết bị.
 2. Người thứ nhất nhập tên và bấm **Tạo phòng mới**.
 3. Chia sẻ mã phòng 6 ký tự cho người thứ hai.
 4. Người thứ hai nhập mã đó và bấm **Tham gia**.
 
-Game **không cần đăng nhập và không cần bật Authentication**: mỗi trình duyệt tự sinh một mã người chơi lưu trên máy và chỉ kết nối tới Realtime Database. Khi mở trang, góc trên phải phải hiện **Đã kết nối**.
+Mỗi trình duyệt tự sinh một mã người chơi lưu trên máy và kết nối tới Realtime Database. Khi mở trang, góc trên phải phải hiện **Đã kết nối**.
 
-**Quản trị dự án:** chỉ cần Realtime Database đã được tạo và Rules đã được Publish. Rules nằm trong [firebase-database.rules.json](./firebase-database.rules.json): vào Realtime Database → Rules → dán nội dung file → **Publish**. Phải Publish lại mỗi khi file này thay đổi, nếu không game báo "Firebase Rules từ chối thao tác".
+**Quản trị Firebase:** cần Realtime Database được tạo và Rules được Publish. Rules nằm trong [firebase-database.rules.json](./firebase-database.rules.json). Vào Realtime Database → Rules → dán nội dung file → **Publish**. Phải Publish lại mỗi khi file này thay đổi.
 
-**Giới hạn bảo mật (MVP chơi với bạn bè):** vì không đăng nhập nên Rules không biết ai đang ghi. Ai biết mã phòng 6 ký tự đều có thể đọc và sửa dữ liệu phòng đó (không liệt kê được danh sách phòng). Rules vẫn chặn: đổi người tạo/người vào, người thứ ba chiếm chỗ, mở lại ván đã kết thúc, giá trị ngoài phạm vi, mã HTML trong tên/màu. Không phải hệ thống chống gian lận.
+**Giới hạn bảo mật:** đây là MVP chơi với bạn bè. Vì không dùng Firebase Authentication, Rules không thể xác minh danh tính thực của người ghi dữ liệu; ai biết mã phòng có thể đọc và sửa dữ liệu phòng đó, dù không thể liệt kê danh sách phòng. Không dùng cho dữ liệu nhạy cảm hoặc giải đấu có thưởng.
 
-### Khắc phục lỗi kết nối
+## Chơi với máy
 
-| Thông báo | Cách xử lý |
-| --- | --- |
-| `Không kết nối được tới cơ sở dữ liệu của game` kèm tên máy chủ không truy cập được | Điện thoại/mạng đang chặn máy chủ database. Tắt VPN, ứng dụng chặn quảng cáo, DNS riêng (Cài đặt → Mạng → DNS riêng → Tắt/Tự động) hoặc đổi Wi-Fi/4G, rồi bấm vào chữ "Chưa kết nối" để thử lại. |
-| `Firebase Rules từ chối thao tác` | Publish lại `firebase-database.rules.json` (xem trên). |
-| `Không tìm thấy phòng` / `đã đủ 2 người` | Kiểm tra lại mã phòng; mỗi phòng chỉ nhận đúng 2 người. |
+Tại sảnh, nhập tên rồi chọn **Chơi với máy**. Bạn đi trước; máy tự tung xúc xắc, tự mua hoặc bỏ qua bất động sản theo chiến lược giữ tiền và ưu tiên hoàn thành nhóm tỉnh. Chế độ này chạy cục bộ trên thiết bị, không tạo phòng Firebase.
 
-## Kiểm thử
+## Chạy thử và kiểm thử
 
+Cần Node.js 22+.
+
+```bash
+npm run check
+npm test
+npm install --no-save playwright
+npx playwright install chromium
+npm run test:e2e
 ```
-npm run check   # kiểm tra cú pháp app.js
-npm test        # smoke test + kiểm tra hành vi Firebase Rules (bộ mô phỏng tối giản)
-```
 
-Bộ mô phỏng Rules **không** thay thế Firebase Emulator / Rules Playground: hãy chạy thêm một trong hai trước khi phát hành.
+- Unit/smoke tests kiểm tra dữ liệu 40 ô, 13 tỉnh, tiền thuê, chiến lược máy, và mô phỏng Rules.
+- E2E mở hai trình duyệt Chromium độc lập để kiểm tra luồng online giả lập, hiệu ứng, giao diện 390px/360px và chế độ chơi với máy.
+- Bộ mô phỏng Rules không thay thế Firebase Emulator / Rules Playground. Chưa thể thay thế bước thử trực tiếp trên hai thiết bị với Firebase thật.
 
-## Deploy lên GitHub Pages
+## Nhánh và phát hành
 
-Workflow `.github/workflows/deploy.yml` tự deploy khi có push/merge vào `main`.
-
-Để xuất bản bản thử nghiệm hiện tại mà chưa merge vào `main`:
-1. Mở **Settings → Pages** trong repo.
-2. Chọn **Source: Deploy from a branch**.
-3. Chọn branch `feat/online-mvp` và folder `/(root)`, rồi nhấn **Save**.
-4. GitHub Pages sẽ xuất bản trực tiếp `index.html` từ nhánh này. File `.nojekyll` đã được thêm để không xử lý mã nguồn JavaScript như trang Jekyll.
-
-Khi game ổn định và được merge vào `main`, có thể chuyển nguồn xuất bản sang `main` hoặc quay lại **GitHub Actions**.
+- Nhánh tính năng hiện tại: `feat/mekong-board-polish`.
+- Nhánh nền online: `feat/online-mvp`.
+- Không sửa trực tiếp `main` hoặc `feat/online-mvp`; mở Pull Request từ nhánh tính năng về `feat/online-mvp`.
+- GitHub Pages hiện được cấu hình xuất bản bản thử nghiệm từ `feat/online-mvp`; vì vậy thay đổi trên nhánh tính năng chỉ lên link online sau khi được đưa vào nhánh xuất bản.
+- Mỗi lần sửa `app.js` hoặc `style.css`, nhớ tăng query version ở hai thẻ CSS/JS trong `index.html` để tránh cache điện thoại.
 
 ## Công nghệ
 
 - HTML, CSS, JavaScript ES Modules
-- Firebase Authentication (Anonymous)
-- Firebase Realtime Database
-- GitHub Actions + GitHub Pages
+- Firebase Realtime Database (chế độ online)
+- GitHub Actions, Node.js tests và Playwright E2E

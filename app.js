@@ -279,6 +279,16 @@ async function requireConnection() {
   setMessage("lobbyMessage", "Chưa kết nối được máy chủ online: " + firebaseError, true);
   return false;
 }
+function showGameView() {
+  $("lobbyView").classList.add("hidden");
+  $("gameView").classList.remove("hidden");
+  // The lobby button can remain focused after its section is hidden on mobile.
+  // Blur it and reset scroll so the game controls are not clipped above the viewport.
+  if (document.activeElement && typeof document.activeElement.blur === "function") {
+    document.activeElement.blur();
+  }
+  window.scrollTo(0, 0);
+}
 function openRoom(code) {
   computerGame = false;
   computerBusy = false;
@@ -290,8 +300,7 @@ function openRoom(code) {
   store("set", LAST_ROOM_KEY, code);
   setMessage("lobbyMessage", "");
   roomState = null;
-  $("lobbyView").classList.add("hidden");
-  $("gameView").classList.remove("hidden");
+  showGameView();
   $("roomCodeLabel").textContent = code;
   $("centerStatus").textContent = "Đang kết nối phòng...";
   unsubscribeRoom = onValue(ref(db, `${ROOM_ROOT}/${code}`), (snapshot) => {
@@ -910,8 +919,7 @@ function startComputerGame() {
     updatedAt:Date.now()
   };
   store("remove", LAST_ROOM_KEY);
-  $("lobbyView").classList.add("hidden");
-  $("gameView").classList.remove("hidden");
+  showGameView();
   $("copyRoomButton").hidden = true;
   $("roomCodeLabel").textContent = "VỚI MÁY";
   renderRoom();

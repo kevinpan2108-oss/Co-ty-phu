@@ -24,6 +24,6 @@ Do not rewrite the project or redesign the interface from scratch. First inspect
 - A pull request targeting `feat/online-mvp` if you made changes.
 
 ## Important constraints
-- No payment, ads, accounts/passwords, chat, trading, AI opponents, or unrelated features in this MVP.
+- No payment, ads, accounts/passwords, chat, trading, or unrelated features in this MVP. The user later explicitly requested a local offline computer opponent; that request supersedes the original AI-opponent exclusion. Keep online multiplayer at two human players.
 - Keep it two-player and Vietnamese-first.
 - Do not add private keys or service-account JSON to the repository.
