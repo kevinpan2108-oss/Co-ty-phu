@@ -312,13 +312,23 @@ function showCellInfo(index, seconds = 7) {
   const owner = ownerUid ? roomState?.players?.[ownerUid] : null;
   const chips = [];
   if (space.price) chips.push("Giá " + money(space.price));
-  if (space.type === "station") chips.push("Thuê từ " + money(40) + ", gấp đôi mỗi bến sở hữu thêm");
-  else if (space.type === "utility") chips.push("Thuê 4× điểm xúc xắc (10× nếu có cả hai công ty)");
-  else if (space.rent) chips.push("Thuê " + money(space.rent));
+  if (space.type === "station" || space.type === "utility" || space.type === "property") {
+    const diceTotal = roomState?.lastRoll?.reduce((sum, value) => sum + Number(value || 0), 0) || 7;
+    const rent = owner ? rentForRoom(roomState, index, diceTotal) : null;
+    if (rent?.mortgaged) chips.push("Đang cầm cố · Tạm ngưng thu tiền thuê");
+    else if (rent) chips.push("Thuê hiện tại " + money(rent.rent));
+    else if (space.type === "station") chips.push("Thuê từ " + money(40) + ", tăng gấp đôi theo số bến");
+    else if (space.type === "utility") chips.push("Thuê theo điểm xúc xắc: 4× hoặc 10×");
+    else chips.push("Thuê cơ bản " + money(space.rent));
+  }
   if (space.type === "tax") chips.push("Nộp " + money(space.amount));
   if (owner) chips.push("Chủ: " + owner.name);
-  const count = space.type === "property" ? provinceCells(space.group).length : 0;
-  const bonus = count >= 2 ? `Sở hữu đủ ${count} ô của ${space.group}: tiền thuê gấp đôi.` : "";
+  const houses = Number(roomState?.houses?.[getSpaceId(index)] || 0);
+  if (houses === 5) chips.push("Có khách sạn");
+  else if (houses > 0) chips.push("Có " + houses + " căn nhà");
+  if (Number(roomState?.mortgages?.[getSpaceId(index)] || 0) > 0) chips.push("Khoản cầm cố " + money(roomState.mortgages[getSpaceId(index)]));
+  const count = space.type === "property" ? propertyGroupIndices(SPACE_DATA, space.group).length : 0;
+  const bonus = count >= 2 ? `Sở hữu đủ ${count} ô của ${space.group}: tiền thuê gấp đôi khi chưa xây nhà. Xây đều để tăng tiền thuê.` : "";
   box.innerHTML = `<div class="cell-info-head">${space.group ? `<i style="background:${safeColor(space.color)}"></i><span>${escapeHtml(space.group)}</span>` : ""}<strong>${escapeHtml(space.icon || "")} ${escapeHtml(space.name)}</strong></div>
     ${space.info ? `<p>${escapeHtml(space.info)}</p>` : ""}
     ${chips.length ? `<div class="cell-info-chips">${chips.map((c) => `<span>${escapeHtml(c)}</span>`).join("")}</div>` : ""}
@@ -335,11 +345,16 @@ function describeSpace(index) {
   const parts = [space.name];
   if (space.group) parts.push(space.group);
   if (space.price) parts.push("giá " + money(space.price));
-  if (space.type === "station") parts.push("thuê " + money(40) + ", gấp đôi cho mỗi bến sở hữu thêm");
-  else if (space.type === "utility") parts.push("thuê 4× điểm xúc xắc (10× nếu có cả hai công ty)");
-  else if (space.rent) parts.push("thuê " + money(space.rent));
-  if (space.type === "tax") parts.push("nộp " + money(space.amount));
   if (owner) parts.push("chủ: " + owner.name);
+  const houses = Number(roomState?.houses?.[getSpaceId(index)] || 0);
+  if (houses) parts.push(houses === 5 ? "có khách sạn" : "có " + houses + " căn nhà");
+  if (Number(roomState?.mortgages?.[getSpaceId(index)] || 0) > 0) parts.push("đang cầm cố, tạm ngưng thu tiền thuê");
+  if (space.type === "station") parts.push("thuê " + money(40) + ", tăng gấp đôi theo số bến không cầm cố");
+  else if (space.type === "utility") parts.push("thuê 4× điểm xúc xắc, 10× nếu có cả hai công ty không cầm cố");
+  else if (space.rent) parts.push("thuê cơ bản " + money(space.rent));
+  if (space.type === "tax") parts.push("nộp " + money(space.amount));
+  if (space.type === "chance") parts.push("rút thẻ Cơ hội");
+  if (space.type === "fortune") parts.push("rút thẻ Khí vận");
   return parts.join(" · ");
 }
 function getSpaceId(index) {
@@ -621,22 +636,34 @@ function renderBoard() {
   const center = board.querySelector(".board-center");
   SPACE_DATA.forEach((space,index) => {
     const [row,col] = getBoardCoords(index);
-    const ownerUid = roomState?.propertyOwners?.[getSpaceId(index)];
+    const id = getSpaceId(index);
+    const ownerUid = roomState?.propertyOwners?.[id];
     const owner = ownerUid ? roomState?.players?.[ownerUid] : null;
+    const houseCount = Number(roomState?.houses?.[id] || 0);
+    const mortgaged = Number(roomState?.mortgages?.[id] || 0) > 0;
     const div = document.createElement("div");
-    div.className = "space" + (space.corner ? " corner" : "") + (owner ? " owned" : "") + (stampUntil[index] > Date.now() ? " stamp" : "") + (space.corner ? "" : row === 0 ? " side-top" : row === 10 ? " side-bottom" : col === 0 ? " side-left" : " side-right");
+    div.className = "space" + (space.corner ? " corner" : "") + (owner ? " owned" : "") +
+      (mortgaged ? " mortgaged" : "") + (houseCount ? " built" : "") +
+      (stampUntil[index] > Date.now() ? " stamp" : "") +
+      (space.corner ? "" : row === 0 ? " side-top" : row === 10 ? " side-bottom" : col === 0 ? " side-left" : " side-right");
     if (owner) div.style.setProperty("--owner", safeColor(owner.color));
     div.style.gridRow = String(row+1);
     div.style.gridColumn = String(col+1);
     const colorBar = space.color || (space.type === "property" ? "#9b8067" : "transparent");
     const price = space.price ? moneyShort(space.price) : space.amount ? moneyShort(space.amount) : "";
+    const name = space.corner ? space.name : shortName(space.name);
+    const nameScale = Math.max(.58, Math.min(1, 16 / Math.max(16, name.length)));
     const description = describeSpace(index);
+    const buildingMark = houseCount === 5 ? "🏨" : houseCount > 0 ? "🏠".repeat(houseCount) : "";
     div.dataset.index = String(index);
     div.title = description;
     div.setAttribute("aria-label", description);
     div.innerHTML = `
       <span class="space-color" style="background:${colorBar}"></span>
-      <span class="space-text"><span class="space-name">${escapeHtml(space.corner ? space.name : shortName(space.name))}</span>${price && !space.corner ? `<span class="space-price">${price}</span>` : ""}</span>
+      ${owner ? `<span class="space-owner-mark" title="Tài sản của ${escapeHtml(owner.name)}" aria-hidden="true"></span>` : ""}
+      ${mortgaged ? '<span class="space-mortgage-mark" title="Đang cầm cố">C</span>' : ""}
+      ${buildingMark ? `<span class="space-buildings" aria-label="${houseCount === 5 ? "Khách sạn" : houseCount + " căn nhà"}">${buildingMark}</span>` : ""}
+      <span class="space-text" style="--name-scale:${nameScale.toFixed(2)}"><span class="space-name">${escapeHtml(name)}</span>${price && !space.corner ? `<span class="space-price">${price}</span>` : ""}</span>
       <span class="space-players">${tokensHtml(index)}</span>
     `;
     board.insertBefore(div, center);
@@ -668,16 +695,52 @@ function renderProperties() {
   const ownerMap = roomState.propertyOwners || {};
   const owned = Object.entries(ownerMap).map(([id,uid]) => {
     const index = Number(id.slice(1));
-    return {space:SPACE_DATA[index],uid};
+    return {space:SPACE_DATA[index],uid,index,id};
   }).filter(item => item.space);
-  if (!owned.length) {
-    $("propertyList").innerHTML = '<div class="empty-properties">Chưa có bất động sản nào được mua.<br>Hãy tung xúc xắc để sở hữu mảnh đất đầu tiên!</div>';
+  const debt = roomState.debt;
+  const rows = owned.map(({space,uid,index,id}) => {
+    const player = roomState.players?.[uid];
+    const houses = Number(roomState.houses?.[id] || 0);
+    const mortgage = Number(roomState.mortgages?.[id] || 0);
+    const canManage = uid === currentUser.uid && (!debt || debt.uid === uid);
+    const canBuildNow = canManage && !debt && roomState.turnUid === uid && !roomState.lastRoll && !roomState.pending && !roomState.auction;
+    const controls = [];
+    if (canManage && houses > 0) {
+      const sell = sellHouseEligibility(SPACE_DATA, ownerMap, roomState.houses || {}, uid, index);
+      if (sell.ok) controls.push(`<button class="deed-action sell-house" data-deed-action="sell-house" data-index="${index}">Bán ${houses === 5 ? "khách sạn" : "nhà"} +${money(sell.refund)}</button>`);
+    }
+    if (canBuildNow && space.type === "property") {
+      const build = buildEligibility(SPACE_DATA, ownerMap, roomState.houses || {}, roomState.mortgages || {}, uid, index, player?.cash);
+      if (build.ok) controls.push(`<button class="deed-action build-house" data-deed-action="build-house" data-index="${index}">Xây ${houses === 4 ? "khách sạn" : "nhà"} · ${money(build.cost)}</button>`);
+    }
+    if (canManage && mortgage > 0) {
+      const redeem = redemptionCost(mortgage);
+      if (!debt && roomState.turnUid === uid && !roomState.pending && !roomState.auction && Number(player?.cash || 0) >= redeem) {
+        controls.push(`<button class="deed-action redeem-asset" data-deed-action="redeem-asset" data-index="${index}">Giải chấp · ${money(redeem)}</button>`);
+      } else {
+        controls.push(`<span class="deed-status mortgage-status">Đang cầm cố · ${money(mortgage)}</span>`);
+      }
+    } else if (canManage) {
+      const mort = mortgageEligibility(SPACE_DATA, ownerMap, roomState.houses || {}, roomState.mortgages || {}, uid, index);
+      if (mort.ok) controls.push(`<button class="deed-action mortgage-asset" data-deed-action="mortgage-asset" data-index="${index}">Cầm cố +${money(mort.amount)}</button>`);
+    }
+    const buildingText = houses === 5 ? "Khách sạn" : houses > 0 ? houses + " căn nhà" : "Chưa xây";
+    const mortgageText = mortgage > 0 ? " · Đang cầm cố" : "";
+    const detail = `${space.group ? escapeHtml(space.group) + " · " : ""}${escapeHtml(player?.name || "Người chơi")} · ${buildingText}${mortgageText}`;
+    return `<div class="property-row ${uid === currentUser.uid ? "mine" : "opponent"}" style="--owner:${safeColor(player?.color)}">
+      <i class="property-swatch" style="background:${safeColor(space.color || player?.color)}"></i>
+      <div class="property-row-main"><strong>${escapeHtml(space.name)}</strong><small>${detail}</small></div>
+      <div class="property-row-actions">${controls.join("")}</div>
+    </div>`;
+  });
+  const debtNote = debt?.uid === currentUser.uid
+    ? `<div class="debt-banner"><strong>Đang nợ ${money(debt.amount)}</strong><span>${escapeHtml(debt.reason || "Khoản thanh toán chưa đủ")}. Bán nhà hoặc cầm cố thêm tài sản để trả nợ.</span></div>`
+    : "";
+  if (!rows.length) {
+    $("propertyList").innerHTML = debtNote + '<div class="empty-properties">Chưa có bất động sản nào được mua.<br>Hãy tung xúc xắc để sở hữu mảnh đất đầu tiên!</div>';
     return;
   }
-  $("propertyList").innerHTML = owned.map(({space,uid}) => {
-    const player = roomState.players?.[uid];
-    return `<div class="property-row"><i class="property-swatch" style="background:${space.color || "#b9b59b"}"></i><div><strong>${escapeHtml(space.name)}</strong><small>${space.group ? escapeHtml(space.group) + " · " : ""}${escapeHtml(player?.name || "Người chơi")} · ${space.type === "station" ? "Thuê từ " + money(40) : space.type === "utility" ? "Thuê 4× xúc xắc" : "Thuê " + money(space.rent || 50)}</small></div></div>`;
-  }).join("");
+  $("propertyList").innerHTML = debtNote + rows.join("");
 }
 function renderActions() {
   const mine = myPlayer();
