@@ -142,25 +142,19 @@ let rules;
   check("token ghế nhựa và cà phê được lưu theo từng người", await pa.page.locator('.player-avatar[data-token="plastic-chair"]').count() === 1 && await pa.page.locator('.player-avatar[data-token="vietnamese-coffee"]').count() === 1);
   await pa.page.evaluate(() => { Math.random = () => 0.5; });
   await pa.page.click("#rollButton");
-  await pa.page.waitForFunction(() => /Đã tung xí ngầu/.test(document.querySelector("#centerStatus")?.textContent || ""), null, { timeout: 4000 });
+  await pa.page.waitForFunction(() => document.querySelector("#rollButton")?.disabled === true);
   check("người đã tung không thể tung lần hai trong cùng vòng", await pa.page.locator("#rollButton").isDisabled());
   await pb.page.evaluate(() => { Math.random = () => 0.5; });
   await pb.page.click("#rollButton");
   await pa.page.waitForFunction(() => /Hòa điểm/.test(document.querySelector("#centerStatus")?.textContent || ""), null, { timeout: 5000 });
   check("hai người hòa điểm thì mở vòng tung lại", /Vòng 2/.test(await text(pa.page, "#actionMessage")) && !(await pa.page.locator("#rollButton").isDisabled()));
-  await pa.page.waitForFunction(() => !document.querySelector("#diceStage")?.classList.contains("show"), null, { timeout: 4000 });
   await pa.page.evaluate(() => { Math.random = () => 0.99; });
   await pa.page.click("#rollButton");
-  await pa.page.waitForFunction(() => /Đã tung xí ngầu/.test(document.querySelector("#centerStatus")?.textContent || ""), null, { timeout: 4000 });
-  await pa.page.waitForFunction(() => !document.querySelector("#diceStage")?.classList.contains("show"), null, { timeout: 4000 });
+  await pa.page.waitForFunction(() => document.querySelector("#rollButton")?.disabled === true);
   await pb.page.evaluate(() => { Math.random = () => 0.01; });
   await pb.page.click("#rollButton");
   await pa.page.waitForFunction(() => document.querySelector("#rollButton")?.disabled === false && document.querySelector("#turnName")?.textContent.trim() === "An", null, { timeout: 6000 });
   check("An thắng lượt xí ngầu và được đi trước", /Đến lượt bạn/i.test(await text(pa.page, "#centerStatus")) && /Đợi đối thủ/i.test(await text(pb.page, "#centerStatus")));
-  await Promise.all([
-    pa.page.waitForFunction(() => !document.querySelector("#diceStage")?.classList.contains("show"), null, { timeout: 4000 }),
-    pb.page.waitForFunction(() => !document.querySelector("#diceStage")?.classList.contains("show"), null, { timeout: 4000 })
-  ]);
 
   await pc.page.fill("#roomCodeInput", code); await pc.page.fill("#playerName", "Chi"); await pc.page.click("#joinRoomButton"); await pc.page.waitForTimeout(600);
   check("người thứ ba bị từ chối", !(await pc.page.locator("#gameView").isVisible()) && /đã đủ 2 người/.test(await text(pc.page, "#lobbyMessage")), await text(pc.page, "#lobbyMessage"));
@@ -282,7 +276,6 @@ let rules;
     await cpu.page.click("#rollButton");
     await cpu.page.waitForFunction(() => document.querySelector("#turnName")?.textContent.trim() === "Minh" && !document.querySelector("#rollButton")?.disabled, null, { timeout: 7000 });
     check("Máy Miền Tây cũng tung để phân định lượt nhưng người chơi thắng lượt này", /Đến lượt bạn/.test(await text(cpu.page, "#centerStatus")));
-    await cpu.page.waitForFunction(() => !document.querySelector("#diceStage")?.classList.contains("show"), null, { timeout: 4000 });
     // Người chơi đến bến phà, bỏ mua; Máy Miền Tây tự cân nhắc trả giá.
     await cpu.page.evaluate(() => { const q = [0.2, 0.4]; Math.random = () => q.length ? q.shift() : 0.5; });
     await cpu.page.click("#rollButton");
