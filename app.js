@@ -1008,18 +1008,7 @@ $("createRoomButton").addEventListener("click", createRoom);
 $("joinRoomButton").addEventListener("click", joinRoom);
 $("playComputerButton").addEventListener("click", startComputerGame);
 $("rollButton").addEventListener("click", rollDice);
-$("viewToggleButton").addEventListener("click", () => {
-  const wrap = document.querySelector(".board-wrap");
-  const flat = wrap.classList.toggle("flat");
-  $("viewToggleButton").textContent = flat ? "Xem 3D" : "Xem phẳng";
-  try { localStorage.setItem("ctp-view", flat ? "flat" : "iso"); } catch { /* không lưu được */ }
-});
-(() => {
-  let flat = window.innerWidth <= 800;
-  try { const saved = localStorage.getItem("ctp-view"); if (saved) flat = saved === "flat"; } catch { /* bỏ qua */ }
-  document.querySelector(".board-wrap").classList.toggle("flat", flat);
-  $("viewToggleButton").textContent = flat ? "Xem 3D" : "Xem phẳng";
-})();$("leaveRoomButton").addEventListener("click", () => leaveRoom());
+$("leaveRoomButton").addEventListener("click", () => leaveRoom());
 $("board").addEventListener("click", (event) => {
   // Trên điện thoại ô quá nhỏ để hiện tên: chạm vào ô để xem thông tin.
   const cell = event.target.closest(".space");
