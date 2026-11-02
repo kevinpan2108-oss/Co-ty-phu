@@ -3,7 +3,7 @@ import { animalFor, shortName, TOKEN_OPTIONS, tokenMarkup, tokenLabel } from "./
 import { shouldComputerBuy } from "./computer-player.js?v=1";
 import { CHANCE_CARDS, FORTUNE_CARDS, drawCard } from "./cards.js?v=1";
 import {
-  calculateDiceMove, propertyGroupIndices, ownsCompleteGroup, getHouseCost, getBuildingLabel,
+  calculateDiceMove, propertyGroupIndices, ownsCompleteGroup, getHouseCost, getBuildingLabel, HOUSE_RENT_MULTIPLIERS,
   buildEligibility, sellHouseEligibility, mortgageEligibility, mortgageValue, redemptionCost,
   calcRent as calculateAssetRent, hasLiquidationOptions, finalDiceSpin,
   doublesOutcome, jailRollOutcome, jailStatus, isAuctionable, cashSnapshot, cashDeltas, appendEventLog, JAIL_MAX_ATTEMPTS
@@ -1256,8 +1256,57 @@ function renderDealCard() {
   $("dealRent").textContent = rent === null || rent === undefined ? "—" :
     typeof rent === "number" ? money(rent) : rent;
 
+  const schedule = $("dealRentSchedule");
+  const buildCost = $("dealBuildCost");
+  schedule.innerHTML = "";
+  schedule.hidden = true;
+  buildCost.textContent = "";
+  buildCost.hidden = true;
+  if (space && ["property","station","utility"].includes(space.type) && Number(space.price) > 0) {
+    const rentRows = [];
+    let currentRentLabel = "";
+    if (space.type === "property") {
+      const base = Number(space.rent || 0);
+      const wholeGroup = !!ownerUid && ownsCompleteGroup(SPACE_DATA, roomState.propertyOwners || {}, space.group, ownerUid);
+      rentRows.push(["Đất trống", base]);
+      rentRows.push(["Trọn bộ màu", base * 2]);
+      HOUSE_RENT_MULTIPLIERS.forEach((factor, level) => {
+        rentRows.push([level === 4 ? "Khách sạn" : (level + 1) + " nhà", base * factor]);
+      });
+      currentRentLabel = houses > 0 ? (houses === 5 ? "Khách sạn" : houses + " nhà") : wholeGroup ? "Trọn bộ màu" : "Đất trống";
+      buildCost.textContent = "CHI PHÍ MỖI NHÀ / KHÁCH SẠN  " + money(getHouseCost(SPACE_DATA,index)) + "  ·  Bán lại 50%";
+      buildCost.hidden = false;
+    } else if (space.type === "station") {
+      [1,2,3,4].forEach((count) => rentRows.push([count + " bến phà", 40 * Math.pow(2,count - 1)]));
+      const ownedStations = Object.entries(roomState.propertyOwners || {}).filter(([id,uid]) =>
+        uid === ownerUid && SPACE_DATA[Number(id.slice(1))]?.type === "station" && Number(roomState.mortgages?.[id] || 0) <= 0
+      ).length;
+      currentRentLabel = (Math.max(1,Math.min(4,ownedStations || 1))) + " bến phà";
+      buildCost.textContent = "SỞ HỮU NHIỀU BẾN PHÀ ĐỂ TĂNG TIỀN THUÊ";
+      buildCost.hidden = false;
+    } else {
+      rentRows.push(["1 công ty", "4× tổng xúc xắc"]);
+      rentRows.push(["2 công ty", "10× tổng xúc xắc"]);
+      const ownedUtilities = Object.entries(roomState.propertyOwners || {}).filter(([id,uid]) =>
+        uid === ownerUid && SPACE_DATA[Number(id.slice(1))]?.type === "utility" && Number(roomState.mortgages?.[id] || 0) <= 0
+      ).length;
+      currentRentLabel = ownedUtilities > 1 ? "2 công ty" : "1 công ty";
+      buildCost.textContent = "TIỀN THUÊ ĐƯỢC TÍNH THEO ĐIỂM XÚC XẮC";
+      buildCost.hidden = false;
+    }
+    schedule.innerHTML = rentRows.map(([label,value]) => {
+      const active = label === currentRentLabel;
+      const shown = typeof value === "number" ? money(value) : value;
+      return '<div class="deal-rent-row' + (active ? ' active' : '') + '"><span>' +
+        escapeHtml(label) + '</span><b>' + escapeHtml(shown) + '</b></div>';
+    }).join("");
+    schedule.hidden = false;
+  }
+
   const facts = [];
   if (space?.group) facts.push(["NHÓM MÀU", space.group]);
+  if (space?.price) facts.push(["GIÁ TRỊ THẾ CHẤP", money(mortgage > 0 ? mortgage : mortgageValue(space))]);
+  if (mortgage > 0) facts.push(["PHÍ GIẢI CHẤP", money(redemptionCost(mortgage))]);
   if (space?.houseCost) facts.push(["CHI PHÍ XÂY NHÀ", money(space.houseCost)]);
   if (space?.type === "station") facts.push(["TIỀN THUÊ", "Tăng theo số bến sở hữu"]);
   if (space?.type === "utility") facts.push(["CÁCH TÍNH THUÊ", "Theo điểm xúc xắc"]);
