@@ -999,6 +999,9 @@ function animateMove(uid, from, to, delay, expectedSteps = null, cam = null) {
       movingUid = null;
       renderTokens();
       cam?.land(to);
+      // Quân đã tới ô đích: hiện lại ngay thông tin sự kiện và các nút thao tác,
+      // không chờ hết bộ đếm hiệu ứng toàn màn hình.
+      if (roomState && currentUser) { renderActions(); renderEventPanel(); }
       return;
     }
     renderTokens();
@@ -1219,6 +1222,7 @@ function renderEventPanel() {
   if (!panel || !roomState || !currentUser) return;
   const e = currentTurnEvent(roomState);
   const holding = Date.now() < eventHoldUntil;
+  const moving = holding && (diceAnimating || movingUid !== null || Object.keys(moveTimers).length > 0);
   const uid = currentUser.uid;
   const players = roomState.players || {};
   const nameOf = (id) => players[id]?.name || "Người chơi";
@@ -1235,10 +1239,10 @@ function renderEventPanel() {
   $("epMinButton").textContent = epMinimized ? "▴" : "▾";
   const space = e && Number.isInteger(e.index) ? SPACE_DATA[e.index] : null;
   $("epIcon").textContent = space?.icon || "🎲";
-  $("epTitle").textContent = holding && e ? nameOf(e.uid) + " đang di chuyển…" : space ? space.name : "Lượt chơi";
+  $("epTitle").textContent = moving && e ? nameOf(e.uid) + " đang di chuyển…" : space ? space.name : "Lượt chơi";
   const money$ = $("epMoney"), bal = $("epBalances"), confirmRow = $("epConfirmRow");
   money$.innerHTML = ""; bal.innerHTML = ""; confirmRow.innerHTML = "";
-  if (holding) {
+  if (moving) {
     $("actionMessage").textContent = "🎲 Quân cờ đang di chuyển…";
     $("pendingActions").innerHTML = "";
     return;
