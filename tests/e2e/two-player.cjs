@@ -228,11 +228,28 @@ let rules;
   check("tên ô cờ dùng bố cục tự co và giới hạn hai dòng", tileFit.clamp === "2" && tileFit.wrap === "anywhere" && tileFit.width > 0, JSON.stringify(tileFit));
   // Không tự chuyển lượt: sau 2,5 giây (> AUTO_END_MS cũ = 2 giây) lượt vẫn ở A cho tới khi A bấm "Đã xem".
   await pa.page.waitForSelector("#confirmEventButton", { timeout: 9000 });
+  await pa.page.waitForFunction(() => document.querySelector("#stage")?.dataset.camera === "focus", null, { timeout: 7000 });
+  const landingCamera = await pa.page.evaluate(() => {
+    const stage = document.querySelector("#stage");
+    const wrap = document.querySelector("#gameView .board-wrap");
+    const matrix = new DOMMatrix(getComputedStyle(wrap).transform);
+    return { mode: stage?.dataset.camera, scale: matrix.a, overviewVisible: !document.querySelector("#camOverviewButton")?.hidden };
+  });
+  check("camera tự focus vào ô đích sau khi token di chuyển", landingCamera.mode === "focus" && landingCamera.scale > 1.2 && landingCamera.overviewVisible, JSON.stringify(landingCamera));
   await pa.page.waitForTimeout(2500);
   check("không tự động chuyển lượt khi người chơi chưa xác nhận", /An/.test(await text(pa.page, "#turnName")) && (await pb.page.locator("#rollButton").isDisabled()) && (await pa.page.locator("#confirmEventButton").count()) === 1);
   check("Bảng sự kiện nêu ô vừa đến, tiền trừ và số dư", /Chợ nổi Cái Bè|Làng nổi/.test(await text(pa.page, "#epTitle")) && /600\.000₫/.test(await text(pa.page, "#epMoney")) && /14\.400\.000₫/.test(await text(pa.page, "#epBalances")));
   check("đối thủ cũng thấy bảng sự kiện và nút xác nhận chỉ hiện cho người có lượt", /Chợ nổi Cái Bè|Làng nổi/.test(await text(pb.page, "#epTitle")) && (await pb.page.locator("#confirmEventButton").count()) === 0);
+  await pa.page.click("#epHistoryButton");
+  check("lịch sử giữ lại sự kiện và giao dịch vừa xảy ra", /Chợ nổi Cái Bè|Làng nổi/.test(await text(pa.page, "#historyList")) && /600\\.000₫/.test(await text(pa.page, "#historyList")));
+  await pa.page.click("#historyClose");
   await confirmTurn(pa);
+  await pa.page.waitForFunction(() => document.querySelector("#stage")?.dataset.camera === "overview", null, { timeout: 5000 });
+  const overviewState = await pa.page.evaluate(() => ({
+    mode: document.querySelector("#stage")?.dataset.camera,
+    transform: getComputedStyle(document.querySelector("#gameView .board-wrap")).transform
+  }));
+  check("camera trở về toàn cảnh sau khi xác nhận lượt", overviewState.mode === "overview", JSON.stringify(overviewState));
   await pb.page.waitForFunction(() => document.querySelector("#rollButton")?.disabled === false, null, { timeout: 5000 }).catch(() => {});
   check("sau khi A xác nhận: quyền chuyển sang B", !(await pb.page.locator("#rollButton").isDisabled()) && (await pa.page.locator("#rollButton").isDisabled()) && /Bình/.test(await text(pa.page, "#turnName")));
 
@@ -309,6 +326,8 @@ let rules;
     check("sổ đất hiển thị nút xây khi đã sở hữu trọn bộ tỉnh", await pa.page.locator('#propertyList [data-deed-action="build-house"][data-index="3"]').count() === 1);
     await pa.page.locator('#propertyList [data-deed-action="build-house"][data-index="3"]').click();
     await pa.page.waitForSelector('#board .space[data-index="3"].built', { timeout:4000 });
+    check("xây nhà được ghi vào nhật ký với khoản tiền đã chi", store.rooms[code].log?.at(-1)?.kind === "build" && store.rooms[code].log.at(-1).deltas?.[uidA] === -50);
+    check("Event Panel nêu rõ lý do chi tiền xây nhà", /xây nhà\\/khách sạn/.test(await text(pa.page, "#epMoney")));
     check("xây căn đầu tiên ở ô 3, bắt buộc chuyển sang ô 1 để xây đều", store.rooms[code].houses.s3 === 1 &&
       store.rooms[code].houses.s1 !== 1 &&
       await pa.page.locator('#propertyList [data-deed-action="build-house"][data-index="3"]').count() === 0);
@@ -322,6 +341,8 @@ let rules;
     await pa.page.locator('#propertyList [data-deed-action="sell-house"][data-index="1"]').click();
     await pa.page.waitForSelector('#board .space[data-index="1"]:not(.built)', { timeout:4000 });
     check("bán công trình theo thứ tự đồng đều, nhận lại tiền", !store.rooms[code].houses.s3 && !store.rooms[code].houses.s1 && store.rooms[code].players[uidA].cash === 1450);
+    check("bán nhà được ghi nhận thành sự kiện nhận tiền", store.rooms[code].log?.at(-1)?.kind === "sellHouse" && store.rooms[code].log.at(-1).deltas?.[uidA] === 25);
+    check("Event Panel nêu rõ khoản thu từ bán nhà", /bán nhà\\/khách sạn/.test(await text(pa.page, "#epMoney")));
 
     // Giả lập khoản thiếu tiền thuê/thuế; dùng cầm cố tài sản để trả nợ trước.
     const beforeCreditor = store.rooms[code].players[uidB].cash;
@@ -341,7 +362,15 @@ let rules;
       store.rooms[code].mortgages.s3 === 30 &&
       store.rooms[code].players[uidB].cash === beforeCreditor + 20 &&
       store.rooms[code].players[uidA].cash === 10);
-    check("ô đang cầm cố có dấu hiệu riêng trên bàn", await pa.page.locator("#board .space[data-index='3'].mortgaged .space-mortgage-mark").count() === 1);
+    check("cầm cố được ghi vào nhật ký cùng khoản nợ đã thanh toán", store.rooms[code].log?.at(-1)?.kind === "mortgage" &&
+      store.rooms[code].log.at(-1).deltas?.[uidA] === 10 && store.rooms[code].log.at(-1).deltas?.[uidB] === 20);
+    store.rooms[code] = { ...store.rooms[code], players: { ...store.rooms[code].players, [uidA]: { ...store.rooms[code].players[uidA], cash: 50 } } };
+    await pa.page.waitForSelector('#propertyList [data-deed-action="redeem-asset"][data-index="3"]', { timeout:4000 });
+    await pa.page.locator('#propertyList [data-deed-action="redeem-asset"][data-index="3"]').click();
+    await pa.page.waitForSelector("#board .space[data-index='3']:not(.mortgaged)", { timeout:4000 });
+    check("giải chấp được ghi vào lịch sử và trừ đúng 33 đơn vị", store.rooms[code].log?.at(-1)?.kind === "redeem" &&
+      store.rooms[code].log.at(-1).deltas?.[uidA] === -33 && store.rooms[code].players[uidA].cash === 17);
+    check("ô đã giải chấp không còn dấu cầm cố", await pa.page.locator("#board .space[data-index='3'].mortgaged .space-mortgage-mark").count() === 1);
     await pa.page.locator("#propsClose").click();
   }
 

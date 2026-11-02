@@ -10,6 +10,7 @@ import {
 } from "./economy.js?v=2";
 import { cubeTransform } from "./dice-visuals.js?v=1";
 import { createCamera, CAMERA } from "./camera.js?v=1";
+import { currentTurnEvent, eventLogList, eventReason } from "./events.js?v=1";
 import { getDatabase, ref, set, get, onValue, runTransaction } from "https://www.gstatic.com/firebasejs/13.1.0/firebase-database.js";
 
 // Public Firebase Web App configuration for this game.
@@ -454,6 +455,13 @@ function showGameView() {
   window.scrollTo(0, 0);
 }
 function openRoom(code) {
+  resetEffects();
+  clearTimeout(holdTimer);
+  holdTimer = null;
+  cameraRestored = false;
+  epSeenId = 0;
+  epMinimized = false;
+  eventHoldUntil = 0;
   computerGame = false;
   computerBusy = false;
   if (computerTimer) clearTimeout(computerTimer);
@@ -594,6 +602,12 @@ async function joinRoom() {
   }
 }
 function leaveRoom(message) {
+  clearTimeout(holdTimer);
+  holdTimer = null;
+  cameraRestored = false;
+  epSeenId = 0;
+  epMinimized = false;
+  eventHoldUntil = 0;
   if (computerTimer) clearTimeout(computerTimer);
   computerTimer = null;
   computerBusy = false;
@@ -1128,30 +1142,6 @@ let epMinimized = false;
 let epSeenId = 0;
 let eventHoldUntil = 0;
 let holdTimer = null;
-function currentTurnEvent() {
-  const e = roomState?.event;
-  return e && Number(e.turn) === Number(roomState.turnNumber) ? e : null;
-}
-function eventLogList(room = roomState) {
-  const log = room?.log;
-  if (!log) return [];
-  return (Array.isArray(log) ? log : Object.keys(log).sort((a, b) => a - b).map((k) => log[k])).filter(Boolean);
-}
-function eventReason(e, uid, delta) {
-  const actor = uid === e.uid;
-  switch (e.kind) {
-    case "buy": return "mua tài sản";
-    case "auction": return delta < 0 ? "thắng đấu giá" : "đấu giá";
-    case "tax": return "nộp thuế";
-    case "chance": return "thẻ Cơ hội";
-    case "fortune": return "thẻ Khí vận";
-    case "jail": return "phí ra tù";
-    case "start": return "Xuất phát";
-    case "property": case "station": case "utility":
-      return actor ? (delta < 0 ? "trả tiền thuê" : "nhận tiền") : "nhận tiền thuê";
-    default: return "";
-  }
-}
 function renderEventPanel() {
   const panel = $("eventPanel");
   if (!panel || !roomState || !currentUser) return;
@@ -1541,12 +1531,14 @@ async function buildHouse(index) {
       const player = room.players?.[uid];
       const check = buildEligibility(SPACE_DATA, room.propertyOwners, room.houses || {}, room.mortgages || {}, uid, index, player?.cash);
       if (!check.ok || !player) return;
+      const before = cashSnapshot(room.players);
       player.cash -= check.cost;
       room.houses = room.houses || {};
       const key = getSpaceId(index);
       room.houses[key] = Number(room.houses[key] || 0) + 1;
       const label = room.houses[key] === 5 ? "khách sạn" : "căn nhà";
       room.message = player.name + " xây " + label + " tại " + SPACE_DATA[index].name + " với chi phí " + money(check.cost) + ".";
+      recordEvent(room, uid, index, before, "build");
       room.updatedAt = Date.now();
       return room;
     });
@@ -1565,12 +1557,14 @@ async function sellHouse(index) {
           (room.debt ? room.debt.uid !== uid : room.turnUid !== uid)) return;
       const check = sellHouseEligibility(SPACE_DATA, room.propertyOwners, room.houses || {}, uid, index);
       if (!check.ok) return;
+      const before = cashSnapshot(room.players);
       const key = getSpaceId(index);
       room.houses[key] = Number(room.houses[key] || 0) - 1;
       if (room.houses[key] <= 0) delete room.houses[key];
       applyDebtFunds(room, uid, check.refund);
       if (room.debt?.uid === uid) room.message = "Đã bán một công trình tại " + SPACE_DATA[index].name + ", thu về " + money(check.refund) + ". Còn nợ " + money(room.debt.amount) + ".";
       else room.message = "Đã bán một công trình tại " + SPACE_DATA[index].name + ", thu về " + money(check.refund) + ".";
+      recordEvent(room, uid, index, before, "sellHouse");
       room.updatedAt = Date.now();
       return room;
     });
@@ -1589,6 +1583,7 @@ async function mortgageAsset(index) {
           (room.debt ? room.debt.uid !== uid : room.turnUid !== uid)) return;
       const check = mortgageEligibility(SPACE_DATA, room.propertyOwners, room.houses || {}, room.mortgages || {}, uid, index);
       if (!check.ok) return;
+      const before = cashSnapshot(room.players);
       const key = getSpaceId(index);
       room.mortgages = room.mortgages || {};
       room.mortgages[key] = check.amount;
@@ -1596,6 +1591,7 @@ async function mortgageAsset(index) {
       room.message = room.debt?.uid === uid
         ? "Đã cầm cố " + SPACE_DATA[index].name + ", nhận " + money(check.amount) + ". Còn nợ " + money(room.debt.amount) + "."
         : "Đã cầm cố " + SPACE_DATA[index].name + " và nhận " + money(check.amount) + ". Tài sản tạm ngưng thu tiền thuê.";
+      recordEvent(room, uid, index, before, "mortgage");
       room.updatedAt = Date.now();
       return room;
     });
@@ -1616,9 +1612,11 @@ async function redeemAsset(index) {
       const cost = redemptionCost(amount);
       const player = room.players?.[uid];
       if (!amount || !player || player.cash < cost) return;
+      const before = cashSnapshot(room.players);
       player.cash -= cost;
       delete room.mortgages[key];
       room.message = player.name + " đã giải chấp " + SPACE_DATA[index].name + " với chi phí " + money(cost) + ".";
+      recordEvent(room, uid, index, before, "redeem");
       room.updatedAt = Date.now();
       return room;
     });
@@ -1636,6 +1634,8 @@ async function declareBankruptcy(skipConfirm = false) {
       if (room === null) return room;
       if (!room || room.status !== "playing" || room.debt?.uid !== uid ||
           hasLiquidationOptions(SPACE_DATA, room.propertyOwners, room.houses || {}, room.mortgages || {}, uid)) return;
+      const before = cashSnapshot(room.players);
+      const bankruptcyIndex = Number.isInteger(room.event?.index) ? room.event.index : undefined;
       const debtor = room.players?.[uid];
       const creditorUid = room.debt.creditorUid || "";
       const creditor = creditorUid && room.players?.[creditorUid] ? creditorUid : "";
@@ -1655,6 +1655,7 @@ async function declareBankruptcy(skipConfirm = false) {
       room.winner = creditor || Object.keys(room.players || {}).find((id) => id !== uid);
       room.message = debtor.name + " không thể thanh toán và đã phá sản. " +
         (room.players?.[room.winner]?.name || "Người chơi còn lại") + " chiến thắng.";
+      recordEvent(room, uid, bankruptcyIndex, before, "bankruptcy");
       room.updatedAt = Date.now();
       return room;
     });
@@ -1828,6 +1829,13 @@ async function endTurn() {
 }
 function startComputerGame() {
   if (busy) return;
+  resetEffects();
+  clearTimeout(holdTimer);
+  holdTimer = null;
+  cameraRestored = false;
+  epSeenId = 0;
+  epMinimized = false;
+  eventHoldUntil = 0;
   const humanUid = getPlayerId();
   currentUser = {uid:humanUid};
   computerGame = true;
