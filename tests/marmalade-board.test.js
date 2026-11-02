@@ -30,15 +30,16 @@ test("player cards form a right-side vertical rail", () => {
   assert.match(finalBoardRules, /\.player-card:last-child\{[\s\S]*?flex-direction:row/);
 });
 
-test("the 40-space perimeter and game controls remain in place", () => {
+test("the 40-space perimeter, dice and contextual deal card remain in place", () => {
   assert.match(app, /function getBoardCoords\(index\)/);
   assert.match(app, /SPACE_DATA\.forEach\(\(space,index\) =>/);
   assert.match(app, /div\.dataset\.index = String\(index\)/);
   assert.match(html, /id="board"/);
   assert.match(html, /id="diceStage"/);
-  assert.match(html, /id="eventPanel"/);
+  assert.match(html, /id="dealCard"/);
+  assert.doesNotMatch(html, /id="eventPanel"/);
 });
 
-test("the redesigned board stylesheet has its own cache version", () => {
-  assert.match(html, /style\.css\?v=marmalade-board-20261102/);
+test("the board stylesheet uses the current deal-flow cache version", () => {
+  assert.match(html, /style\.css\?v=marmalade-dealflow-20261102/);
 });
