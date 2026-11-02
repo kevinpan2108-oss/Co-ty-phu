@@ -690,10 +690,13 @@ function renderPlayers() {
     const isMe = uid === currentUser.uid;
     const tokenId = playerTokenId(p, entries.findIndex(([id]) => id === uid));
     const space = SPACE_DATA[Number(p.position)]?.name || "—";
+    const ownedAssets = Object.entries(roomState.propertyOwners || {}).filter(([, ownerUid]) => ownerUid === uid);
+    const developedAssets = ownedAssets.filter(([id]) => Number(roomState.houses?.[id] || 0) > 0).length;
     return `<div class="player-card ${isTurn?"active":""}" data-uid="${escapeHtml(uid)}" style="--pc:${safeColor(p.color)}"><span class="player-avatar" data-token="${tokenId}" aria-label="${escapeHtml(tokenLabel(tokenId))}">${tokenMarkup(tokenId)}</span><div class="player-info">
       <div class="player-head"><i class="player-dot" style="background:${safeColor(p.color)}"></i><span class="player-name">${escapeHtml(p.name)}</span>${isMe?'<span class="you-label">Bạn</span>':""}</div>
       <div class="player-cash">${money(p.cash)}</div>
-      <p class="player-position">${escapeHtml(space)} ${jailStatus(p).label ? "· " + jailStatus(p).label : ""}</p>
+      <p class="player-position">📍 ${escapeHtml(space)} ${jailStatus(p).label ? "· " + jailStatus(p).label : ""}</p>
+      <div class="player-metrics"><span>🏡 <b>${ownedAssets.length}</b> tài sản</span><span>🏠 <b>${developedAssets}</b> có nhà</span></div>
     </div></div>`;
   }).join("");
   const turnPlayer = roomState.players?.[roomState.turnUid];
