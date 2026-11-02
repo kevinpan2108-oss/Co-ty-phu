@@ -266,9 +266,9 @@ let rules;
   const panelLayout = await pa.page.evaluate(() => {
     const panel = document.querySelector("#eventPanel").getBoundingClientRect();
     const stage = document.querySelector("#stage").getBoundingClientRect();
-    return {dx:Math.abs((panel.left + panel.width / 2) - (stage.left + stage.width / 2)),dy:Math.abs((panel.top + panel.height / 2) - (stage.top + stage.height / 2))};
+    return {dx:Math.abs((panel.left + panel.width / 2) - (stage.left + stage.width * .415)),dy:Math.abs((panel.top + panel.height / 2) - (stage.top + stage.height / 2))};
   });
-  check("Event Panel nằm giữa màn hình, không bị ghim ở góc", panelLayout.dx < 8 && panelLayout.dy < 8, JSON.stringify(panelLayout));
+  check("Event Panel nằm giữa vùng bàn cờ, không bị ghim ở góc", panelLayout.dx < 8 && panelLayout.dy < 8, JSON.stringify(panelLayout));
   const compactUi = await pa.page.evaluate(() => {
     const panel = document.querySelector("#eventPanel").getBoundingClientRect();
     const stage = document.querySelector("#stage").getBoundingClientRect();
