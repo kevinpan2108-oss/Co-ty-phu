@@ -460,7 +460,7 @@ function openRoom(code) {
   holdTimer = null;
   cameraRestored = false;
   epSeenId = 0;
-  
+  dealDismissedId = null;
   eventHoldUntil = 0;
   computerGame = false;
   computerBusy = false;
@@ -911,7 +911,7 @@ function renderTokens() {
   });
 }
 function resetEffects() {
-  clearTimeout(holdTimer); holdTimer = null; eventHoldUntil = 0; epSeenId = 0; 
+  clearTimeout(holdTimer); holdTimer = null; eventHoldUntil = 0; epSeenId = 0; dealDismissedId = null;
   cameraRestored = false;
   camera?.overview(0);
   clearInterval(diceTimer);
@@ -2112,6 +2112,7 @@ window.addEventListener("resize", () => camera.invalidate());
 window.addEventListener("orientationchange", () => camera.invalidate());
 
 $("dealHistoryButton").addEventListener("click", () => { renderHistory(); $("historyModal").hidden = false; });
+$("dealCloseButton").addEventListener("click", () => { const event = currentTurnEvent(roomState); if (event) dealDismissedId = event.id; $("dealCard").hidden = true; });
 $("dealCloseButton").addEventListener("click", () => { const event = currentTurnEvent(roomState); if (event) dealDismissedId = event.id; $("dealCard").hidden = true; });
 $("historyClose").addEventListener("click", () => { $("historyModal").hidden = true; });
 $("historyModal").addEventListener("click", (event) => { if (event.target === $("historyModal")) $("historyModal").hidden = true; });
