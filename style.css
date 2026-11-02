@@ -841,7 +841,11 @@ body:has(#gameView:not(.hidden)){overflow:hidden}
 #gameView .history-list li .hl-d{font-weight:800;margin-right:8px}
 #gameView .history-list li .hl-d.gain{color:#1a7a3a}#gameView .history-list li .hl-d.loss{color:#c1272d}
 @media(max-height:500px) and (orientation:landscape){
-  #gameView .event-panel{top:calc(8px + 19cqh);max-height:calc(100cqh - 19cqh - 15cqh - 20px)}
-  #gameView .ep-body{padding:6px 8px 8px;gap:5px}
+  #gameView .event-panel{top:50%;width:min(62cqw,500px);max-height:72cqh}
+  #gameView .ep-body{padding:8px 10px 10px;gap:6px}
+}
+@media(max-width:560px){
+  #gameView .event-panel{width:min(76cqw,520px)}
+  #gameView .event-panel.idle{width:min(58cqw,360px)}
 }
 @media(prefers-reduced-motion:reduce){#gameView .event-panel{transition:none}}
