@@ -843,9 +843,13 @@ function renderActions() {
   }
 
   const canPayJail = Number(mine?.jailTurns || 0) > 0 && !dice;
+  const canContinueTurn = !!dice && isMyTurn && !pending && !auction && !roomState.debt && canAdvanceTurn(roomState) && playing;
   if (openingPhase) {
     $("rollButton").textContent = myOpeningRoll ? "⏳ Đợi đối thủ tung..." : "🎲 Tung xí ngầu chọn lượt";
     $("rollButton").disabled = busy || !playing || !!myOpeningRoll;
+  } else if (canContinueTurn) {
+    $("rollButton").textContent = roomState.extraRoll === true && !mine?.jailTurns ? "➡️ Tiếp tục · Tung thêm" : "➡️ Tiếp tục";
+    $("rollButton").disabled = busy;
   } else {
     $("rollButton").textContent = canPayJail ? "🎲 Thử tung đôi (" + mine.jailTurns + "/" + JAIL_MAX_ATTEMPTS + ")" : roomState.extraRoll && isMyTurn ? "🎲 Tung thêm (được đôi)" : "🎲 Tung xúc xắc";
     $("rollButton").disabled = busy || !playing || !isMyTurn || !!pending || !!auction || !!dice || roomState.status === "finished";
@@ -1182,8 +1186,7 @@ function renderEventPanel() {
   if (e) {
     bal.innerHTML = Object.entries(players).map(([id, p]) => `<span style="--pc:${safeColor(p.color)}">${escapeHtml(p.name)}: ${money(p.cash)}</span>`).join("");
   }
-  // Nút xác nhận: chỉ người đang đến lượt, và chỉ khi sự kiện đã xử lý xong (không còn mua/đấu giá/nợ).
-  const mine = players[uid];
+  // Không đặt nút kết thúc lượt trong Event Panel. Người đang chơi dùng nút lớn "Tiếp tục" ở đáy màn hình.
   const playing = roomState.status === "playing" && getPlayerEntries(roomState).length === 2;
   const resolved = !roomState.pending && !roomState.auction && !roomState.debt;
   const addButton = (cls, text, handler, attrs = {}) => {
@@ -1197,14 +1200,10 @@ function renderEventPanel() {
   if (roomState.debt?.uid === uid && playing) {
     addButton("secondary-button", "📋 Mở Sổ đất", () => { $("propsModal").hidden = false; });
     if (canDeclareBankruptcy(roomState, uid)) addButton("danger-button", "🏳️ Phá sản", () => declareBankruptcy(), { id: "bankruptButton" });
-  } else if (playing && roomState.turnUid === uid && roomState.lastRoll && resolved && canAdvanceTurn(roomState)) {
-    const again = roomState.extraRoll === true && !mine?.jailTurns;
-    const b = addButton("confirm-button", again ? "✔ Đã xem · Tung thêm" : "✔ Đã xem · Kết thúc lượt", () => endTurn(), { id: "confirmEventButton" });
-    b.disabled = busy;
   } else if (playing && e && roomState.turnUid !== uid && resolved) {
     const note = document.createElement("div");
     note.className = "ep-wait";
-    note.textContent = computerGame ? "Máy đang chơi…" : "Đang chờ " + nameOf(roomState.turnUid) + " xác nhận…";
+    note.textContent = computerGame ? "Máy đang chơi…" : "Đang chờ " + nameOf(roomState.turnUid) + " tiếp tục lượt…";
     confirmRow.append(note);
   }
 }
@@ -1990,7 +1989,15 @@ renderTokenPicker();
 $("createRoomButton").addEventListener("click", createRoom);
 $("joinRoomButton").addEventListener("click", joinRoom);
 $("playComputerButton").addEventListener("click", startComputerGame);
-$("rollButton").addEventListener("click", rollDice);
+$("rollButton").addEventListener("click", () => {
+  const canContinue = !!roomState?.lastRoll &&
+    roomState.status === "playing" &&
+    roomState.turnUid === currentUser?.uid &&
+    !roomState.pending && !roomState.auction && !roomState.debt &&
+    canAdvanceTurn(roomState);
+  if (canContinue) endTurn();
+  else rollDice();
+});
 camera = createCamera({
   stage: $("stage"), wrap: document.querySelector("#gameView .board-wrap"), board: $("board"), reduceMotion,
   onChange: (mode) => { $("camOverviewButton").hidden = mode === "overview"; }
