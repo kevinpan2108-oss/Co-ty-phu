@@ -1,5 +1,17 @@
 # Ghi chú bàn giao – Cờ Tỷ Phú Miền Tây
 
+## Trạng thái mới nhất – 02/11/2026
+
+- Nhánh Claude đã triển khai luật + camera/Event Panel: `feat/monopoly-rules-camera`.
+- Nhánh tiếp tục bổ sung nhật ký giao dịch và kiểm thử: `fix/event-camera-followup` (PR #16 vào `feat/online-mvp`).
+- Nhánh nền/phát hành: `feat/online-mvp`. Chưa được xem là đã phát hành cho tới khi PR được merge và GitHub Pages cập nhật.
+- 22 bất động sản được chia thành 8 nhóm màu theo cấu trúc 2–3–3–3–3–3–3–2; không còn chia nhóm xây nhà theo 13 tỉnh.
+- Đã có đấu giá mọi tài sản chưa có chủ, luật tung đôi, 3 đôi liên tiếp vào tù, 3 cách ra tù, xây/bán nhà, cầm cố/giải chấp và phá sản.
+- Event Panel có lịch sử, hiển thị tiền cộng/trừ và số dư; camera theo token, focus ô đích và có nút quay lại toàn cảnh. Camera là trạng thái cục bộ từng thiết bị, không ghi vào Firebase.
+- CI mới nhất trên nhánh follow-up: **147/147 unit/smoke đạt** và **84/84 E2E đạt** (workflow run #185, 02/11/2026). E2E kiểm tra camera focus/overview, Event Panel/lịch sử và nhật ký mua, xây/bán nhà, cầm cố/giải chấp.
+- Chưa xác nhận Firebase production trên hai điện thoại thật; E2E hiện dùng Firebase giả lập.
+
+
 ## Trạng thái nhánh
 
 - Nhánh tính năng đang làm: `feat/mekong-board-polish`.
@@ -18,8 +30,8 @@ Không có tài khoản/mật khẩu, chat, thanh toán, quảng cáo hoặc gia
 ## Nội dung và giao diện đã có
 
 - Bàn cờ 40 ô; 22 bất động sản thuộc đủ 13 tỉnh/thành ĐBSCL trong bộ dữ liệu.
-- Sở hữu đủ bất động sản thuộc cùng tỉnh thì tiền thuê ô đó nhân đôi.
-- Dữ liệu địa danh có icon, giới thiệu và màu nhóm theo tỉnh.
+- Sở hữu đủ bất động sản trong cùng một trong 8 nhóm màu thì tiền thuê ô đất trống được nhân đôi.
+- Dữ liệu địa danh có icon/giới thiệu; màu nhóm tài sản được phân bổ theo 8 nhóm kinh tế Monopoly, không còn ràng buộc theo tỉnh.
 - Khung thông tin khi chạm ô; cảnh sông nước, khung bàn cờ và màu chủ đề miền Tây.
 - Xúc xắc lăn, quân cờ nhảy từng ô, tiền bay, dấu sở hữu, pháo giấy khi thắng; tôn trọng `prefers-reduced-motion`.
 - Đối thủ máy có chiến lược giữ tiền và ưu tiên hoàn thiện nhóm tỉnh; logic nằm trong `computer-player.js`.
@@ -27,9 +39,9 @@ Không có tài khoản/mật khẩu, chat, thanh toán, quảng cáo hoặc gia
 ## Kết quả kiểm thử mới nhất
 
 - `npm run check`: đạt.
-- `npm test`: **63/63** đạt.
-- `npm run test:e2e`: **34/34** đạt ở GitHub Actions (hai trình duyệt Chromium + Firebase giả lập).
-- E2E bao gồm tạo/tham gia phòng, từ chối người thứ ba, đồng bộ xúc xắc và tài sản, hiệu ứng quân cờ, chế độ chơi với máy, và viewport 390px/360px.
+- `npm test`: lần CI trước phần camera/Event Panel đạt **138/138**.
+- `npm run test:e2e`: lần CI trước đạt **74/74** ở GitHub Actions (hai trình duyệt Chromium + Firebase giả lập).
+- E2E bao gồm tạo/tham gia phòng, từ chối người thứ ba, đồng bộ xúc xắc và tài sản, camera focus ô đích/overview trên cả hai thiết bị, Event Panel và lịch sử giao dịch, đấu giá, xây/bán nhà, cầm cố/giải chấp, chế độ chơi với máy, và viewport 390px/360px.
 - Chưa phải kiểm thử Firebase Emulator hay hai điện thoại thật.
 - E2E đã phát hiện và sửa lỗi focus/scroll khi chuyển từ sảnh sang bàn cờ: nút xúc xắc từng bị nằm phía trên viewport trên Android 360px. `showGameView()` trong `app.js` làm mờ nút sảnh đang focus và đưa trang về đầu trước khi hiển thị game.
 

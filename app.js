@@ -5,9 +5,12 @@ import { CHANCE_CARDS, FORTUNE_CARDS, drawCard } from "./cards.js?v=1";
 import {
   calculateDiceMove, propertyGroupIndices, ownsCompleteGroup, getHouseCost, getBuildingLabel,
   buildEligibility, sellHouseEligibility, mortgageEligibility, mortgageValue, redemptionCost,
-  calcRent as calculateAssetRent, hasLiquidationOptions, finalDiceSpin
-} from "./economy.js?v=1";
+  calcRent as calculateAssetRent, hasLiquidationOptions, finalDiceSpin,
+  doublesOutcome, jailRollOutcome, jailStatus, isAuctionable, cashSnapshot, cashDeltas, appendEventLog, JAIL_MAX_ATTEMPTS
+} from "./economy.js?v=2";
 import { cubeTransform } from "./dice-visuals.js?v=1";
+import { createCamera, CAMERA } from "./camera.js?v=1";
+import { currentTurnEvent, eventLogList, eventReason } from "./events.js?v=1";
 import { getDatabase, ref, set, get, onValue, runTransaction } from "https://www.gstatic.com/firebasejs/13.1.0/firebase-database.js";
 
 // Public Firebase Web App configuration for this game.
@@ -40,45 +43,45 @@ const AUCTION_INCREMENT = 10; // 100.000₫ mỗi lần nâng giá
 // để dữ liệu trong database và Firebase Rules không phải đổi khi đổi cách hiển thị tiền.
 const SPACE_DATA = [
   {name:"XUẤT PHÁT",type:"start",icon:"🏁",corner:true,info:"Mỗi lần đi qua hoặc dừng lại, nhận 2.000.000₫."},
-  {name:"Làng nổi Tân Lập",icon:"🛶",type:"property",price:60,rent:10,color:"#8d7b68",group:"Long An",info:"Khu du lịch sinh thái giữa rừng tràm ở Mộc Hóa, Long An; mùa nước nổi đi xuồng len giữa rừng."},
+  {name:"Làng nổi Tân Lập",icon:"🛶",type:"property",price:60,rent:2,color:"#8d5a3b",group:"Đầu nguồn",houseCost:50,info:"Khu du lịch sinh thái giữa rừng tràm ở Mộc Hóa, Long An; mùa nước nổi đi xuồng len giữa rừng."},
   {name:"CƠ HỘI",type:"chance",icon:"🥥",info:"Rút một thẻ Cơ hội: tiền thưởng, chi phí sửa chữa, phí theo tài sản hoặc sự kiện bất ngờ."},
-  {name:"Chợ nổi Cái Bè",icon:"🍍",type:"property",price:60,rent:20,color:"#c9824b",group:"Tiền Giang",info:"Chợ nổi trên sông Tiền, ghe thuyền chở đầy trái cây."},
+  {name:"Chợ nổi Cái Bè",icon:"🍍",type:"property",price:60,rent:4,color:"#8d5a3b",group:"Đầu nguồn",houseCost:50,info:"Chợ nổi trên sông Tiền, ghe thuyền chở đầy trái cây."},
   {name:"THUẾ NÔNG SẢN",type:"tax",icon:"🌾",amount:100,info:"Nộp thuế sau mỗi vụ mùa."},
   {name:"Bến phà Rạch Miễu",type:"station",price:200,rent:40,color:"#2f5d6b",icon:"⛴️",info:"Nơi phà từng nối Tiền Giang với Bến Tre trước khi có cầu."},
-  {name:"Chùa Vĩnh Tràng",icon:"🏯",type:"property",price:100,rent:30,color:"#c9824b",group:"Tiền Giang",info:"Ngôi chùa cổ ở Mỹ Tho, kiến trúc pha trộn Á – Âu."},
+  {name:"Chùa Vĩnh Tràng",icon:"🏯",type:"property",price:100,rent:6,color:"#7ec8e3",group:"Xứ dừa",houseCost:50,info:"Ngôi chùa cổ ở Mỹ Tho, kiến trúc pha trộn Á – Âu."},
   {name:"KHÍ VẬN",type:"fortune",icon:"🍀",info:"Rút thẻ Khí vận: may mắn hoặc thử thách từ miền sông nước."},
-  {name:"Làng kẹo dừa",icon:"🥥",type:"property",price:100,rent:40,color:"#4fb0a8",group:"Bến Tre",info:"Kẹo dừa là đặc sản nổi tiếng của xứ dừa Bến Tre."},
-  {name:"Cồn Phụng",icon:"🏝️",type:"property",price:120,rent:50,color:"#4fb0a8",group:"Bến Tre",info:"Cồn nhỏ giữa sông Tiền, gắn với Đạo Dừa, nay là điểm du lịch."},
+  {name:"Làng kẹo dừa",icon:"🥥",type:"property",price:100,rent:6,color:"#7ec8e3",group:"Xứ dừa",houseCost:50,info:"Kẹo dừa là đặc sản nổi tiếng của xứ dừa Bến Tre."},
+  {name:"Cồn Phụng",icon:"🏝️",type:"property",price:120,rent:8,color:"#7ec8e3",group:"Xứ dừa",houseCost:50,info:"Cồn nhỏ giữa sông Tiền, gắn với Đạo Dừa, nay là điểm du lịch."},
   {name:"VÀO TÙ / THĂM TÙ",type:"jail",icon:"🔒",corner:true,info:"Chỉ ghé thăm thì không sao."},
-  {name:"Ao Bà Om",icon:"🌳",type:"property",price:140,rent:60,color:"#b04a6e",group:"Trà Vinh",info:"Ao vuông cổ giữa rừng cây sao, dầu cổ thụ của người Khmer Trà Vinh."},
+  {name:"Ao Bà Om",icon:"🌳",type:"property",price:140,rent:10,color:"#d4568f",group:"Sắc Khmer",houseCost:100,info:"Ao vuông cổ giữa rừng cây sao, dầu cổ thụ của người Khmer Trà Vinh."},
   {name:"Điện lực Miền Tây",type:"utility",price:150,rent:50,color:"#e8d9a0",icon:"💡",info:"Điện sáng đèn cho cả vùng sông nước."},
-  {name:"Chùa Âng",icon:"🛕",type:"property",price:140,rent:70,color:"#b04a6e",group:"Trà Vinh",info:"Ngôi chùa Khmer cổ, kiến trúc tinh xảo, nằm cạnh Ao Bà Om."},
-  {name:"Cù lao An Bình",icon:"🌴",type:"property",price:160,rent:80,color:"#e394a8",group:"Vĩnh Long",info:"Cù lao giữa sông Tiền với vườn trái cây và nhà vườn."},
+  {name:"Chùa Âng",icon:"🛕",type:"property",price:140,rent:10,color:"#d4568f",group:"Sắc Khmer",houseCost:100,info:"Ngôi chùa Khmer cổ, kiến trúc tinh xảo, nằm cạnh Ao Bà Om."},
+  {name:"Cù lao An Bình",icon:"🌴",type:"property",price:160,rent:12,color:"#d4568f",group:"Sắc Khmer",houseCost:100,info:"Cù lao giữa sông Tiền với vườn trái cây và nhà vườn."},
   {name:"Bến Ninh Kiều",type:"station",price:200,rent:40,color:"#2f5d6b",icon:"🚤",info:"Bến sông thơ mộng của thành phố Cần Thơ."},
-  {name:"Chợ nổi Trà Ôn",icon:"🛶",type:"property",price:180,rent:90,color:"#e394a8",group:"Vĩnh Long",info:"Chợ nổi họp trên sông Hậu, ghe xuồng tấp nập từ sáng sớm."},
+  {name:"Chợ nổi Trà Ôn",icon:"🛶",type:"property",price:180,rent:14,color:"#f0903c",group:"Chợ nổi",houseCost:100,info:"Chợ nổi họp trên sông Hậu, ghe xuồng tấp nập từ sáng sớm."},
   {name:"CƠ HỘI",type:"chance",icon:"🥥",info:"Rút một thẻ Cơ hội: tiền thưởng, chi phí sửa chữa, phí theo tài sản hoặc sự kiện bất ngờ."},
-  {name:"Làng hoa Sa Đéc",icon:"🌸",type:"property",price:180,rent:100,color:"#f0a05a",group:"Đồng Tháp",info:"Làng hoa kiểng lâu đời của Đồng Tháp, rực rỡ nhất dịp Tết."},
-  {name:"Tràm Chim",icon:"🌿",type:"property",price:200,rent:110,color:"#f0a05a",group:"Đồng Tháp",info:"Vườn quốc gia ở Đồng Tháp, nơi sếu đầu đỏ về trú đông."},
+  {name:"Làng hoa Sa Đéc",icon:"🌸",type:"property",price:180,rent:14,color:"#f0903c",group:"Chợ nổi",houseCost:100,info:"Làng hoa kiểng lâu đời của Đồng Tháp, rực rỡ nhất dịp Tết."},
+  {name:"Tràm Chim",icon:"🌿",type:"property",price:200,rent:16,color:"#f0903c",group:"Chợ nổi",houseCost:100,info:"Vườn quốc gia ở Đồng Tháp, nơi sếu đầu đỏ về trú đông."},
   {name:"CHỢ NỔI CÁI RĂNG",type:"free",icon:"🛶",corner:true,info:"Nghỉ chân ở chợ nổi Cái Răng, Cần Thơ, nơi mua bán trái cây ngay trên sông."},
-  {name:"Nhà cổ Bình Thủy",icon:"🏛️",type:"property",price:220,rent:120,color:"#2f7fc1",group:"Cần Thơ",info:"Ngôi nhà cổ trăm năm tuổi ở Cần Thơ, kiến trúc kết hợp Đông – Tây."},
+  {name:"Nhà cổ Bình Thủy",icon:"🏛️",type:"property",price:220,rent:18,color:"#d93a2b",group:"Tây Đô",houseCost:150,info:"Ngôi nhà cổ trăm năm tuổi ở Cần Thơ, kiến trúc kết hợp Đông – Tây."},
   {name:"KHÍ VẬN",type:"fortune",icon:"🍀",info:"Rút thẻ Khí vận: may mắn hoặc thử thách từ miền sông nước."},
-  {name:"Vườn cò Bằng Lăng",icon:"🐦",type:"property",price:220,rent:130,color:"#2f7fc1",group:"Cần Thơ",info:"Sân chim ở Thốt Nốt, Cần Thơ, hàng ngàn con cò về đậu mỗi chiều."},
-  {name:"Chợ nổi Ngã Bảy",icon:"🛶",type:"property",price:240,rent:140,color:"#7bb661",group:"Hậu Giang",info:"Chợ nổi ở Ngã Bảy, Hậu Giang, nơi nhiều dòng sông rạch gặp nhau."},
+  {name:"Vườn cò Bằng Lăng",icon:"🐦",type:"property",price:220,rent:18,color:"#d93a2b",group:"Tây Đô",houseCost:150,info:"Sân chim ở Thốt Nốt, Cần Thơ, hàng ngàn con cò về đậu mỗi chiều."},
+  {name:"Chợ nổi Ngã Bảy",icon:"🛶",type:"property",price:240,rent:20,color:"#d93a2b",group:"Tây Đô",houseCost:150,info:"Chợ nổi ở Ngã Bảy, Hậu Giang, nơi nhiều dòng sông rạch gặp nhau."},
   {name:"Bến tàu Rạch Giá",type:"station",price:200,rent:40,color:"#2f5d6b",icon:"🚢",info:"Cửa ngõ đường biển của Kiên Giang, tàu từ đây ra đảo."},
-  {name:"Chùa Dơi",icon:"🦇",type:"property",price:260,rent:150,color:"#e0654b",group:"Sóc Trăng",info:"Chùa Khmer nổi tiếng với đàn dơi quạ đậu trên cây."},
-  {name:"Chùa Kh'Leang",icon:"🛕",type:"property",price:260,rent:160,color:"#e0654b",group:"Sóc Trăng",info:"Ngôi chùa Khmer cổ ở Sóc Trăng."},
+  {name:"Chùa Dơi",icon:"🦇",type:"property",price:260,rent:22,color:"#f2d03a",group:"Miền duyên hải",houseCost:150,info:"Chùa Khmer nổi tiếng với đàn dơi quạ đậu trên cây."},
+  {name:"Chùa Kh'Leang",icon:"🛕",type:"property",price:260,rent:22,color:"#f2d03a",group:"Miền duyên hải",houseCost:150,info:"Ngôi chùa Khmer cổ ở Sóc Trăng."},
   {name:"Nhà máy nước Cửu Long",type:"utility",price:150,rent:50,color:"#e8d9a0",icon:"💧",info:"Nước sạch cho bà con vùng sông Cửu Long."},
-  {name:"Nhà Công tử Bạc Liêu",icon:"🏠",type:"property",price:280,rent:170,color:"#e8c85a",group:"Bạc Liêu",info:"Ngôi nhà gắn với giai thoại Công tử Bạc Liêu giàu có một thời."},
+  {name:"Nhà Công tử Bạc Liêu",icon:"🏠",type:"property",price:280,rent:24,color:"#f2d03a",group:"Miền duyên hải",houseCost:150,info:"Ngôi nhà gắn với giai thoại Công tử Bạc Liêu giàu có một thời."},
   {name:"ĐI THẲNG VÀO TÙ",type:"gotojail",icon:"🚓",corner:true,info:"Dừng ở đây là bị đưa thẳng vào tù."},
-  {name:"Điện gió Bạc Liêu",icon:"🌬️",type:"property",price:300,rent:180,color:"#e8c85a",group:"Bạc Liêu",info:"Những cánh quạt khổng lồ quay trên biển Bạc Liêu."},
-  {name:"Rừng tràm Trà Sư",icon:"🌳",type:"property",price:300,rent:190,color:"#3f9a63",group:"An Giang",info:"Rừng tràm xanh mướt phủ bèo, đi xuồng len giữa rừng ở An Giang."},
+  {name:"Điện gió Bạc Liêu",icon:"🌬️",type:"property",price:300,rent:26,color:"#2f9a58",group:"Rừng tràm biên giới",houseCost:200,info:"Những cánh quạt khổng lồ quay trên biển Bạc Liêu."},
+  {name:"Rừng tràm Trà Sư",icon:"🌳",type:"property",price:300,rent:26,color:"#2f9a58",group:"Rừng tràm biên giới",houseCost:200,info:"Rừng tràm xanh mướt phủ bèo, đi xuồng len giữa rừng ở An Giang."},
   {name:"CƠ HỘI",type:"chance",icon:"🥥",info:"Rút một thẻ Cơ hội: tiền thưởng, chi phí sửa chữa, phí theo tài sản hoặc sự kiện bất ngờ."},
-  {name:"Núi Sam Châu Đốc",icon:"⛰️",type:"property",price:320,rent:200,color:"#3f9a63",group:"An Giang",info:"Ngọn núi nổi lên giữa đồng bằng ở Châu Đốc, An Giang."},
+  {name:"Núi Sam Châu Đốc",icon:"⛰️",type:"property",price:320,rent:28,color:"#2f9a58",group:"Rừng tràm biên giới",houseCost:200,info:"Ngọn núi nổi lên giữa đồng bằng ở Châu Đốc, An Giang."},
   {name:"Cảng Hà Tiên",type:"station",price:200,rent:40,color:"#2f5d6b",icon:"⚓",info:"Cảng nhỏ ở vùng biển Kiên Giang, gần biên giới Campuchia."},
   {name:"KHÍ VẬN",type:"fortune",icon:"🍀",info:"Rút thẻ Khí vận: may mắn hoặc thử thách từ miền sông nước."},
-  {name:"Đảo Phú Quốc",icon:"🏝️",type:"property",price:350,rent:220,color:"#1fb5c9",group:"Kiên Giang",info:"Đảo ngọc ngoài khơi Kiên Giang, nổi tiếng với nước mắm, hồ tiêu và biển xanh."},
+  {name:"Đảo Phú Quốc",icon:"🏝️",type:"property",price:350,rent:35,color:"#2455a8",group:"Đất mũi biển đảo",houseCost:200,info:"Đảo ngọc ngoài khơi Kiên Giang, nổi tiếng với nước mắm, hồ tiêu và biển xanh."},
   {name:"PHÍ CẦU PHÀ",type:"tax",icon:"🧾",amount:100,info:"Qua sông phải trả phí cầu phà."},
-  {name:"Mũi Cà Mau",icon:"🧭",type:"property",price:400,rent:250,color:"#7c6bb5",group:"Cà Mau",info:"Điểm cực Nam của Tổ quốc, nơi đất liền gặp biển."}
+  {name:"Mũi Cà Mau",icon:"🧭",type:"property",price:400,rent:50,color:"#2455a8",group:"Đất mũi biển đảo",houseCost:200,info:"Điểm cực Nam của Tổ quốc, nơi đất liền gặp biển."}
 ];
 // Bộ thẻ Cơ hội và Khí vận nằm riêng trong cards.js để dễ cân bằng và kiểm thử.
 
@@ -89,6 +92,8 @@ let currentRoomCode = null;
 let roomState = null;
 let unsubscribeRoom = null;
 let busy = false;
+let camera = null;
+let cameraRestored = false;
 const COMPUTER_UID = "computer-opponent";
 let computerGame = false;
 let computerBusy = false;
@@ -224,13 +229,9 @@ function applyDebtFunds(room, uid, funds) {
     if (debt.amount <= 0) {
       const resumeJail = debt.resumeJail === true;
       room.debt = null;
-      if (resumeJail) {
-        player.jailTurns = 0;
-        room.turnUid = Object.keys(room.players || {}).find((id) => id !== uid);
-        room.turnNumber = Number(room.turnNumber || 1) + 1;
-        room.lastRoll = null;
-      }
-      room.message = player.name + " đã thanh toán đủ khoản nợ và có thể tiếp tục ván chơi.";
+      // Trả đủ phí ra tù: người chơi được ra tù và tiếp tục tung xúc xắc trong cùng lượt.
+      if (resumeJail) player.jailTurns = 0;
+      room.message = player.name + " đã thanh toán đủ khoản nợ" + (resumeJail ? ", ra tù và có thể tung xúc xắc." : " và có thể tiếp tục ván chơi.");
     } else {
       room.message = player.name + " đã trả " + money(paid) + ". Còn nợ " + money(debt.amount) + ".";
     }
@@ -272,10 +273,7 @@ function applyCardEffect(room, uid, card) {
       player.jailPasses = Number(player.jailPasses || 0) + 1;
       return card.text + " Bạn đang có " + player.jailPasses + " thẻ miễn vào tù.";
     case "goToJail": {
-      const from = Number(player.position || 0);
-      player.position = 10;
-      player.jailTurns = 1;
-      room.lastMove = {uid,from,to:10,steps:0,kind:"teleport"};
+      sendToJail(room, uid, Number(player.position || 0));
       return card.text;
     }
     default:
@@ -304,7 +302,7 @@ function calcRent(space, owners, ownerUid, diceTotal) {
   else if (space.type === "property" && ownsWholeProvince(owners, space.group, ownerUid)) { rent *= 2; wholeProvince = true; }
   return {rent, wholeProvince};
 }
-function showCellInfo(index, seconds = 7) {
+function showCellInfo(index) {
   const space = SPACE_DATA[index];
   const box = $("cellInfo");
   if (!space || !box) return;
@@ -329,13 +327,12 @@ function showCellInfo(index, seconds = 7) {
   if (Number(roomState?.mortgages?.[getSpaceId(index)] || 0) > 0) chips.push("Khoản cầm cố " + money(roomState.mortgages[getSpaceId(index)]));
   const count = space.type === "property" ? propertyGroupIndices(SPACE_DATA, space.group).length : 0;
   const bonus = count >= 2 ? `Sở hữu đủ ${count} ô của ${space.group}: tiền thuê gấp đôi khi chưa xây nhà. Xây đều để tăng tiền thuê.` : "";
-  box.innerHTML = `<div class="cell-info-head">${space.group ? `<i style="background:${safeColor(space.color)}"></i><span>${escapeHtml(space.group)}</span>` : ""}<strong>${escapeHtml(space.icon || "")} ${escapeHtml(space.name)}</strong></div>
+  box.innerHTML = `<button class="cell-info-close" type="button" aria-label="Đóng thông tin ô">×</button><div class="cell-info-head">${space.group ? `<i style="background:${safeColor(space.color)}"></i><span>${escapeHtml(space.group)}</span>` : ""}<strong>${escapeHtml(space.icon || "")} ${escapeHtml(space.name)}</strong></div>
     ${space.info ? `<p>${escapeHtml(space.info)}</p>` : ""}
     ${chips.length ? `<div class="cell-info-chips">${chips.map((c) => `<span>${escapeHtml(c)}</span>`).join("")}</div>` : ""}
     ${bonus ? `<p class="cell-info-bonus">${escapeHtml(bonus)}</p>` : ""}`;
+  // Giữ thông tin đến khi người chơi tự đóng (nút ×) hoặc chạm sang ô khác.
   box.classList.add("show");
-  clearTimeout(cellInfoTimer);
-  cellInfoTimer = setTimeout(() => box.classList.remove("show"), seconds * 1000);
 }
 function describeSpace(index) {
   const space = SPACE_DATA[index];
@@ -447,6 +444,9 @@ async function requireConnection() {
 function showGameView() {
   $("lobbyView").classList.add("hidden");
   $("gameView").classList.remove("hidden");
+  cameraRestored = false;
+  camera?.invalidate();
+  camera?.overview(0);
   // The lobby button can remain focused after its section is hidden on mobile.
   // Blur it and reset scroll so the game controls are not clipped above the viewport.
   if (document.activeElement && typeof document.activeElement.blur === "function") {
@@ -455,6 +455,13 @@ function showGameView() {
   window.scrollTo(0, 0);
 }
 function openRoom(code) {
+  resetEffects();
+  clearTimeout(holdTimer);
+  holdTimer = null;
+  cameraRestored = false;
+  epSeenId = 0;
+  epMinimized = false;
+  eventHoldUntil = 0;
   computerGame = false;
   computerBusy = false;
   if (computerTimer) clearTimeout(computerTimer);
@@ -595,6 +602,12 @@ async function joinRoom() {
   }
 }
 function leaveRoom(message) {
+  clearTimeout(holdTimer);
+  holdTimer = null;
+  cameraRestored = false;
+  epSeenId = 0;
+  epMinimized = false;
+  eventHoldUntil = 0;
   if (computerTimer) clearTimeout(computerTimer);
   computerTimer = null;
   computerBusy = false;
@@ -680,7 +693,7 @@ function renderPlayers() {
     return `<div class="player-card ${isTurn?"active":""}" data-uid="${escapeHtml(uid)}" style="--pc:${safeColor(p.color)}"><span class="player-avatar" data-token="${tokenId}" aria-label="${escapeHtml(tokenLabel(tokenId))}">${tokenMarkup(tokenId)}</span><div class="player-info">
       <div class="player-head"><i class="player-dot" style="background:${safeColor(p.color)}"></i><span class="player-name">${escapeHtml(p.name)}</span>${isMe?'<span class="you-label">Bạn</span>':""}</div>
       <div class="player-cash">${money(p.cash)}</div>
-      <p class="player-position">${escapeHtml(space)} ${p.jailTurns ? "· Đang ở tù" : ""}</p>
+      <p class="player-position">${escapeHtml(space)} ${jailStatus(p).label ? "· " + jailStatus(p).label : ""}</p>
     </div></div>`;
   }).join("");
   const turnPlayer = roomState.players?.[roomState.turnUid];
@@ -808,13 +821,33 @@ function renderActions() {
   } else {
     $("actionMessage").textContent = roomState.message || (roomState.status === "waiting" ? "Đang chờ người chơi thứ hai..." : "Đến lượt bạn!");
   }
+  const jailed = Number(mine?.jailTurns || 0) > 0 && isMyTurn && !dice && !pending && !auction && !roomState.debt && playing;
+  if (jailed) {
+    const pay = document.createElement("button");
+    pay.className = "secondary-button";
+    pay.dataset.jail = "pay";
+    pay.textContent = "💰 Nộp phạt " + money(JAIL_FEE);
+    pay.disabled = busy;
+    pay.addEventListener("click", () => leaveJail("fee"));
+    buttons.append(pay);
+    if (Number(mine.jailPasses || 0) > 0) {
+      const card = document.createElement("button");
+      card.className = "secondary-button";
+      card.dataset.jail = "card";
+      card.textContent = "🎟️ Dùng thẻ ra tù (" + mine.jailPasses + ")";
+      card.disabled = busy;
+      card.addEventListener("click", () => leaveJail("card"));
+      buttons.append(card);
+    }
+    $("actionMessage").textContent = "Bạn đang bị giam (lần " + mine.jailTurns + "/" + JAIL_MAX_ATTEMPTS + "). Nộp phạt, dùng thẻ hoặc thử tung đôi để ra tù.";
+  }
 
   const canPayJail = Number(mine?.jailTurns || 0) > 0 && !dice;
   if (openingPhase) {
     $("rollButton").textContent = myOpeningRoll ? "⏳ Đợi đối thủ tung..." : "🎲 Tung xí ngầu chọn lượt";
     $("rollButton").disabled = busy || !playing || !!myOpeningRoll;
   } else {
-    $("rollButton").textContent = canPayJail ? "🔓 Nộp " + money(JAIL_FEE) + " để ra tù" : "🎲 Tung xúc xắc";
+    $("rollButton").textContent = canPayJail ? "🎲 Thử tung đôi (" + mine.jailTurns + "/" + JAIL_MAX_ATTEMPTS + ")" : roomState.extraRoll && isMyTurn ? "🎲 Tung thêm (được đôi)" : "🎲 Tung xúc xắc";
     $("rollButton").disabled = busy || !playing || !isMyTurn || !!pending || !!auction || !!dice || roomState.status === "finished";
   }
   document.title = roomState.status === "playing" && !openingPhase && isMyTurn ? "● Đến lượt bạn - Cờ Tỷ Phú Online" : "Cờ Tỷ Phú Online";
@@ -847,9 +880,6 @@ function dieHtml(v) {
   return `<span class="die" data-v="${n}">${"<i></i>".repeat(9)}</span>`;
 }
 function diceHtml(d) { return dieHtml(d?.[0]) + dieHtml(d?.[1]); }
-let autoEndKey = null;
-let autoEndTimer = null;
-const AUTO_END_MS = 2000;
 let movingUid = null;
 let diceAnimating = false;
 let diceTimer = null;
@@ -874,7 +904,9 @@ function renderTokens() {
   });
 }
 function resetEffects() {
-  autoEndKey = null; clearTimeout(autoEndTimer);
+  clearTimeout(holdTimer); holdTimer = null; eventHoldUntil = 0; epSeenId = 0; epMinimized = false;
+  cameraRestored = false;
+  camera?.overview(0);
   clearInterval(diceTimer);
   clearTimeout(diceFinishTimer);
   diceTimer = null;
@@ -890,9 +922,11 @@ function resetEffects() {
   if (stage) stage.className = "dice-stage";
 }
 // Quân cờ nhảy từng ô tới đích. Đi quá xa (vào tù) thì dịch chuyển thẳng.
-function animateMove(uid, from, to, delay, expectedSteps = null) {
+function animateMove(uid, from, to, delay, expectedSteps = null, cam = null) {
   const distance = Number.isInteger(expectedSteps) ? expectedSteps : (to - from + 40) % 40;
   if (reduceMotion || distance < 1 || distance > 12 || (from + distance) % 40 !== to) return 0;
+  // Có lượt di chuyển mới hơn cho cùng quân cờ: bỏ hành trình dang dở, lượt mới nhất luôn thắng.
+  clearTimeout(moveTimers[uid]);
   displayPos[uid] = from;
   let step = 0;
   const tick = () => {
@@ -906,9 +940,11 @@ function animateMove(uid, from, to, delay, expectedSteps = null) {
       delete moveTimers[uid];
       movingUid = null;
       renderTokens();
+      cam?.land(to);
       return;
     }
     renderTokens();
+    cam?.step(displayPos[uid]);
     moveTimers[uid] = setTimeout(tick, HOP_MS);
   };
   moveTimers[uid] = setTimeout(tick, delay);
@@ -1036,6 +1072,9 @@ function runEffects(previous, next) {
   const rolled = !previous.lastRoll && next.lastRoll;
   if (openingRolled) animateDice(next.openingLastRoll.dice);
   else if (rolled) animateDice(next.lastRoll);
+  let holdMs = rolled ? DICE_MS : 0;
+  // Qua lượt (hoặc tung thêm do được đôi): camera từ từ trở về toàn cảnh.
+  if (Number(next.turnNumber) !== Number(previous.turnNumber) && !rolled) camera?.overview();
   for (const [uid, now] of getPlayerEntries(next)) {
     const before = previous.players?.[uid];
     if (!before) continue;
@@ -1045,9 +1084,19 @@ function runEffects(previous, next) {
       const exactSteps = move?.uid === uid &&
         Number(move.from) === Number(before.position) &&
         Number(move.to) === Number(now.position) ? Number(move.steps) : null;
-      delay = animateMove(uid, Number(before.position), Number(now.position), delay, exactSteps) || delay;
+      const route = planCameraRoute(Number(before.position), Number(now.position), exactSteps, delay);
+      const startDelay = delay + (route.follow ? CAMERA.zoomInMs : 0);
+      const end = animateMove(uid, Number(before.position), Number(now.position), startDelay, exactSteps, route.follow ? route.hooks : null);
+      if (end) delay = end;
+      else if (route.teleport) { delay += route.teleport(delay); }
+      holdMs = Math.max(holdMs, delay + (end || route.follow ? CAMERA.focusMs : 0));
     }
     if (Number(before.cash) !== Number(now.cash)) floatDelta(uid, Number(now.cash) - Number(before.cash), delay);
+  }
+  if (holdMs > 0) {
+    eventHoldUntil = Date.now() + holdMs + 150;
+    clearTimeout(holdTimer);
+    holdTimer = setTimeout(() => { holdTimer = null; if (roomState) { renderActions(); renderEventPanel(); } }, holdMs + 170);
   }
   for (const key of Object.keys(next.propertyOwners || {})) {
     if (previous.propertyOwners?.[key]) continue;
@@ -1059,6 +1108,115 @@ function runEffects(previous, next) {
     try { navigator.vibrate?.(80); } catch { /* không hỗ trợ rung */ }
   }
 }
+// ===== Camera theo quân cờ (chỉ ở trình duyệt, không ghi gì lên Firebase) =====
+function planCameraRoute(from, to, steps, diceDelay) {
+  if (!camera || !camera.state.enabled) return { follow: false };
+  const distance = Number.isInteger(steps) ? steps : (to - from + 40) % 40;
+  const hops = !reduceMotion && distance >= 1 && distance <= 12 && (from + distance) % 40 === to;
+  const seq = camera.beginSequence();
+  if (!hops) {
+    // Dịch chuyển thẳng (vào tù): bỏ qua hành trình, focus thẳng vào ô đích.
+    return { follow: false, teleport: (delay) => { camera.later(() => camera.focus(to, { seq }), delay); return CAMERA.focusMs; } };
+  }
+  camera.later(() => camera.follow(from, { seq, ms: CAMERA.zoomInMs }), diceDelay);
+  return {
+    follow: true,
+    hooks: {
+      step: (cell) => camera.follow(cell, { seq, ms: HOP_MS + 60, ease: "cubic-bezier(.3,.1,.6,.9)" }),
+      land: (cell) => camera.focus(cell, { seq })
+    }
+  };
+}
+// Tải lại trang / vào lại phòng giữa lúc đang có sự kiện: đưa camera tới ô đang xử lý (không phát lại hành trình).
+function restoreCameraAfterReload() {
+  if (cameraRestored || !camera || !roomState) return;
+  cameraRestored = true;
+  const e = currentTurnEvent(roomState);
+  if (!camera.state.enabled || !e || !Number.isInteger(e.index) || roomState.status !== "playing" || !roomState.lastRoll) return;
+  const seq = camera.beginSequence();
+  camera.later(() => camera.focus(e.index, { ms: 700, seq }), 350);
+}
+
+// ===== Bảng sự kiện =====
+let epMinimized = false;
+let epSeenId = 0;
+let eventHoldUntil = 0;
+let holdTimer = null;
+function renderEventPanel() {
+  const panel = $("eventPanel");
+  if (!panel || !roomState || !currentUser) return;
+  const e = currentTurnEvent(roomState);
+  const holding = Date.now() < eventHoldUntil;
+  const uid = currentUser.uid;
+  const players = roomState.players || {};
+  const nameOf = (id) => players[id]?.name || "Người chơi";
+  if (e && e.id !== epSeenId) { epSeenId = e.id; epMinimized = false; }
+  panel.classList.toggle("idle", !e || holding);
+  panel.classList.toggle("min", epMinimized);
+  $("epMinButton").setAttribute("aria-expanded", String(!epMinimized));
+  $("epMinButton").textContent = epMinimized ? "▴" : "▾";
+  const space = e && Number.isInteger(e.index) ? SPACE_DATA[e.index] : null;
+  $("epIcon").textContent = space?.icon || "🎲";
+  $("epTitle").textContent = holding && e ? nameOf(e.uid) + " đang di chuyển…" : space ? space.name : "Lượt chơi";
+  const money$ = $("epMoney"), bal = $("epBalances"), confirmRow = $("epConfirmRow");
+  money$.innerHTML = ""; bal.innerHTML = ""; confirmRow.innerHTML = "";
+  if (holding) {
+    $("actionMessage").textContent = "🎲 Quân cờ đang di chuyển…";
+    $("pendingActions").innerHTML = "";
+    return;
+  }
+  // Tiền cộng/trừ, lý do, người trả và người nhận.
+  if (e?.deltas) {
+    const rows = Object.entries(e.deltas).filter(([, d]) => Number(d) !== 0);
+    money$.innerHTML = rows.map(([id, d]) => {
+      const cls = d > 0 ? "gain" : "loss";
+      const why = eventReason(e, id, d);
+      return `<li class="${cls === "loss" ? "loss" : ""}"><span>${escapeHtml(nameOf(id))}${why ? ` <small>· ${escapeHtml(why)}</small>` : ""}</span><b class="${cls}">${d > 0 ? "+" : "−"}${money(Math.abs(d))}</b></li>`;
+    }).join("");
+    const payer = rows.find(([, d]) => d < 0), receiver = rows.find(([, d]) => d > 0);
+    if (payer && receiver && (e.kind === "property" || e.kind === "station" || e.kind === "utility" || e.kind === "chance" || e.kind === "fortune") && payer[0] !== receiver[0]) {
+      const amount = Math.min(Math.abs(payer[1]), receiver[1]);
+      money$.insertAdjacentHTML("beforeend", `<li class="ep-flow-row"><span class="ep-flow">💸 ${escapeHtml(nameOf(payer[0]))} trả cho ${escapeHtml(nameOf(receiver[0]))} ${money(amount)}</span></li>`);
+    }
+  }
+  if (e) {
+    bal.innerHTML = Object.entries(players).map(([id, p]) => `<span style="--pc:${safeColor(p.color)}">${escapeHtml(p.name)}: ${money(p.cash)}</span>`).join("");
+  }
+  // Nút xác nhận: chỉ người đang đến lượt, và chỉ khi sự kiện đã xử lý xong (không còn mua/đấu giá/nợ).
+  const mine = players[uid];
+  const playing = roomState.status === "playing" && getPlayerEntries(roomState).length === 2;
+  const resolved = !roomState.pending && !roomState.auction && !roomState.debt;
+  const addButton = (cls, text, handler, attrs = {}) => {
+    const b = document.createElement("button");
+    b.className = cls; b.type = "button"; b.textContent = text;
+    Object.entries(attrs).forEach(([k, v]) => b.setAttribute(k, v));
+    b.addEventListener("click", handler);
+    confirmRow.append(b);
+    return b;
+  };
+  if (roomState.debt?.uid === uid && playing) {
+    addButton("secondary-button", "📋 Mở Sổ đất", () => { $("propsModal").hidden = false; });
+    if (canDeclareBankruptcy(roomState, uid)) addButton("danger-button", "🏳️ Phá sản", () => declareBankruptcy(), { id: "bankruptButton" });
+  } else if (playing && roomState.turnUid === uid && roomState.lastRoll && resolved && canAdvanceTurn(roomState)) {
+    const again = roomState.extraRoll === true && !mine?.jailTurns;
+    const b = addButton("confirm-button", again ? "✔ Đã xem · Tung thêm" : "✔ Đã xem · Kết thúc lượt", () => endTurn(), { id: "confirmEventButton" });
+    b.disabled = busy;
+  } else if (playing && e && roomState.turnUid !== uid && resolved) {
+    const note = document.createElement("div");
+    note.className = "ep-wait";
+    note.textContent = computerGame ? "Máy đang chơi…" : "Đang chờ " + nameOf(roomState.turnUid) + " xác nhận…";
+    confirmRow.append(note);
+  }
+}
+function renderHistory() {
+  const players = roomState?.players || {};
+  const list = eventLogList(roomState).slice().reverse();
+  $("historyList").innerHTML = list.length ? list.map((e) => {
+    const space = Number.isInteger(e.index) ? SPACE_DATA[e.index] : null;
+    const d = Object.entries(e.deltas || {}).map(([id, v]) => `<span class="hl-d ${v > 0 ? "gain" : "loss"}">${escapeHtml(players[id]?.name || "")} ${v > 0 ? "+" : "−"}${money(Math.abs(v))}</span>`).join("");
+    return `<li><small>Lượt ${Number(e.turn) || ""} · ${escapeHtml(players[e.uid]?.name || "")}${space ? " · " + escapeHtml(space.name) : ""}</small>${escapeHtml(e.text || "")}<div>${d}</div></li>`;
+  }).join("") : '<li>Chưa có sự kiện nào.</li>';
+}
 function renderRoom() {
   if (!roomState || !currentUser) return;
   $("roomCodeLabel").textContent = computerGame ? "VỚI MÁY" : currentRoomCode;
@@ -1069,7 +1227,8 @@ function renderRoom() {
   renderBoard();
   renderProperties();
   renderActions();
-  scheduleAutoEnd();
+  renderEventPanel();
+  restoreCameraAfterReload();
 }
 
 async function rollOpeningDice() {
@@ -1115,11 +1274,83 @@ async function rollOpeningDice() {
   }
   if (computerGame && !computerBusy) scheduleComputerTurn();
 }
+// Ghi một sự kiện (đồng bộ qua Firebase) để Bảng sự kiện và lịch sử hiển thị trên cả hai máy.
+// Số tiền cộng/trừ được tính bằng cách so sánh số dư trước và sau thao tác, nên không thể lệch với tiền thật.
+function recordEvent(room, uid, index, beforeCash, kind) {
+  const text = String(room.message || "").slice(0, 300);
+  const seq = Math.max(0, Math.trunc(Number(room.eventSeq) || 0)) + 1;
+  const event = {
+    id: seq,
+    uid,
+    kind: kind || "info",
+    text,
+    turn: Number(room.turnNumber || 1),
+    cash: cashSnapshot(room.players),
+    at: Date.now()
+  };
+  if (Number.isInteger(index) && index >= 0 && index < 40) event.index = index;
+  const deltas = cashDeltas(beforeCash, event.cash);
+  if (Object.keys(deltas).length) event.deltas = deltas;
+  room.eventSeq = seq;
+  room.event = event;
+  room.log = appendEventLog(room.log, event);
+  return event;
+}
+// Kết quả sau khi quân cờ đã đứng ở ô đích: mua/thuê/thuế/thẻ/vào tù. Trả về câu thông báo.
+function resolveLanding(room, uid, move, drawnCard, message) {
+  const player = room.players[uid];
+  const space = SPACE_DATA[move.to];
+  const id = getSpaceId(move.to);
+  if (space.type === "property" || space.type === "station" || space.type === "utility") {
+    const ownerUid = room.propertyOwners?.[id];
+    if (!ownerUid) {
+      room.pending = {uid,index:move.to};
+      message += " Tài sản này chưa có chủ. Bạn có muốn mua không?";
+    } else if (ownerUid !== uid) {
+      const owner = room.players[ownerUid];
+      const rentInfo = rentForRoom(room, move.to, move.steps);
+      if (rentInfo.rent > 0) {
+        const payment = chargePlayer(room, uid, rentInfo.rent, ownerUid, "Tiền thuê " + space.name);
+        message += " Tiền thuê " + money(rentInfo.rent) + " cho " + owner.name +
+          (rentInfo.houses === 5 ? " (khách sạn)" : rentInfo.houses > 0 ? " (" + rentInfo.houses + " nhà)" : rentInfo.wholeProvince ? " (sở hữu trọn nhóm màu, thuê gấp đôi)" : "") + ".";
+        if (payment.remaining > 0) message += " Bạn còn thiếu " + money(payment.remaining) + " và cần xử lý nợ.";
+      } else if (rentInfo.mortgaged) {
+        message += " Tài sản đang cầm cố nên tạm thời không thu tiền thuê.";
+      }
+    } else {
+      message += " Đây là tài sản của bạn.";
+    }
+  } else if (space.type === "tax") {
+    const payment = chargePlayer(room, uid, space.amount, "", "Thuế " + space.name);
+    message += " Nộp thuế " + money(space.amount) + ".";
+    if (payment.remaining > 0) message += " Bạn còn thiếu " + money(payment.remaining) + " và cần xử lý nợ.";
+  } else if (space.type === "chance" || space.type === "fortune") {
+    message += " " + applyCardEffect(room, uid, drawnCard);
+  } else if (space.type === "gotojail") {
+    sendToJail(room, uid, move.from);
+    message += " Bạn bị đưa thẳng vào tù, không nhận tiền Xuất phát.";
+  } else if (space.type === "start") {
+    message += " Bạn dừng ngay tại Xuất phát.";
+  } else if (space.type === "free") {
+    message += " Nghỉ chân tại chợ nổi Cái Răng.";
+  } else if (space.type === "jail") {
+    message += " Bạn chỉ ghé thăm nhà tù (không bị giam).";
+  }
+  return message;
+}
+function sendToJail(room, uid, from, kind = "teleport") {
+  const player = room.players[uid];
+  player.position = 10;
+  player.jailTurns = 1;
+  room.extraRoll = false;
+  room.doublesCount = 0;
+  room.lastMove = {uid,from,to:10,steps:0,kind,turnNumber:Number(room.turnNumber || 1)};
+}
 async function rollDice() {
   if (!roomState || busy || roomState.debt) return;
   if (isOpeningRollPhase(roomState)) return rollOpeningDice();
   const mine = myPlayer();
-  if (mine?.jailTurns) return releaseFromJail();
+  if (mine?.jailTurns) return rollInJail();
   setBusy(true);
   try {
     // Chọn kết quả một lần bên ngoài transaction. Nếu Firebase phải chạy lại updater,
@@ -1138,55 +1369,31 @@ async function rollDice() {
       if (!player || player.jailTurns || Number(player.position || 0) !== planned.from) return;
       const move = calculateDiceMove(player.position, dice);
       if (move.to !== planned.to || move.steps !== dice[0] + dice[1]) return;
+      const before = cashSnapshot(room.players);
+      const doubles = doublesOutcome(room.doublesCount, dice);
+      room.lastRoll = [...dice];
+      room.pending = null;
+      room.doublesCount = doubles.count;
+      room.extraRoll = doubles.extraRoll;
+      let message = player.name + " tung được " + dice[0] + " + " + dice[1] + " = " + move.steps;
+      if (doubles.goToJail) {
+        sendToJail(room, uid, move.from);
+        message += " — đôi lần thứ ba liên tiếp! Bạn bị đưa thẳng vào tù, không di chuyển.";
+        room.message = message.slice(0, 300);
+        recordEvent(room, uid, 10, before, "jail");
+        room.updatedAt = Date.now();
+        return room;
+      }
       if (move.passesStart) player.cash += SALARY;
       player.position = move.to;
-      room.lastRoll = [...dice];
       room.lastMove = {uid,from:move.from,to:move.to,steps:move.steps,dice:[...dice],turnNumber:Number(room.turnNumber || 1)};
-      room.pending = null;
-      const space = SPACE_DATA[move.to];
-      const id = getSpaceId(move.to);
-      let message = player.name + " tung được " + dice[0] + " + " + dice[1] + " = " + move.steps +
-        " bước và đến " + space.name + ".";
+      message += " bước và đến " + SPACE_DATA[move.to].name + ".";
       if (move.passesStart) message += " Đi qua Xuất phát, nhận " + money(SALARY) + ".";
-      if (space.type === "property" || space.type === "station" || space.type === "utility") {
-        const ownerUid = room.propertyOwners?.[id];
-        if (!ownerUid) {
-          room.pending = {uid,index:move.to};
-          message += " Tài sản này chưa có chủ. Bạn có muốn mua không?";
-        } else if (ownerUid !== uid) {
-          const owner = room.players[ownerUid];
-          const rentInfo = rentForRoom(room, move.to, move.steps);
-          if (rentInfo.rent > 0) {
-            const payment = chargePlayer(room, uid, rentInfo.rent, ownerUid, "Tiền thuê " + space.name);
-            message += " Tiền thuê " + money(rentInfo.rent) + " cho " + owner.name +
-              (rentInfo.houses === 5 ? " (khách sạn)" : rentInfo.houses > 0 ? " (" + rentInfo.houses + " nhà)" : rentInfo.wholeProvince ? " (sở hữu trọn bộ tỉnh, thuê gấp đôi)" : "") + ".";
-            if (payment.remaining > 0) message += " Bạn còn thiếu " + money(payment.remaining) + " và cần xử lý nợ.";
-          } else if (rentInfo.mortgaged) {
-            message += " Tài sản đang cầm cố nên tạm thời không thu tiền thuê.";
-          }
-        } else {
-          message += " Đây là tài sản của bạn.";
-        }
-      } else if (space.type === "tax") {
-        const payment = chargePlayer(room, uid, space.amount, "", "Thuế " + space.name);
-        message += " Nộp thuế " + money(space.amount) + ".";
-        if (payment.remaining > 0) message += " Bạn còn thiếu " + money(payment.remaining) + " và cần xử lý nợ.";
-      } else if (space.type === "chance" || space.type === "fortune") {
-        const cardText = applyCardEffect(room, uid, drawnCard);
-        message += " " + cardText;
-      } else if (space.type === "gotojail") {
-        player.position = 10;
-        player.jailTurns = 1;
-        room.lastMove = {uid,from:move.from,to:10,steps:0,kind:"teleport"};
-        message += " Bạn bị đưa thẳng vào tù, không nhận tiền Xuất phát.";
-      } else if (space.type === "start") {
-        message += " Bạn dừng ngay tại Xuất phát.";
-      } else if (space.type === "free") {
-        message += " Nghỉ chân tại chợ nổi Cái Răng.";
-      } else if (space.type === "jail") {
-        message += " Bạn chỉ ghé thăm nhà tù.";
-      }
+      message = resolveLanding(room, uid, move, drawnCard, message);
+      if (player.jailTurns) room.extraRoll = false;
+      else if (doubles.extraRoll) message += " Tung đôi nên bạn được tung thêm một lần!";
       room.message = message.slice(0, 300);
+      recordEvent(room, uid, Number(player.position), before, SPACE_DATA[move.to].type);
       room.updatedAt = Date.now();
       return room;
     });
@@ -1197,35 +1404,92 @@ async function rollDice() {
     setBusy(false);
   }
 }
-async function releaseFromJail() {
+// Người đang bị giam chọn "thử tung đôi".
+async function rollInJail() {
   setBusy(true);
   try {
     const uid = currentUser.uid;
-    await updateCurrentRoom((room) => {
+    const mine = myPlayer();
+    const dice = [1 + Math.floor(Math.random() * 6), 1 + Math.floor(Math.random() * 6)];
+    const planned = calculateDiceMove(mine.position, dice);
+    const landing = SPACE_DATA[planned.to];
+    const drawnCard = landing?.type === "chance" || landing?.type === "fortune" ? drawCard(landing.type) : null;
+    const result = await updateCurrentRoom((room) => {
       if (room === null) return room;
-      if (!room || room.turnUid !== uid || room.status !== "playing" || room.lastRoll || room.pending || room.debt) return;
+      if (!room || room.status !== "playing" || room.turnUid !== uid || room.pending || room.auction || room.lastRoll || room.debt) return;
+      const player = room.players?.[uid];
+      if (!player?.jailTurns || Number(player.position) !== planned.from) return;
+      const before = cashSnapshot(room.players);
+      const outcome = jailRollOutcome(player.jailTurns, dice);
+      room.lastRoll = [...dice];
+      room.pending = null;
+      room.doublesCount = 0;
+      room.extraRoll = false;
+      let message = player.name + " thử tung đôi trong tù: " + dice[0] + " + " + dice[1] + ".";
+      if (!outcome.move) {
+        player.jailTurns = outcome.nextAttempt;
+        message += " Không ra đôi nên vẫn bị giam (lần " + outcome.nextAttempt + "/" + JAIL_MAX_ATTEMPTS + "). Lượt này kết thúc.";
+        room.message = message.slice(0, 300);
+        recordEvent(room, uid, 10, before, "jail");
+        room.updatedAt = Date.now();
+        return room;
+      }
+      const move = calculateDiceMove(player.position, dice);
+      if (outcome.payFee) {
+        const payment = chargePlayer(room, uid, JAIL_FEE, "", "Phí ra tù sau 3 lần không tung đôi");
+        message += " Đã 3 lần không ra đôi nên phải nộp " + money(JAIL_FEE) + " rồi di chuyển.";
+        if (payment.remaining > 0) message += " Bạn còn thiếu " + money(payment.remaining) + " và cần xử lý nợ.";
+      } else {
+        message += " Ra đôi! Bạn được ra tù và đi " + move.steps + " bước (không được tung thêm).";
+      }
+      player.jailTurns = 0;
+      if (move.passesStart) player.cash += SALARY;
+      player.position = move.to;
+      room.lastMove = {uid,from:move.from,to:move.to,steps:move.steps,dice:[...dice],turnNumber:Number(room.turnNumber || 1)};
+      message += " Đến " + SPACE_DATA[move.to].name + ".";
+      message = resolveLanding(room, uid, move, drawnCard, message);
+      room.extraRoll = false;
+      room.message = message.slice(0, 300);
+      recordEvent(room, uid, Number(player.position), before, SPACE_DATA[move.to].type);
+      room.updatedAt = Date.now();
+      return room;
+    });
+    if (!result.committed) notify("Chưa thể thử tung đôi. Hãy kiểm tra lượt chơi.");
+  } catch (error) { notify("Lỗi khi thử tung đôi: " + explainFirebaseError(error)); }
+  finally { setBusy(false); }
+}
+// Ra tù bằng cách nộp phạt hoặc dùng thẻ. Sau đó vẫn là lượt của người chơi: họ tung xúc xắc bình thường.
+async function leaveJail(method) {
+  setBusy(true);
+  try {
+    const uid = currentUser.uid;
+    const result = await updateCurrentRoom((room) => {
+      if (room === null) return room;
+      if (!room || room.turnUid !== uid || room.status !== "playing" || room.lastRoll || room.pending || room.auction || room.debt) return;
       const player = room.players?.[uid];
       if (!player?.jailTurns) return;
-      if (Number(player.jailPasses || 0) > 0) {
+      const before = cashSnapshot(room.players);
+      if (method === "card") {
+        if (Number(player.jailPasses || 0) <= 0) return;
         player.jailPasses -= 1;
         player.jailTurns = 0;
-        room.message = player.name + " dùng thẻ miễn vào tù và được ra ngoài miễn phí.";
+        room.message = player.name + " dùng thẻ miễn vào tù và ra tù miễn phí. Hãy tung xúc xắc!";
       } else {
         const payment = chargePlayer(room, uid, JAIL_FEE, "", "Phí ra tù", {resumeJail:true});
         if (payment.remaining > 0) {
           room.message = player.name + " chưa đủ " + money(JAIL_FEE) + " để nộp phạt. Hãy bán nhà hoặc cầm cố tài sản để trả nợ.";
+          recordEvent(room, uid, 10, before, "jail");
           room.updatedAt = Date.now();
           return room;
         }
         player.jailTurns = 0;
-        room.message = player.name + " đã nộp " + money(JAIL_FEE) + " và ra tù. Lượt này kết thúc.";
+        room.message = player.name + " đã nộp " + money(JAIL_FEE) + " và ra tù. Hãy tung xúc xắc!";
       }
-      room.turnUid = Object.keys(room.players).find((id) => id !== uid);
-      room.turnNumber = Number(room.turnNumber || 1) + 1;
-      room.lastRoll = null;
+      recordEvent(room, uid, 10, before, "jail");
       room.updatedAt = Date.now();
       return room;
     });
+    if (result && result.committed === false) notify("Chưa thể ra tù lúc này.");
   } catch (error) { notify("Không thể xử lý ra tù: " + explainFirebaseError(error)); }
   finally { setBusy(false); }
   if (computerGame && !computerBusy) scheduleComputerTurn();
@@ -1242,11 +1506,14 @@ async function buyProperty() {
       const player = room.players?.[uid];
       const key = getSpaceId(room.pending.index);
       if (!space?.price || !player || room.auction || room.propertyOwners?.[key] || player.cash < space.price) return;
+      const before = cashSnapshot(room.players);
+      const boughtIndex = Number(room.pending.index);
       player.cash -= space.price;
       room.propertyOwners = room.propertyOwners || {};
       room.propertyOwners[key] = uid;
       room.pending = null;
       room.message = player.name + " đã mua " + space.name + " với giá " + money(space.price) + ".";
+      recordEvent(room, uid, boughtIndex, before, "buy");
       room.updatedAt = Date.now();
       return room;
     });
@@ -1264,16 +1531,18 @@ async function buildHouse(index) {
       const player = room.players?.[uid];
       const check = buildEligibility(SPACE_DATA, room.propertyOwners, room.houses || {}, room.mortgages || {}, uid, index, player?.cash);
       if (!check.ok || !player) return;
+      const before = cashSnapshot(room.players);
       player.cash -= check.cost;
       room.houses = room.houses || {};
       const key = getSpaceId(index);
       room.houses[key] = Number(room.houses[key] || 0) + 1;
       const label = room.houses[key] === 5 ? "khách sạn" : "căn nhà";
       room.message = player.name + " xây " + label + " tại " + SPACE_DATA[index].name + " với chi phí " + money(check.cost) + ".";
+      recordEvent(room, uid, index, before, "build");
       room.updatedAt = Date.now();
       return room;
     });
-    if (result?.committed === false) notify("Chưa thể xây: cần sở hữu trọn bộ tỉnh, xây đều và đủ tiền.");
+    if (result?.committed === false) notify("Chưa thể xây: cần sở hữu trọn nhóm màu, xây đều và đủ tiền.");
   } catch (error) { notify("Không xây được nhà: " + explainFirebaseError(error)); }
   finally { setBusy(false); }
 }
@@ -1288,12 +1557,14 @@ async function sellHouse(index) {
           (room.debt ? room.debt.uid !== uid : room.turnUid !== uid)) return;
       const check = sellHouseEligibility(SPACE_DATA, room.propertyOwners, room.houses || {}, uid, index);
       if (!check.ok) return;
+      const before = cashSnapshot(room.players);
       const key = getSpaceId(index);
       room.houses[key] = Number(room.houses[key] || 0) - 1;
       if (room.houses[key] <= 0) delete room.houses[key];
       applyDebtFunds(room, uid, check.refund);
       if (room.debt?.uid === uid) room.message = "Đã bán một công trình tại " + SPACE_DATA[index].name + ", thu về " + money(check.refund) + ". Còn nợ " + money(room.debt.amount) + ".";
       else room.message = "Đã bán một công trình tại " + SPACE_DATA[index].name + ", thu về " + money(check.refund) + ".";
+      recordEvent(room, uid, index, before, "sellHouse");
       room.updatedAt = Date.now();
       return room;
     });
@@ -1312,6 +1583,7 @@ async function mortgageAsset(index) {
           (room.debt ? room.debt.uid !== uid : room.turnUid !== uid)) return;
       const check = mortgageEligibility(SPACE_DATA, room.propertyOwners, room.houses || {}, room.mortgages || {}, uid, index);
       if (!check.ok) return;
+      const before = cashSnapshot(room.players);
       const key = getSpaceId(index);
       room.mortgages = room.mortgages || {};
       room.mortgages[key] = check.amount;
@@ -1319,10 +1591,11 @@ async function mortgageAsset(index) {
       room.message = room.debt?.uid === uid
         ? "Đã cầm cố " + SPACE_DATA[index].name + ", nhận " + money(check.amount) + ". Còn nợ " + money(room.debt.amount) + "."
         : "Đã cầm cố " + SPACE_DATA[index].name + " và nhận " + money(check.amount) + ". Tài sản tạm ngưng thu tiền thuê.";
+      recordEvent(room, uid, index, before, "mortgage");
       room.updatedAt = Date.now();
       return room;
     });
-    if (result?.committed === false) notify("Chưa thể cầm cố. Hãy bán hết nhà trong cùng tỉnh trước.");
+    if (result?.committed === false) notify("Chưa thể cầm cố. Hãy bán hết nhà trong cùng nhóm màu trước.");
   } catch (error) { notify("Không cầm cố được tài sản: " + explainFirebaseError(error)); }
   finally { setBusy(false); }
 }
@@ -1339,9 +1612,11 @@ async function redeemAsset(index) {
       const cost = redemptionCost(amount);
       const player = room.players?.[uid];
       if (!amount || !player || player.cash < cost) return;
+      const before = cashSnapshot(room.players);
       player.cash -= cost;
       delete room.mortgages[key];
       room.message = player.name + " đã giải chấp " + SPACE_DATA[index].name + " với chi phí " + money(cost) + ".";
+      recordEvent(room, uid, index, before, "redeem");
       room.updatedAt = Date.now();
       return room;
     });
@@ -1359,6 +1634,8 @@ async function declareBankruptcy(skipConfirm = false) {
       if (room === null) return room;
       if (!room || room.status !== "playing" || room.debt?.uid !== uid ||
           hasLiquidationOptions(SPACE_DATA, room.propertyOwners, room.houses || {}, room.mortgages || {}, uid)) return;
+      const before = cashSnapshot(room.players);
+      const bankruptcyIndex = Number.isInteger(room.event?.index) ? room.event.index : undefined;
       const debtor = room.players?.[uid];
       const creditorUid = room.debt.creditorUid || "";
       const creditor = creditorUid && room.players?.[creditorUid] ? creditorUid : "";
@@ -1378,6 +1655,7 @@ async function declareBankruptcy(skipConfirm = false) {
       room.winner = creditor || Object.keys(room.players || {}).find((id) => id !== uid);
       room.message = debtor.name + " không thể thanh toán và đã phá sản. " +
         (room.players?.[room.winner]?.name || "Người chơi còn lại") + " chiến thắng.";
+      recordEvent(room, uid, bankruptcyIndex, before, "bankruptcy");
       room.updatedAt = Date.now();
       return room;
     });
@@ -1396,8 +1674,9 @@ function handleDeedAction(event) {
     case "redeem-asset": redeemAsset(index); break;
   }
 }
+// Mọi tài sản chưa có chủ (đất, bến, công ty tiện ích) đều được đấu giá khi người chơi bỏ qua quyền mua.
 function isAuctionSpace(space) {
-  return space?.type === "station" || space?.type === "utility";
+  return isAuctionable(space);
 }
 function nextAuctionBid(auction) {
   return Number(auction?.currentBid || 0) + AUCTION_INCREMENT;
@@ -1431,6 +1710,7 @@ async function passProperty() {
       if (!room || room.turnUid !== uid || room.pending?.uid !== uid || room.auction || room.debt) return;
       const index = Number(room.pending.index);
       const space = SPACE_DATA[index];
+      const before = cashSnapshot(room.players);
       room.pending = null;
       if (isAuctionSpace(space)) {
         const nextUid = Object.keys(room.players || {}).find((id) => id !== uid);
@@ -1446,6 +1726,7 @@ async function passProperty() {
       } else {
         room.message = room.players[uid].name + " quyết định không mua " + (space?.name || "tài sản") + ".";
       }
+      recordEvent(room, uid, index, before, "auction");
       room.updatedAt = Date.now();
       return room;
     });
@@ -1467,11 +1748,13 @@ async function placeAuctionBid() {
       if (!player || player.cash < amount) return;
       const space = SPACE_DATA[Number(auction.index)];
       if (!isAuctionSpace(space) || room.propertyOwners?.[getSpaceId(auction.index)]) return;
+      const before = cashSnapshot(room.players);
       auction.currentBid = amount;
       auction.highestUid = uid;
       auction.passedUid = "";
       auction.turnUid = Object.keys(room.players || {}).find((id) => id !== uid);
       room.message = player.name + " trả giá " + money(amount) + " cho " + space.name + ".";
+      recordEvent(room, uid, Number(auction.index), before, "auction");
       room.updatedAt = Date.now();
       return room;
     });
@@ -1489,16 +1772,21 @@ async function passAuction() {
       if (room === null) return room;
       const auction = room?.auction;
       if (!room || room.status !== "playing" || !auction || auction.turnUid !== uid || room.pending || room.debt) return;
+      const before = cashSnapshot(room.players);
+      const auctionIndex = Number(auction.index);
       if (auction.highestUid && auction.highestUid !== uid) {
         closeAuction(room, auction.highestUid);
+        recordEvent(room, room.turnUid, auctionIndex, before, "auction");
       } else if (!auction.highestUid && auction.passedUid && auction.passedUid !== uid) {
         closeAuction(room, null);
+        recordEvent(room, room.turnUid, auctionIndex, before, "auction");
       } else {
         const nextUid = Object.keys(room.players || {}).find((id) => id !== uid);
         auction.passedUid = uid;
         auction.turnUid = nextUid;
         room.message = room.players[uid].name + " bỏ lượt đấu giá. " +
           (room.players?.[nextUid]?.name || "Người chơi còn lại") + " được quyền trả giá.";
+        recordEvent(room, uid, auctionIndex, before, "auction");
         room.updatedAt = Date.now();
       }
       return room;
@@ -1517,9 +1805,20 @@ async function endTurn() {
       if (room === null) return room;
       if (!room || room.status !== "playing" || room.debt || !canAdvanceTurn(room) || room.turnUid !== uid || room.pending || room.auction || !room.lastRoll) return;
       const nextUid = Object.keys(room.players || {}).find((id) => id !== uid);
+      // Tung đôi: giữ nguyên người chơi, chỉ mở lại quyền tung xúc xắc.
+      if (room.extraRoll === true && !room.players?.[uid]?.jailTurns) {
+        room.extraRoll = false;
+        room.turnNumber = Number(room.turnNumber || 1) + 1;
+        room.lastRoll = null;
+        room.message = (room.players?.[uid]?.name || "Người chơi") + " tung đôi nên được tung thêm một lần.";
+        room.updatedAt = Date.now();
+        return room;
+      }
       room.turnUid = nextUid;
       room.turnNumber = Number(room.turnNumber || 1) + 1;
       room.lastRoll = null;
+      room.extraRoll = false;
+      room.doublesCount = 0;
       room.message = "Đến lượt " + (room.players?.[nextUid]?.name || "người chơi tiếp theo") + ".";
       room.updatedAt = Date.now();
       return room;
@@ -1528,24 +1827,15 @@ async function endTurn() {
   finally { setBusy(false); }
   if (computerGame && !computerBusy) scheduleComputerTurn();
 }
-function scheduleAutoEnd() {
-  const ok = roomState && currentUser && roomState.status === "playing" && !roomState.debt &&
-    canAdvanceTurn(roomState) && roomState.turnUid === currentUser.uid &&
-    roomState.lastRoll && !roomState.pending && !roomState.auction && !computerBusy && currentUser.uid !== COMPUTER_UID;
-  if (!ok) return;
-  const key = currentRoomCode + ":" + roomState.turnNumber;
-  if (autoEndKey === key) return;
-  autoEndKey = key;
-  clearTimeout(autoEndTimer);
-  const fire = () => {
-    if (!roomState || roomState.debt || roomState.turnUid !== currentUser?.uid || !roomState.lastRoll || roomState.pending || roomState.auction) return;
-    if (busy) { autoEndTimer = setTimeout(fire, 400); return; }
-    endTurn();
-  };
-  autoEndTimer = setTimeout(fire, AUTO_END_MS);
-}
 function startComputerGame() {
   if (busy) return;
+  resetEffects();
+  clearTimeout(holdTimer);
+  holdTimer = null;
+  cameraRestored = false;
+  epSeenId = 0;
+  epMinimized = false;
+  eventHoldUntil = 0;
   const humanUid = getPlayerId();
   currentUser = {uid:humanUid};
   computerGame = true;
@@ -1660,6 +1950,11 @@ async function playComputerTurn() {
     } else if (roomState.turnUid === COMPUTER_UID && roomState.lastRoll && !roomState.pending && !roomState.auction) {
       await endTurn();
     } else if (roomState.turnUid === COMPUTER_UID) {
+      const cp = roomState.players?.[COMPUTER_UID];
+      if (cp?.jailTurns && !roomState.lastRoll) {
+        if (Number(cp.jailPasses || 0) > 0) await leaveJail("card");
+        else if (Number(cp.cash || 0) >= JAIL_FEE + 300) await leaveJail("fee");
+      }
       await rollDice();
       if (!roomState || roomState.status !== "playing" || roomState.turnUid !== COMPUTER_UID) return;
       if (roomState.pending?.uid === COMPUTER_UID) {
@@ -1670,7 +1965,7 @@ async function playComputerTurn() {
       }
       if (roomState && roomState.status === "playing" && !roomState.debt &&
           roomState.turnUid === COMPUTER_UID && roomState.lastRoll && !roomState.pending && !roomState.auction) {
-        await new Promise((resolve) => setTimeout(resolve, 550));
+        await new Promise((resolve) => setTimeout(resolve, 1800));
         await endTurn();
       }
     }
@@ -1696,6 +1991,18 @@ $("createRoomButton").addEventListener("click", createRoom);
 $("joinRoomButton").addEventListener("click", joinRoom);
 $("playComputerButton").addEventListener("click", startComputerGame);
 $("rollButton").addEventListener("click", rollDice);
+camera = createCamera({
+  stage: $("stage"), wrap: document.querySelector("#gameView .board-wrap"), board: $("board"), reduceMotion,
+  onChange: (mode) => { $("camOverviewButton").hidden = mode === "overview"; }
+});
+$("camOverviewButton").addEventListener("click", () => camera.manualOverview());
+window.addEventListener("resize", () => camera.invalidate());
+window.addEventListener("orientationchange", () => camera.invalidate());
+$("epMinButton").addEventListener("click", () => { epMinimized = !epMinimized; renderEventPanel(); });
+$("epHistoryButton").addEventListener("click", () => { renderHistory(); $("historyModal").hidden = false; });
+$("historyClose").addEventListener("click", () => { $("historyModal").hidden = true; });
+$("historyModal").addEventListener("click", (event) => { if (event.target === $("historyModal")) $("historyModal").hidden = true; });
+$("cellInfo").addEventListener("click", (event) => { if (event.target.closest(".cell-info-close")) $("cellInfo").classList.remove("show"); });
 $("propsButton").addEventListener("click", () => { $("propsModal").hidden = false; });
 $("propertyList").addEventListener("click", handleDeedAction);
 $("propsClose").addEventListener("click", () => { $("propsModal").hidden = true; });

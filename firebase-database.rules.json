@@ -88,7 +88,7 @@
         "auction": {
           ".validate": "newData.hasChildren(['index', 'turnUid', 'currentBid', 'highestUid', 'openedByUid', 'passedUid'])",
           "index": {
-            ".validate": "newData.isNumber() && (newData.val() == 5 || newData.val() == 12 || newData.val() == 15 || newData.val() == 25 || newData.val() == 28 || newData.val() == 35)"
+            ".validate": "newData.isNumber() && (newData.val() == 1 || newData.val() == 3 || newData.val() == 5 || newData.val() == 6 || newData.val() == 8 || newData.val() == 9 || newData.val() == 11 || newData.val() == 12 || newData.val() == 13 || newData.val() == 14 || newData.val() == 15 || newData.val() == 16 || newData.val() == 18 || newData.val() == 19 || newData.val() == 21 || newData.val() == 23 || newData.val() == 24 || newData.val() == 25 || newData.val() == 26 || newData.val() == 27 || newData.val() == 28 || newData.val() == 29 || newData.val() == 31 || newData.val() == 32 || newData.val() == 34 || newData.val() == 35 || newData.val() == 37 || newData.val() == 39)"
           },
           "turnUid": {
             ".validate": "newData.isString() && newData.parent().parent().child('players').hasChild(newData.val())"
@@ -199,6 +199,85 @@
               ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 6"
             },
             ".validate": "newData.hasChildren(['0','1'])"
+          }
+        },
+        "doublesCount": {
+          ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 2"
+        },
+        "extraRoll": {
+          ".validate": "newData.isBoolean()"
+        },
+        "eventSeq": {
+          ".validate": "newData.isNumber() && newData.val() >= 0"
+        },
+        "event": {
+          ".validate": "newData.hasChildren(['id','uid','kind','text','turn','cash','at'])",
+          "id": {
+            ".validate": "newData.isNumber() && newData.val() >= 1"
+          },
+          "uid": {
+            ".validate": "newData.isString() && newData.parent().parent().child('players').hasChild(newData.val())"
+          },
+          "kind": {
+            ".validate": "newData.isString() && newData.val().length <= 20"
+          },
+          "text": {
+            ".validate": "newData.isString() && newData.val().length <= 300"
+          },
+          "turn": {
+            ".validate": "newData.isNumber()"
+          },
+          "index": {
+            ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 39"
+          },
+          "at": {
+            ".validate": "newData.isNumber()"
+          },
+          "cash": {
+            "$uid": {
+              ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 1000000 && newData.parent().parent().parent().child('players').hasChild($uid)"
+            }
+          },
+          "deltas": {
+            "$uid": {
+              ".validate": "newData.isNumber() && newData.val() >= -1000000 && newData.val() <= 1000000 && newData.parent().parent().parent().child('players').hasChild($uid)"
+            }
+          }
+        },
+        "log": {
+          "$i": {
+            ".validate": "$i.matches(/^[0-9]{1,2}$/) && newData.hasChildren(['id','uid','kind','text','turn','cash','at'])",
+            "id": {
+              ".validate": "newData.isNumber() && newData.val() >= 1"
+            },
+            "uid": {
+              ".validate": "newData.isString() && newData.parent().parent().parent().child('players').hasChild(newData.val())"
+            },
+            "kind": {
+              ".validate": "newData.isString() && newData.val().length <= 20"
+            },
+            "text": {
+              ".validate": "newData.isString() && newData.val().length <= 300"
+            },
+            "turn": {
+              ".validate": "newData.isNumber()"
+            },
+            "index": {
+              ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 39"
+            },
+            "at": {
+              ".validate": "newData.isNumber()"
+            },
+            "cash": {
+              "$uid": {
+                ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 1000000 && newData.parent().parent().parent().parent().child('players').hasChild($uid)"
+              }
+            },
+            "deltas": {
+              "$uid": {
+                ".validate": "newData.isNumber() && newData.val() >= -1000000 && newData.val() <= 1000000 && newData.parent().parent().parent().parent().child('players').hasChild($uid)"
+              }
+            }
           }
         }
       }

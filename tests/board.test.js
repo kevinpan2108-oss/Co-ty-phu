@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
+import { isAuctionable, getHouseCost, buildEligibility, propertyGroupIndices, calcRent as economyRent } from "../economy.js";
 
 const app = await readFile(new URL("../app.js", import.meta.url), "utf8");
 
@@ -12,6 +13,7 @@ function extractFunction(name) {
 }
 const spaceSource = app.match(/const SPACE_DATA = (\[[\s\S]*?\n\]);/)[1];
 const api = new Function(
+  "isAuctionable",
   `const SPACE_DATA = ${spaceSource};
    const AUCTION_INCREMENT = 10;
    const COMPUTER_UID = "__computer__";
@@ -26,7 +28,7 @@ const api = new Function(
    ${extractFunction("compareOpeningRolls")}
    ${extractFunction("isComputerActionDue")}
    return {SPACE_DATA, provinceCells, ownsWholeProvince, calcRent, isAuctionSpace, nextAuctionBid, isOpeningRollPhase, canAdvanceTurn, compareOpeningRolls, isComputerActionDue};`
-)();
+)(isAuctionable);
 const { SPACE_DATA, provinceCells, ownsWholeProvince, calcRent, isAuctionSpace, nextAuctionBid, isOpeningRollPhase, canAdvanceTurn, compareOpeningRolls, isComputerActionDue } = api;
 
 const MEKONG_PROVINCES = [
@@ -40,12 +42,47 @@ test("the board has 40 spaces and 22 purchasable places", () => {
   assert.equal(properties.length, 22);
 });
 
-test("every one of the 13 Mekong Delta provinces appears on the board", () => {
-  const groups = new Set(properties.map((space) => space.group));
-  assert.deepEqual([...groups].sort(), [...MEKONG_PROVINCES].sort());
+const EXPECTED_GROUPS = [
+  ["Đầu nguồn", [1, 3], 50],
+  ["Xứ dừa", [6, 8, 9], 50],
+  ["Sắc Khmer", [11, 13, 14], 100],
+  ["Chợ nổi", [16, 18, 19], 100],
+  ["Tây Đô", [21, 23, 24], 150],
+  ["Miền duyên hải", [26, 27, 29], 150],
+  ["Rừng tràm biên giới", [31, 32, 34], 200],
+  ["Đất mũi biển đảo", [37, 39], 200]
+];
+
+test("22 properties are split into exactly 8 colour groups with Monopoly structure (2,3,3,3,3,3,3,2)", () => {
+  const groups = new Map();
+  for (const space of properties) groups.set(space.group, [...(groups.get(space.group) || []), space.index]);
+  assert.equal(groups.size, 8);
+  assert.deepEqual([...groups.values()].map((cells) => cells.length), [2, 3, 3, 3, 3, 3, 3, 2]);
+  for (const [name, cells] of EXPECTED_GROUPS.map(([n, c]) => [n, c])) assert.deepEqual(groups.get(name), cells);
 });
 
-test("each place has an icon, a description and a province colour", () => {
+test("no colour group has a single tile, so every group can build houses", () => {
+  for (const [name] of EXPECTED_GROUPS) {
+    const cells = provinceCells(name);
+    assert.ok(cells.length >= 2, `${name} needs at least 2 tiles`);
+    const owners = Object.fromEntries(cells.map((i) => [`s${i}`, "p1"]));
+    assert.equal(buildEligibility(SPACE_DATA, owners, {}, {}, "p1", cells[0], 1000).ok, true, `${name} can build`);
+  }
+});
+
+test("the 40 board indexes keep their positions (rooms stay compatible)", () => {
+  const types = SPACE_DATA.map((s) => s.type[0] + s.type.length).join(",");
+  const expectedCorners = { 0: "start", 10: "jail", 20: "free", 30: "gotojail" };
+  for (const [i, type] of Object.entries(expectedCorners)) assert.equal(SPACE_DATA[i].type, type);
+  assert.deepEqual([5, 15, 25, 35].map((i) => SPACE_DATA[i].type), ["station", "station", "station", "station"]);
+  assert.deepEqual([12, 28].map((i) => SPACE_DATA[i].type), ["utility", "utility"]);
+  assert.deepEqual([2, 17, 33].map((i) => SPACE_DATA[i].type), ["chance", "chance", "chance"]);
+  assert.deepEqual([7, 22, 36].map((i) => SPACE_DATA[i].type), ["fortune", "fortune", "fortune"]);
+  assert.deepEqual([4, 38].map((i) => SPACE_DATA[i].type), ["tax", "tax"]);
+  assert.ok(types.length > 0);
+});
+
+test("each place has an icon, a description and one colour per group", () => {
   const colorOf = new Map();
   for (const space of properties) {
     assert.ok(space.icon, `${space.name} needs an icon`);
@@ -54,7 +91,20 @@ test("each place has an icon, a description and a province colour", () => {
     assert.equal(colorOf.get(space.group) ?? space.color, space.color, `${space.group} must use one colour`);
     colorOf.set(space.group, space.color);
   }
-  assert.equal(new Set(colorOf.values()).size, 13, "each province has its own colour");
+  assert.equal(new Set(colorOf.values()).size, 8, "each group has its own colour");
+});
+
+test("prices, base rents and house costs follow the Monopoly scale", () => {
+  const priceList = properties.map((p) => p.price);
+  assert.deepEqual(priceList, [60, 60, 100, 100, 120, 140, 140, 160, 180, 180, 200, 220, 220, 240, 260, 260, 280, 300, 300, 320, 350, 400]);
+  const rentList = properties.map((p) => p.rent);
+  assert.deepEqual(rentList, [2, 4, 6, 6, 8, 10, 10, 12, 14, 14, 16, 18, 18, 20, 22, 22, 24, 26, 26, 28, 35, 50]);
+  for (const [name, cells, cost] of EXPECTED_GROUPS) {
+    for (const cell of cells) assert.equal(getHouseCost(SPACE_DATA, cell), cost, `${name} house cost`);
+  }
+  // Khách sạn = nhà thứ 5 trả cùng đơn giá xây.
+  const owners = { s37: "p1", s39: "p1" };
+  assert.equal(buildEligibility(SPACE_DATA, owners, { s37: 4, s39: 4 }, {}, "p1", 37, 1000).cost, 200);
 });
 
 test("prices rise along the board and rent stays below price", () => {
@@ -64,8 +114,8 @@ test("prices rise along the board and rent stays below price", () => {
   for (const space of properties) assert.ok(space.rent < space.price);
 });
 
-test("owning every place of a province doubles the rent", () => {
-  const [a, b] = provinceCells("Tiền Giang");
+test("owning a whole colour group doubles the base rent; houses use the Monopoly multipliers", () => {
+  const [a, b] = provinceCells("Đầu nguồn");
   const space = SPACE_DATA[a];
   const one = calcRent(space, { [`s${a}`]: "p1" }, "p1", 7);
   assert.deepEqual(one, { rent: space.rent, wholeProvince: false });
@@ -73,13 +123,16 @@ test("owning every place of a province doubles the rent", () => {
   assert.deepEqual(both, { rent: space.rent * 2, wholeProvince: true });
   const split = calcRent(space, { [`s${a}`]: "p1", [`s${b}`]: "p2" }, "p1", 7);
   assert.equal(split.wholeProvince, false);
+  const owners = { [`s${a}`]: "p1", [`s${b}`]: "p1" };
+  // Mediterranean-style: 2 → 10 / 30 / 90 / 160 / 250 theo bội số 5/15/45/80/125.
+  const rents = [1, 2, 3, 4, 5].map((n) => economyRent(SPACE_DATA, space, owners, "p1", 7, a, { [`s${a}`]: n }, {}).rent);
+  assert.deepEqual(rents, [10, 30, 90, 160, 250]);
 });
 
-test("provinces with a single place never get the province bonus", () => {
-  for (const province of ["Long An", "Hậu Giang", "Kiên Giang", "Cà Mau"]) {
-    const cells = provinceCells(province);
-    assert.equal(cells.length, 1, `${province} has one place`);
-    assert.equal(ownsWholeProvince({ [`s${cells[0]}`]: "p1" }, province, "p1"), false);
+test("every group of two or more tiles gets the group bonus; one owner of a partial group does not", () => {
+  for (const [name, cells] of EXPECTED_GROUPS) {
+    assert.equal(ownsWholeProvince(Object.fromEntries(cells.slice(1).map((i) => [`s${i}`, "p1"])), name, "p1"), false);
+    assert.equal(ownsWholeProvince(Object.fromEntries(cells.map((i) => [`s${i}`, "p1"])), name, "p1"), true);
   }
 });
 
@@ -93,15 +146,12 @@ test("stations double per extra station and utilities depend on the dice", () =>
   assert.equal(calcRent(SPACE_DATA[utilities[0]], { [`s${utilities[0]}`]: "p1", [`s${utilities[1]}`]: "p1" }, "p1", 6).rent, 60);
 });
 
-test("only stations and utilities enter the auction flow", () => {
-  const stations = SPACE_DATA.filter((space) => space.type === "station");
-  const utilities = SPACE_DATA.filter((space) => space.type === "utility");
-  const properties = SPACE_DATA.filter((space) => space.type === "property");
-  assert.equal(stations.length, 4);
-  assert.equal(utilities.length, 2);
-  assert.ok(stations.every(isAuctionSpace));
-  assert.ok(utilities.every(isAuctionSpace));
-  assert.ok(properties.every((space) => !isAuctionSpace(space)));
+test("every unowned purchasable asset can be auctioned; corners, cards and taxes cannot", () => {
+  for (const space of SPACE_DATA) {
+    const buyable = ["property", "station", "utility"].includes(space.type);
+    assert.equal(isAuctionSpace(space), buyable, `${space.name}`);
+  }
+  assert.equal(SPACE_DATA.filter(isAuctionSpace).length, 28);
 });
 
 test("auction starts at 100,000₫ and rises in 100,000₫ steps", () => {

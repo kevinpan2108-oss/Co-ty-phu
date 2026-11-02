@@ -8,8 +8,10 @@ Web game tiếng Việt với bàn cờ lấy cảm hứng từ Đồng bằng s
 ## Nội dung và giao diện
 
 - Bàn cờ 40 ô với địa danh thuộc đủ 13 tỉnh/thành ĐBSCL trong bộ dữ liệu game.
-- 22 ô bất động sản, chia nhóm theo tỉnh; sở hữu toàn bộ ô của một tỉnh sẽ được nhân đôi tiền thuê.
-- Khung thông tin ô: tên địa danh, giới thiệu, giá mua, tiền thuê và thưởng sở hữu trọn tỉnh.
+- 22 ô bất động sản chia thành 8 nhóm màu theo thang giá và chiến thuật Monopoly (cấu trúc 2–3–3–3–3–3–3–2); địa danh vẫn đại diện cho 13 tỉnh/thành miền Tây.
+- Sở hữu toàn bộ một nhóm màu được nhân đôi tiền thuê đất trống và mở khóa xây nhà/khách sạn; xây/bán phải cân bằng giữa các ô.
+- Bảng Event Panel hiển thị sự kiện, tiền cộng/trừ, số dư và lịch sử giao dịch; người chơi xác nhận thủ công trước khi kết thúc lượt.
+- Camera tự zoom và theo token khi di chuyển, focus ô đích rồi trở lại toàn cảnh sau khi xác nhận sự kiện.
 - Phong cách miền Tây sông nước, cảnh hoàng hôn, khung bàn cờ và bảng màu riêng.
 - Xúc xắc có hiệu ứng lăn; quân cờ di chuyển từng ô; hiệu ứng tiền, dấu chủ sở hữu và pháo giấy khi thắng.
 - Tôn trọng cài đặt giảm chuyển động của thiết bị.
@@ -46,7 +48,7 @@ npm run test:e2e
 ```
 
 - Unit/smoke tests kiểm tra dữ liệu 40 ô, 13 tỉnh, tiền thuê, chiến lược máy, và mô phỏng Rules.
-- E2E mở hai trình duyệt Chromium độc lập để kiểm tra luồng online giả lập, hiệu ứng, giao diện 390px/360px và chế độ chơi với máy.
+- E2E mở hai trình duyệt Chromium độc lập để kiểm tra luồng online giả lập, camera focus/overview, Event Panel/lịch sử, giao dịch tài sản, chế độ chơi với máy và giao diện 390px/360px.
 - Bộ mô phỏng Rules không thay thế Firebase Emulator / Rules Playground. Chưa thể thay thế bước thử trực tiếp trên hai thiết bị với Firebase thật.
 
 ## Nhánh và phát hành

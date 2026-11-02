@@ -54,11 +54,11 @@ function evaluate(expr, scope) {
   let fn = compiled.get(expr);
   if (!fn) {
     const js = expr.replace(/(?<![=!<>])==(?!=)/g, "===").replace(/!=(?!=)/g, "!==");
-    fn = new Function("auth", "data", "newData", "$roomId", "$uid", "$spaceId", `return !!(${js});`);
+    fn = new Function("auth", "data", "newData", "$roomId", "$uid", "$spaceId", "$i", `return !!(${js});`);
     compiled.set(expr, fn);
   }
   try {
-    return fn(scope.auth, scope.data, scope.newData, scope.vars.$roomId, scope.vars.$uid, scope.vars.$spaceId);
+    return fn(scope.auth, scope.data, scope.newData, scope.vars.$roomId, scope.vars.$uid, scope.vars.$spaceId, scope.vars.$i);
   } catch {
     return false; // lỗi khi đánh giá rule => Firebase từ chối
   }
