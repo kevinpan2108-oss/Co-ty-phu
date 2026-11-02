@@ -272,9 +272,27 @@ let rules;
     exactMove?.dice?.join(",") === "1,2" && exactMove.steps === 3 && exactMove.to === 3 &&
     store.rooms[code].players[store.rooms[code].creatorUid].position === 3,
     JSON.stringify(exactMove));
-  check("A thấy nút Mua 600.000₫; B không thấy", /Mua 600\.000₫/.test(await text(pa.page, "#pendingActions")) && (await pb.page.locator("#pendingActions button").count()) === 0);
-  const buyBoxes = await pa.page.locator("#pendingActions button").evaluateAll((els) => els.map((el) => { const r = el.getBoundingClientRect(); return [Math.round(r.width), Math.round(r.height)]; }));
-  check("hộp Mua/Bỏ qua đã gọn, không che mặt bàn", buyBoxes.length === 2 && buyBoxes.every(([w,h]) => w <= 105 && h <= 38), JSON.stringify(buyBoxes));
+  check("A thấy thẻ FOR SALE và nút Mua 600.000₫; B chỉ thấy trạng thái chờ",
+    /Mua 600\\.000₫/.test(await text(pa.page, "#pendingActions")) &&
+    (await pb.page.locator("#pendingActions button").count()) === 0 &&
+    !(await pa.page.locator("#interactionCard").isHidden()) &&
+    /FOR SALE/.test(await text(pa.page, "#dealRibbon")));
+  const dealLayout = await pa.page.evaluate(() => {
+    const card = document.querySelector("#interactionCard").getBoundingClientRect();
+    const buttons = [...document.querySelectorAll("#pendingActions button")].map(el => {
+      const r = el.getBoundingClientRect();
+      return [Math.round(r.width),Math.round(r.height),r.left >= card.left - 1 && r.right <= card.right + 1];
+    });
+    return {card:[Math.round(card.width),Math.round(card.height)],buttons,
+      rentRows:document.querySelectorAll("#dealRentList .deed-rent-row").length,
+      price:document.querySelector("#dealPrice")?.textContent};
+  });
+  check("thẻ quyền sở hữu có giá mua, thế chấp và đủ 7 mức tiền thuê",
+    dealLayout.rentRows === 7 && dealLayout.price === "600.000₫" && dealLayout.card[0] <= 430,
+    JSON.stringify(dealLayout));
+  check("nút Mua/Đấu giá nằm gọn bên trong thẻ giao dịch",
+    dealLayout.buttons.length === 2 && dealLayout.buttons.every(([w,h,inside]) => w <= 220 && h >= 38 && inside),
+    JSON.stringify(dealLayout));
   check("không còn nút Kết thúc lượt", (await pa.page.locator("#endTurnButton").count()) === 0);
   check("lượt chưa chuyển khi A chưa quyết định mua", /Mua/.test(await text(pa.page, "#pendingActions")) && (await pb.page.locator("#rollButton").isDisabled()));
   await pa.page.click("#pendingActions .primary-button");
@@ -319,23 +337,24 @@ let rules;
   check("camera lia theo ít nhất ba vị trí của token ở máy B", uniqueFollowTargets(cameraTraceB) >= 3, JSON.stringify(cameraTraceB));
   await pa.page.waitForTimeout(2500);
   check("không tự động chuyển lượt khi người chơi chưa xác nhận", /An/.test(await text(pa.page, "#turnName")) && (await pb.page.locator("#rollButton").isDisabled()) && /Tiếp tục/.test(await text(pa.page, "#rollButton")) && (await pa.page.locator("#confirmEventButton").count()) === 0);
-  check("Bảng sự kiện nêu ô vừa đến, tiền trừ và số dư", /Chợ nổi Cái Bè|Làng nổi/.test(await text(pa.page, "#epTitle")) && /600\.000₫/.test(await text(pa.page, "#epMoney")) && /14\.400\.000₫/.test(await text(pa.page, "#epBalances")));
+  check("thẻ giao dịch nêu ô vừa đến, tiền trừ và số dư",
+    /Chợ nổi Cái Bè|Làng nổi/.test(await text(pa.page, "#epTitle")) &&
+    /600\\.000₫/.test(await text(pa.page, "#epMoney")) &&
+    /14\\.400\\.000₫/.test(await text(pa.page, "#epBalances")));
   const panelLayout = await pa.page.evaluate(() => {
-    const panel = document.querySelector("#eventPanel").getBoundingClientRect();
+    const panel = document.querySelector("#interactionCard").getBoundingClientRect();
     const stage = document.querySelector("#stage").getBoundingClientRect();
-    return {
-      left: panel.left,
-      right: panel.right,
-      width: panel.width,
-      stageMid: stage.left + stage.width / 2,
-      mode: document.querySelector("#stage")?.dataset.camera
-    };
+    return {left:panel.left,right:panel.right,width:panel.width,stageMid:stage.left + stage.width / 2,
+      mode:document.querySelector("#interactionCard")?.dataset.mode,
+      hidden:document.querySelector("#interactionCard")?.hidden};
   });
-  check("Event Panel né vùng camera đang theo token và nằm ở cạnh phải",
-    panelLayout.mode === "focus" && panelLayout.left > panelLayout.stageMid &&
-    panelLayout.right <= 1280 && panelLayout.width <= 380,
+  check("thẻ kết quả giao dịch nằm bên trái bàn cờ, tách khỏi dãy người chơi",
+    panelLayout.mode === "result" && !panelLayout.hidden &&
+    panelLayout.left < panelLayout.stageMid && panelLayout.right < 930 && panelLayout.width <= 440,
     JSON.stringify(panelLayout));
-  check("đối thủ cũng thấy bảng sự kiện nhưng không có nút kết thúc lượt riêng trong panel", /Chợ nổi Cái Bè|Làng nổi/.test(await text(pb.page, "#epTitle")) && (await pb.page.locator("#confirmEventButton").count()) === 0);
+  check("đối thủ cũng thấy thẻ giao dịch đồng bộ, không có nút kết thúc lượt riêng",
+    /Chợ nổi Cái Bè|Làng nổi/.test(await text(pb.page, "#epTitle")) &&
+    (await pb.page.locator("#confirmEventButton").count()) === 0);
   await pa.page.click("#epHistoryButton");
   const historyText = await text(pa.page, "#historyList");
   check("lịch sử giữ lại sự kiện và giao dịch vừa xảy ra", /Chợ nổi Cái Bè|Làng nổi/.test(historyText) && historyText.includes("600.000₫"), historyText);
