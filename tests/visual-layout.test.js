@@ -59,3 +59,25 @@ test("portrait and landscape mobile layouts keep their own responsive board and 
   assert.match(e2eSource, /inspectMobileOrientation\(w, h, "portrait"/);
   assert.match(e2eSource, /inspectMobileOrientation\(h, w, "landscape"/);
 });
+
+
+test("the central Mekong city is a layered isometric diorama, not a flat empty board center", () => {
+  assert.match(html, /class="city-highrise"/);
+  assert.match(html, /class="city-bridge"/);
+  assert.match(html, /class="city-park"/);
+  assert.match(html, /class="city-traffic"/);
+  assert.match(html, /class="city-rail"/);
+  assert.match(html, /class="city-boat"/);
+  assert.match(css, /#gameView \.mekong-city \.city-highrise\{filter:drop-shadow/);
+  assert.match(css, /@keyframes mekongBoatFloat/);
+  assert.match(html, /viewBox="0 0 520 420"/);
+});
+
+test("the gameplay redesign keeps its original board, dice, event and Firebase logic separate from the art layer", () => {
+  assert.match(html, /id="diceStage"/);
+  assert.match(html, /id="eventPanel"/);
+  assert.match(html, /id="playersPanel"/);
+  assert.match(html, /id="rollButton"/);
+  assert.match(html, /app\.js\?v=marmalade-city-diorama4/);
+  assert.match(html, /style\.css\?v=marmalade-city-diorama4/);
+});

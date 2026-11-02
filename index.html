@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;800&family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="./style.css?v=marmalade-camera-city-mobile3" />
+  <link rel="stylesheet" href="./style.css?v=marmalade-city-diorama4" />
 </head>
 <body>
   <div class="ambient ambient-one"></div>
@@ -85,164 +85,213 @@
         <div class="board-wrap">
           <div class="board" id="board">
             <div class="board-center">
-              <svg class="scene" viewBox="0 0 400 300" preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false">
-                <defs>
-                  <linearGradient id="skyGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0" stop-color="#244f68"/><stop offset=".5" stop-color="#e98a5a"/><stop offset="1" stop-color="#f7c873"/>
-                  </linearGradient>
-                  <linearGradient id="riverGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0" stop-color="#2f8793"/><stop offset="1" stop-color="#0f3943"/>
-                  </linearGradient>
-                  <radialGradient id="sunGlow" cx=".5" cy=".5" r=".5">
-                    <stop offset="0" stop-color="#ffe9a8" stop-opacity=".95"/><stop offset="1" stop-color="#ffe9a8" stop-opacity="0"/>
-                  </radialGradient>
-                  <filter id="townShadow" x="-20%" y="-20%" width="140%" height="150%">
-                    <feDropShadow dx="0" dy="1.8" stdDeviation="1.4" flood-color="#173a33" flood-opacity=".35"/>
-                  </filter>
-                </defs>
-                <rect width="400" height="300" fill="url(#skyGrad)"/>
-                <g class="cloud cloud-a" fill="#fff" opacity=".55"><ellipse cx="80" cy="46" rx="34" ry="8"/><ellipse cx="100" cy="40" rx="22" ry="8"/></g>
-                <g class="cloud cloud-b" fill="#fff" opacity=".4"><ellipse cx="260" cy="70" rx="30" ry="7"/><ellipse cx="278" cy="64" rx="18" ry="7"/></g>
-                <g class="crane" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path d="M150 96 q6 -7 12 0 q6 -7 12 0"/><path d="M190 80 q5 -6 10 0 q5 -6 10 0"/></g>
-                <circle cx="290" cy="158" r="74" fill="url(#sunGlow)"/>
-                <circle cx="290" cy="160" r="22" fill="#ffe08a"/>
-                <path d="M0 170 Q60 152 120 166 T250 164 T400 168 V180 H0Z" fill="#1d4a3a"/>
-                <g fill="none" stroke-linecap="round" stroke="#1f5a3a" stroke-width="3.5">
-                  <path d="M52 170 C56 142 50 118 58 94" stroke="#2a2118" stroke-width="4"/>
-                  <path d="M58 94 C40 82 22 88 12 102"/><path d="M58 94 C44 76 28 72 14 76"/>
-                  <path d="M58 94 C70 80 88 80 100 92"/><path d="M58 94 C66 74 82 68 96 70"/><path d="M58 94 C58 78 60 68 62 60"/>
-                  <path d="M348 170 C344 146 350 126 342 104" stroke="#2a2118" stroke-width="4"/>
-                  <path d="M342 104 C326 92 308 96 298 110"/><path d="M342 104 C330 86 314 82 300 86"/>
-                  <path d="M342 104 C356 90 374 92 386 104"/><path d="M342 104 C352 84 368 80 382 82"/><path d="M342 104 C342 88 340 78 338 70"/>
-                </g>
-                <g class="mekong-city" stroke-linejoin="round">
-                  <path d="M92 168 Q142 148 202 158 T310 164 L310 177 H92Z" fill="#416e4b" opacity=".9"/>
-                  <path d="M104 158 Q158 137 208 151 T305 157" fill="none" stroke="#d9c48e" stroke-width="8" opacity=".9"/>
-                  <path d="M104 158 Q158 137 208 151 T305 157" fill="none" stroke="#6d8b69" stroke-width="2"/>
-                  <!-- Dãy phố ven sông với mặt tiền và mặt hông có chiều sâu -->
-                  <g>
-                    <path d="M107 117 L133 102 L160 114 L160 162 L107 162Z" fill="#b97b4b"/>
-                    <path d="M133 102 L148 109 L148 156 L133 162Z" fill="#8d593d"/>
-                    <path d="M101 117 L129 99 L163 112 L137 126Z" fill="#f0c477"/>
-                    <path d="M107 121 L133 109 L133 162 L107 162Z" fill="#e9d2a6"/>
-                    <path d="M115 129 h7 v9 h-7z M125 124 h6 v10 h-6z M115 145 h7 v9 h-7z M125 141 h6 v10 h-6z" fill="#5d9ba0"/>
-                    <path d="M109 120 L136 108 L136 114 L109 126Z" fill="#b64e3b"/>
-                    <path d="M107 137 H133 M107 157 H133" stroke="#b68d5e" stroke-width="1.5"/>
-                  </g>
-                  <g>
-                    <path d="M150 88 L178 73 L207 86 L207 158 L150 158Z" fill="#c98757"/>
-                    <path d="M178 73 L195 81 L195 150 L178 158Z" fill="#8d5d48"/>
-                    <path d="M143 88 L174 68 L211 84 L180 103Z" fill="#5c8c82"/>
-                    <path d="M150 94 L178 80 L178 158 L150 158Z" fill="#f1dfbd"/>
-                    <path d="M157 103 h8 v11 h-8z M168 98 h7 v11 h-7z M157 121 h8 v11 h-8z M168 116 h7 v11 h-7z M157 139 h8 v11 h-8z M168 134 h7 v11 h-7z" fill="#4e9297"/>
-                    <path d="M150 117 H178 M150 136 H178" stroke="#c3a77d" stroke-width="2"/>
-                    <path d="M154 91 L179 79 L179 85 L154 98Z" fill="#c85642"/>
-                  </g>
-                  <g>
-                    <path d="M190 108 L220 91 L247 103 L247 161 L190 161Z" fill="#c6b08c"/>
-                    <path d="M220 91 L237 98 L237 153 L220 161Z" fill="#8d7961"/>
-                    <path d="M184 108 L216 87 L251 101 L219 122Z" fill="#e7d8b7"/>
-                    <path d="M191 114 L220 97 L220 161 L191 161Z" fill="#e6cda0"/>
-                    <path d="M198 122 h7 v10 h-7z M209 116 h7 v10 h-7z M198 140 h7 v10 h-7z M209 134 h7 v10 h-7z" fill="#5e9aa0"/>
-                    <path d="M192 115 L220 99 L220 105 L192 122Z" fill="#b95d49"/>
-                  </g>
-                  <g>
-                    <path d="M245 91 L273 75 L303 89 L303 163 L245 163Z" fill="#9a7861"/>
-                    <path d="M273 75 L292 83 L292 155 L273 163Z" fill="#5b5960"/>
-                    <path d="M239 91 L270 70 L307 87 L276 108Z" fill="#e3b96f"/>
-                    <path d="M246 97 L273 82 L273 163 L246 163Z" fill="#e8d7b7"/>
-                    <path d="M253 105 h8 v12 h-8z M264 99 h7 v12 h-7z M253 127 h8 v12 h-8z M264 121 h7 v12 h-7z M253 148 h8 v10 h-8z" fill="#438d99"/>
-                    <path d="M247 100 L273 85 L273 91 L247 106Z" fill="#c84d3d"/>
-                  </g>
-                  <g>
-                    <path d="M126 143 L145 133 L161 141 L161 166 L126 166Z" fill="#d7c6a2"/>
-                    <path d="M145 133 L155 137 L155 162 L145 166Z" fill="#8d7255"/>
-                    <path d="M122 143 L143 130 L165 139 L144 153Z" fill="#d89a51"/>
-                    <path d="M133 149 h7 v9 h-7z M146 146 h7 v9 h-7z" fill="#55929a"/>
-                  </g>
-                  <g>
-                    <path d="M216 139 L238 127 L260 137 L260 166 L216 166Z" fill="#d8b58a"/>
-                    <path d="M238 127 L250 132 L250 161 L238 166Z" fill="#8c674f"/>
-                    <path d="M211 139 L235 124 L264 136 L240 151Z" fill="#579a87"/>
-                    <path d="M223 145 h7 v9 h-7z M237 140 h7 v9 h-7z" fill="#74abb0"/>
-                  </g>
-                  <!-- Đường phố lát gạch, bờ kè nhiều lớp và lối xuống bến ghe. -->
-                  <g class="city-street">
-                    <path d="M88 164 Q145 146 202 156 T318 158 L318 171 Q257 167 205 166 T88 176Z" fill="#765b45" opacity=".38"/>
-                    <path d="M91 162 Q145 145 202 154 T316 156 L316 165 Q257 163 205 163 T91 171Z" fill="#d8bc87"/>
-                    <path d="M96 163 Q151 150 204 158 T312 158" fill="none" stroke="#fff0c7" stroke-width="2" opacity=".65"/>
-                    <path d="M106 165 l18 -5 M135 162 l18 -5 M164 160 l18 -4 M193 160 l18 2 M224 162 l18 2 M255 162 l18 1 M285 161 l18 1" stroke="#a4865d" stroke-width="1.2" opacity=".62"/>
-                    <path d="M88 174 Q146 157 204 166 T318 167 L318 179 Q256 174 205 175 T88 186Z" fill="#8e765a"/>
-                    <path d="M88 174 Q146 157 204 166 T318 167" fill="none" stroke="#f4dfb4" stroke-width="2"/>
-                    <path d="M94 179 Q146 164 204 172 T314 172" fill="none" stroke="#5e4a39" stroke-width="1.4" opacity=".65"/>
-                  </g>
-                  <g class="city-market" filter="url(#townShadow)">
-                    <path d="M276 144 L310 140 L326 147 L292 153Z" fill="#8b4c36"/>
-                    <path d="M280 143 L312 139 L324 145 L292 149Z" fill="#f0c66f"/>
-                    <path d="M283 142 L290 141 L298 148 L291 149Z" fill="#c84d3d"/>
-                    <path d="M297 140 L304 140 L312 147 L305 148Z" fill="#f7e8c8"/>
-                    <path d="M311 140 L317 142 L324 146 L318 145Z" fill="#4d8f85"/>
-                    <path d="M286 150 V163 M316 147 V160" stroke="#67452f" stroke-width="2"/>
-                    <path d="M283 163 H319" stroke="#f3dba5" stroke-width="2"/>
-                  </g>
-                  </g>
-                  <!-- Cây xanh, mái chợ và bến ghe -->
-                  <g fill="#2f7549">
-                    <circle cx="100" cy="153" r="8"/><circle cx="100" cy="153" r="5" fill="#5a9a5a"/>
-                    <circle cx="309" cy="149" r="9"/><circle cx="309" cy="149" r="5" fill="#6aab63"/>
-                    <circle cx="286" cy="165" r="6" fill="#4c9859"/>
-                  </g>
-                  <path d="M88 166 H317" stroke="#f3dba5" stroke-width="2"/>
-                  <text x="206" y="166" font-size="5" font-weight="900" fill="#fff1ca" text-anchor="middle" letter-spacing=".6">PHỐ VEN SÔNG</text>
-                </g>
-                <rect y="176" width="400" height="124" fill="url(#riverGrad)"/>
-                  <g class="city-quay">
-                    <path d="M104 177 l-6 9 M154 171 l-4 15 M250 174 l4 13 M300 176 l5 10" stroke="#a2c5ad" stroke-width="2.2" opacity=".8"/>
-                    <path d="M98 186 H108 M146 186 H158 M248 187 H260 M298 186 H310" stroke="#d9c49a" stroke-width="3" stroke-linecap="round"/>
-                    <path d="M98 184 V190 M108 184 V190 M146 184 V190 M158 184 V190 M248 185 V191 M260 185 V191 M298 184 V190 M310 184 V190" stroke="#6b5039" stroke-width="1.8"/>
-                    <path d="M233 170 V195 M233 170 l9 -2" stroke="#7b5337" stroke-width="3" fill="none"/>
-                    <path d="M229 195 H239" stroke="#d6bd8d" stroke-width="3" stroke-linecap="round"/>
-                    <path d="M266 175 V198 M266 175 l9 -2" stroke="#7b5337" stroke-width="3" fill="none"/>
-                    <path d="M262 198 H272" stroke="#d6bd8d" stroke-width="3" stroke-linecap="round"/>
-                  </g>
-                  <g class="city-lanterns">
-                    <path d="M91 153 V171 M91 153 q0 -5 5 -5" stroke="#594431" stroke-width="2" fill="none"/>
-                    <path d="M88 147 H97 L95 153 H90Z" fill="#f1cf83" stroke="#76533a" stroke-width="1"/>
-                    <circle cx="92.5" cy="150" r="4.5" fill="#ffd875" opacity=".28"/>
-                    <path d="M322 148 V169 M322 148 q0 -5 -5 -5" stroke="#594431" stroke-width="2" fill="none"/>
-                    <path d="M316 142 H325 L323 148 H318Z" fill="#f1cf83" stroke="#76533a" stroke-width="1"/>
-                    <circle cx="320.5" cy="145" r="4.5" fill="#ffd875" opacity=".28"/>
-                  <g class="city-boat" filter="url(#townShadow)">
-                    <path d="M269 190 H326 Q321 200 306 201 H283 Q274 199 269 190Z" fill="#8c3f31"/>
-                    <path d="M275 190 H321" stroke="#f2bd60" stroke-width="2.8"/>
-                    <path d="M290 189 Q299 176 313 189Z" fill="#e9c16f"/>
-                    <path d="M301 177 V190" stroke="#69472e" stroke-width="1.8"/>
-                    <path d="M298 181 H315 L311 187 H298Z" fill="#f6e7c4"/>
-                    <circle cx="278" cy="194" r="1.5" fill="#fff1c9"/>
-                  </g>
+              <svg class="scene" viewBox="0 0 520 420" preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false">
+  <defs>
+    <linearGradient id="cityWater" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5ab5bd"/><stop offset=".55" stop-color="#287f91"/><stop offset="1" stop-color="#15556b"/></linearGradient>
+    <linearGradient id="cityGrass" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#9bcf78"/><stop offset=".55" stop-color="#62a85d"/><stop offset="1" stop-color="#34774e"/></linearGradient>
+    <linearGradient id="cityRoad" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#69747b"/><stop offset="1" stop-color="#414c55"/></linearGradient>
+    <linearGradient id="glassA" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#a9e2e5"/><stop offset=".48" stop-color="#4e9eae"/><stop offset="1" stop-color="#285b78"/></linearGradient>
+    <linearGradient id="glassB" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#9fc9dc"/><stop offset=".5" stop-color="#477e9d"/><stop offset="1" stop-color="#244d6b"/></linearGradient>
+    <linearGradient id="warmWall" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f7e1b5"/><stop offset="1" stop-color="#d9ad79"/></linearGradient>
+    <linearGradient id="roofGold" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f3cf79"/><stop offset="1" stop-color="#b77838"/></linearGradient>
+    <filter id="townShadow" x="-35%" y="-35%" width="180%" height="190%"><feDropShadow dx="0" dy="5" stdDeviation="4" flood-color="#183a37" flood-opacity=".38"/></filter>
+    <filter id="buildingShadow" x="-30%" y="-30%" width="160%" height="170%"><feDropShadow dx="0" dy="3" stdDeviation="2.4" flood-color="#1b342b" flood-opacity=".38"/></filter>
+    <pattern id="cityWindows" width="9" height="12" patternUnits="userSpaceOnUse"><rect x="2" y="2" width="4" height="6" rx=".7" fill="#d9f4ef" opacity=".82"/></pattern>
+    <pattern id="cityPavers" width="15" height="9" patternUnits="userSpaceOnUse"><path d="M0 0H15M0 0V9" stroke="#fff1ca" stroke-opacity=".18" stroke-width=".8"/></pattern>
+  </defs>
+  <rect width="520" height="420" fill="url(#cityWater)"/>
+  <g opacity=".18" fill="none" stroke="#d2f5e9" stroke-width="2">
+    <path d="M-40 72Q12 60 64 72T168 72T272 72T376 72T480 72T584 72"/>
+    <path d="M-35 352Q17 340 69 352T173 352T277 352T381 352T485 352T589 352"/>
+    <path d="M18 296Q70 284 122 296T226 296T330 296T434 296T538 296"/>
+  </g>
+  <g class="mekong-city">
+    <!-- Thành phố nổi trên một bệ đất hình thoi, có cạnh vát và bóng như mô hình bàn cờ 3D. -->
+    <path d="M260 411L505 157L260 36L15 157Z" fill="#59452f" opacity=".75" transform="translate(0 11)"/>
+    <path d="M15 157L260 278L505 157V174L260 296L15 174Z" fill="#89633f"/>
+    <path d="M260 278L505 157V174L260 296Z" fill="#654a35"/>
+    <path d="M15 157L260 278V296L15 174Z" fill="#a17449"/>
+    <path d="M260 25L505 146L260 389L15 146Z" fill="url(#cityGrass)" stroke="#e6d39a" stroke-width="3"/>
+    <path d="M260 38L488 149L260 377L32 149Z" fill="none" stroke="#c9e19b" stroke-width="2" opacity=".5"/>
+    <path d="M260 47L477 151L260 369L43 151Z" fill="url(#cityPavers)" opacity=".24"/>
 
-                <ellipse cx="290" cy="192" rx="28" ry="3" fill="#ffe08a" opacity=".55"/>
-                <ellipse cx="290" cy="203" rx="18" ry="2.5" fill="#ffe08a" opacity=".35"/>
-                <g class="wave wave-a"><path d="M-80 204 q20 -6 40 0 t40 0 t40 0 t40 0 t40 0 t40 0 t40 0 t40 0 t40 0 t40 0 t40 0 t40 0 t40 0 t40 0 t40 0" fill="none" stroke="#fff" stroke-opacity=".28" stroke-width="2"/></g>
-                <g class="wave wave-b"><path d="M-80 234 q20 -6 40 0 t40 0 t40 0 t40 0 t40 0 t40 0 t40 0 t40 0 t40 0 t40 0 t40 0 t40 0 t40 0 t40 0 t40 0" fill="none" stroke="#fff" stroke-opacity=".2" stroke-width="2"/></g>
-                <g class="wave wave-c"><path d="M-80 266 q20 -6 40 0 t40 0 t40 0 t40 0 t40 0 t40 0 t40 0 t40 0 t40 0 t40 0 t40 0 t40 0 t40 0 t40 0 t40 0" fill="none" stroke="#fff" stroke-opacity=".14" stroke-width="2"/></g>
-                <g transform="translate(330 252)">
-                  <path d="M0 0 q-7 -11 0 -17 q7 6 0 17z" fill="#f4a3b8"/><path d="M0 0 q-12 -5 -13 -13 q9 0 13 13z" fill="#f08aa5"/><path d="M0 0 q12 -5 13 -13 q-9 0 -13 13z" fill="#f08aa5"/>
-                  <ellipse cx="0" cy="2" rx="17" ry="3" fill="#3f9a63" opacity=".8"/>
-                </g>
-                <g class="boat-drift"><g class="boat-bob">
-                  <ellipse cx="150" cy="222" rx="62" ry="4" fill="#000" opacity=".2"/>
-                  <path d="M92 196 H208 Q200 214 176 216 H122 Q98 214 92 196Z" fill="#e2573a"/>
-                  <path d="M92 196 Q80 188 78 176 Q92 184 98 192Z" fill="#e2573a"/>
-                  <path d="M96 204 H204" stroke="#f2b632" stroke-width="4"/>
-                  <circle cx="106" cy="200" r="4.6" fill="#fff"/><circle cx="105" cy="200" r="2" fill="#1b1b1b"/>
-                  <path d="M120 196 Q150 158 192 196Z" fill="#f2b632"/>
-                  <path d="M156 172 L136 196 M156 172 V196 M156 172 L176 196" stroke="#c98f1a" stroke-width="1.5" fill="none"/>
-                  <rect x="196" y="178" width="6" height="19" rx="2" fill="#2a2118"/>
-                  <path d="M189 180 L199 166 L209 180Z" fill="#f7ecd0"/>
-                  <path d="M199 186 L224 216" stroke="#5d3624" stroke-width="2.5" stroke-linecap="round"/>
-                </g></g>
-              </svg>
+    <!-- Công viên ven sông và các mảng xanh phân ô. -->
+    <g class="city-park">
+      <path d="M72 166L139 132L190 158L121 193Z" fill="#77bd68" stroke="#d5e9a7" stroke-width="2"/>
+      <path d="M330 88L411 128L373 166L292 126Z" fill="#78bd70" stroke="#d5e9a7" stroke-width="2"/>
+      <path d="M296 260L379 218L437 246L354 292Z" fill="#4d9b59" stroke="#b8d991" stroke-width="2"/>
+      <path d="M91 256L166 218L215 244L140 283Z" fill="#3e8c52" stroke="#b8d991" stroke-width="2"/>
+      <path d="M100 170L132 154L166 171L134 188Z" fill="#8ed06e"/>
+      <path d="M344 103L382 122L357 146L319 127Z" fill="#a5d778"/>
+      <ellipse cx="132" cy="171" rx="24" ry="10" fill="#56aab0" stroke="#e4dcad" stroke-width="3" transform="rotate(-27 132 171)"/>
+      <path d="M123 170Q132 159 142 169Q134 181 123 170Z" fill="#d3e8bd"/>
+    </g>
+
+    <!-- Đại lộ vòng bao thành phố, lề đường và vạch sơn. -->
+    <g class="city-street" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M260 58L451 151L260 341L69 151Z" stroke="#b8b9a0" stroke-width="31"/>
+      <path d="M260 58L451 151L260 341L69 151Z" stroke="url(#cityRoad)" stroke-width="24"/>
+      <path d="M260 58L451 151L260 341L69 151Z" stroke="#f5d48a" stroke-width="1.8" stroke-dasharray="10 13" opacity=".9"/>
+      <path d="M88 237L260 151L432 237" stroke="#c0b99d" stroke-width="25"/>
+      <path d="M88 237L260 151L432 237" stroke="url(#cityRoad)" stroke-width="19"/>
+      <path d="M88 237L260 151L432 237" stroke="#f7d98c" stroke-width="1.6" stroke-dasharray="9 12"/>
+      <path d="M143 93L260 151L377 93" stroke="#c0b99d" stroke-width="22"/>
+      <path d="M143 93L260 151L377 93" stroke="url(#cityRoad)" stroke-width="16"/>
+      <path d="M143 93L260 151L377 93" stroke="#f7d98c" stroke-width="1.4" stroke-dasharray="8 10"/>
+    </g>
+
+    <!-- Cầu bắc qua nhánh sông phía sau khu phố. -->
+    <g class="city-bridge" filter="url(#buildingShadow)">
+      <path d="M170 67L260 112L350 67L350 78L260 124L170 78Z" fill="#9b7950"/>
+      <path d="M170 67L260 112L350 67" fill="none" stroke="#f2d49a" stroke-width="5"/>
+      <path d="M188 68V84M208 78V94M228 88V104M248 98V114M272 98V114M292 88V104M312 78V94M332 68V84" stroke="#fff0c5" stroke-width="2"/>
+      <path d="M174 61L260 104L346 61" fill="none" stroke="#72543b" stroke-width="4" stroke-linecap="round"/>
+    </g>
+
+    <!-- Tòa tháp kính phía Tây: mái, hai mặt đứng, ban công và cửa sổ tạo khối. -->
+    <g class="city-building city-highrise" filter="url(#townShadow)">
+      <path d="M142 184L182 204L182 104L142 84Z" fill="#315b75"/>
+      <path d="M182 204L214 186L214 86L182 104Z" fill="#5b91a5"/>
+      <path d="M142 84L174 66L214 86L182 104Z" fill="#a8d8d2" stroke="#dff3df" stroke-width="1.5"/>
+      <path d="M146 91L178 107V195L146 179Z" fill="url(#cityWindows)" opacity=".9"/>
+      <path d="M186 111L210 97V180L186 194Z" fill="url(#cityWindows)" opacity=".72"/>
+      <path d="M151 88L174 75L205 90L182 103Z" fill="#e2f4e0" opacity=".5"/>
+      <path d="M162 80L162 194M173 74L173 200M194 93V197" stroke="#d5f2e7" stroke-width="1.5" opacity=".65"/>
+      <path d="M143 181L182 201L214 183" fill="none" stroke="#d4e9d8" stroke-width="2"/>
+    </g>
+
+    <!-- Tháp trung tâm cao hơn với mặt kính xanh và mái kỹ thuật. -->
+    <g class="city-building city-highrise" filter="url(#townShadow)">
+      <path d="M260 137L306 160L306 54L260 31Z" fill="#244f70"/>
+      <path d="M306 160L345 140L345 34L306 54Z" fill="#477f9b"/>
+      <path d="M260 31L298 10L345 34L306 54Z" fill="url(#glassA)" stroke="#d9f3e8" stroke-width="1.5"/>
+      <path d="M265 42L301 60V150L265 132Z" fill="url(#cityWindows)"/>
+      <path d="M311 60L340 44V130L311 145Z" fill="url(#cityWindows)" opacity=".8"/>
+      <path d="M273 38V137M287 46V145M323 50V151" stroke="#d8f3ed" stroke-width="2" opacity=".62"/>
+      <path d="M298 10V-3" stroke="#fff1bd" stroke-width="2"/>
+      <circle cx="298" cy="8" r="3" fill="#ffd878"/>
+      <path d="M260 137L306 160L345 140" fill="none" stroke="#d5e9dd" stroke-width="2"/>
+    </g>
+
+    <!-- Khách sạn ven quảng trường, mái nhiều lớp và ban công. -->
+    <g class="city-building city-hotel" filter="url(#buildingShadow)">
+      <path d="M203 231L257 258L257 210L203 183Z" fill="#b98155"/>
+      <path d="M257 258L303 234L303 187L257 210Z" fill="#8b5844"/>
+      <path d="M203 183L248 160L303 187L257 210Z" fill="url(#roofGold)" stroke="#f8e2a7" stroke-width="1.5"/>
+      <path d="M213 190L252 211V251L213 231Z" fill="url(#warmWall)"/>
+      <path d="M263 215L294 199V230L263 247Z" fill="#dfbd8f"/>
+      <path d="M219 199L229 204V216L219 211ZM236 207L246 212V224L236 219ZM219 221L229 226V238L219 233Z" fill="#4a8b99"/>
+      <path d="M267 219L275 215V228L267 232ZM281 212L289 208V221L281 225Z" fill="#5a9ba6"/>
+      <path d="M245 233L257 239V258L245 252Z" fill="#70432f"/>
+      <path d="M206 183L257 208L300 186" fill="none" stroke="#fff1c4" stroke-width="2.2"/>
+      <rect x="229" y="178" width="48" height="8" rx="2" fill="#f8e8c4" stroke="#9d633e" stroke-width="1"/>
+      <text x="253" y="184" text-anchor="middle" font-size="5.5" font-weight="900" fill="#8a4c31" letter-spacing=".5">MEKONG HOTEL</text>
+    </g>
+
+    <!-- Tòa nhà đồng hồ, mái nhọn và mặt đồng hồ nhận diện thành phố. -->
+    <g class="city-building city-clocktower" filter="url(#buildingShadow)">
+      <path d="M360 211L389 226L389 155L360 140Z" fill="#9e6245"/>
+      <path d="M389 226L414 213L414 143L389 155Z" fill="#714b3c"/>
+      <path d="M360 140L385 127L414 143L389 155Z" fill="#f1cf82"/>
+      <path d="M356 142L386 117L418 141L388 158Z" fill="#b75d45"/>
+      <path d="M363 139L386 121L411 140L389 153Z" fill="#f6d68e"/>
+      <circle cx="386" cy="146" r="7" fill="#fff6d7" stroke="#7d5239" stroke-width="1.5"/>
+      <path d="M386 141V146L390 148" stroke="#72513d" stroke-width="1.1" fill="none"/>
+      <path d="M368 163L381 170V181L368 174ZM395 177L406 171V184L395 190Z" fill="#73a9ae"/>
+      <path d="M384 126L386 108L390 126Z" fill="#e8c46b"/>
+      <circle cx="387" cy="105" r="3" fill="#f5e3a5"/>
+    </g>
+
+    <!-- Khu chợ nổi mái bạt nhiều màu và dãy sạp nhỏ. -->
+    <g class="city-market" filter="url(#buildingShadow)">
+      <path d="M73 222L123 196L165 217L115 244Z" fill="#8a573d"/>
+      <path d="M79 216L124 192L160 211L115 236Z" fill="#f1d29a"/>
+      <path d="M80 214L91 208L126 226L115 232Z" fill="#cf5141"/>
+      <path d="M91 208L103 202L137 220L126 226Z" fill="#f5e7c5"/>
+      <path d="M103 202L115 196L149 214L137 220Z" fill="#4c9b8d"/>
+      <path d="M115 232V250M151 213V231M85 218V237" stroke="#704d36" stroke-width="2"/>
+      <path d="M88 238L151 226" stroke="#f6e4bd" stroke-width="2"/>
+      <rect x="103" y="224" width="11" height="7" fill="#dc8e36"/>
+      <rect x="119" y="229" width="11" height="7" fill="#4c96a0"/>
+      <rect x="135" y="220" width="9" height="7" fill="#b9473d"/>
+    </g>
+
+    <!-- Dãy nhà phố thấp, mặt tiền sáng và mái ngói tách lớp. -->
+    <g class="city-building city-houses" filter="url(#buildingShadow)">
+      <path d="M153 265L185 282L185 246L153 230Z" fill="#c58d61"/>
+      <path d="M185 282L213 267L213 232L185 246Z" fill="#98644b"/>
+      <path d="M148 232L181 214L219 233L185 252Z" fill="#c64e3e"/>
+      <path d="M156 236L185 251L185 276L156 261Z" fill="#f2dfb8"/>
+      <path d="M190 253L207 244V266L190 275Z" fill="#e1c49a"/>
+      <path d="M162 242L171 247V256L162 251ZM175 249L181 252V261L175 258Z" fill="#5e9eaa"/>
+      <path d="M196 255L203 251V262L196 266Z" fill="#5c96a3"/>
+      <path d="M169 263L180 269V281L169 275Z" fill="#825039"/>
+      <path d="M295 277L325 293L325 255L295 239Z" fill="#bd885f"/>
+      <path d="M325 293L352 278V241L325 255Z" fill="#8f5e49"/>
+      <path d="M290 241L321 224L357 242L325 260Z" fill="#d7a35e"/>
+      <path d="M298 245L325 260V286L298 272Z" fill="#f3e1bd"/>
+      <path d="M330 262L346 253V275L330 284Z" fill="#dfc29b"/>
+      <path d="M304 252L313 257V266L304 261ZM316 258L322 261V270L316 267Z" fill="#5795a0"/>
+      <path d="M332 264L339 260V270L332 274Z" fill="#55949e"/>
+    </g>
+
+    <!-- Cây tán tròn, bồn hoa, trụ đèn và xe nhỏ làm thành phố có sức sống. -->
+    <g class="city-trees" filter="url(#buildingShadow)">
+      <g><ellipse cx="103" cy="183" rx="12" ry="5" fill="#315f42" opacity=".3"/><path d="M103 181V164" stroke="#795437" stroke-width="3"/><circle cx="97" cy="162" r="8" fill="#347c4b"/><circle cx="106" cy="158" r="9" fill="#62a958"/><circle cx="111" cy="166" r="7" fill="#4c944e"/></g>
+      <g><ellipse cx="420" cy="190" rx="13" ry="5" fill="#315f42" opacity=".3"/><path d="M420 187V169" stroke="#795437" stroke-width="3"/><circle cx="413" cy="166" r="8" fill="#347c4b"/><circle cx="422" cy="162" r="9" fill="#69ae5b"/><circle cx="427" cy="170" r="7" fill="#4d9550"/></g>
+      <g><ellipse cx="178" cy="305" rx="13" ry="4" fill="#315f42" opacity=".3"/><path d="M178 302V287" stroke="#795437" stroke-width="3"/><circle cx="171" cy="285" r="8" fill="#3c854b"/><circle cx="180" cy="280" r="9" fill="#69b15d"/><circle cx="186" cy="288" r="7" fill="#4a974f"/></g>
+      <g><ellipse cx="380" cy="305" rx="13" ry="4" fill="#315f42" opacity=".3"/><path d="M380 302V286" stroke="#795437" stroke-width="3"/><circle cx="373" cy="284" r="8" fill="#3b8148"/><circle cx="382" cy="279" r="9" fill="#6ab15c"/><circle cx="388" cy="287" r="7" fill="#4a944e"/></g>
+      <g fill="#f0c965"><circle cx="118" cy="181" r="2.4"/><circle cx="403" cy="189" r="2.4"/><circle cx="191" cy="298" r="2.2"/></g>
+    </g>
+    <g class="city-lanterns">
+      <path d="M133 189V207M130 190H136L135 196H131Z" stroke="#5d4933" stroke-width="2" fill="#ffe09a"/>
+      <circle cx="133" cy="194" r="6" fill="#ffdb72" opacity=".3"/>
+      <path d="M402 204V222M399 205H405L404 211H400Z" stroke="#5d4933" stroke-width="2" fill="#ffe09a"/>
+      <circle cx="402" cy="209" r="6" fill="#ffdb72" opacity=".3"/>
+    </g>
+
+    <!-- Một dải đường sắt nhỏ và đoàn tàu đi qua khu ngoài thành phố. -->
+    <g class="city-rail">
+      <path d="M55 284L151 332M63 277L159 325" stroke="#d4c6a0" stroke-width="4"/>
+      <path d="M59 280L155 328" stroke="#4b5354" stroke-width="2"/>
+      <path d="M67 280L67 293M80 287L80 300M94 294L94 307M108 301L108 314M122 308L122 321M136 315L136 328M150 322L150 335" stroke="#765b43" stroke-width="2.3"/>
+      <g transform="translate(100 300) rotate(26)" filter="url(#buildingShadow)">
+        <rect x="-18" y="-9" width="38" height="13" rx="3" fill="#e2a83c" stroke="#70472f" stroke-width="1.5"/>
+        <rect x="-10" y="-7" width="8" height="6" fill="#9bd2d5"/><rect x="1" y="-7" width="8" height="6" fill="#9bd2d5"/>
+        <circle cx="-10" cy="5" r="3" fill="#353c42"/><circle cx="12" cy="5" r="3" fill="#353c42"/>
+      </g>
+    </g>
+
+    <!-- Bến ghe, cầu tàu và chiếc ghe nhỏ trên mặt nước. -->
+    <g class="city-quay">
+      <path d="M202 340L246 362M211 331L255 353" stroke="#cfb184" stroke-width="7" stroke-linecap="round"/>
+      <path d="M207 337L251 359M217 328L261 350" stroke="#765538" stroke-width="2.5"/>
+      <path d="M221 340V365M237 348V373M249 354V379" stroke="#79573d" stroke-width="3"/>
+      <path d="M191 346L209 356L209 363L191 354Z" fill="#e7c98e"/>
+    </g>
+    <g class="city-boat" filter="url(#buildingShadow)">
+      <ellipse cx="289" cy="354" rx="38" ry="5" fill="#173e55" opacity=".35"/>
+      <path d="M252 337H326Q319 354 295 357H275Q259 354 252 337Z" fill="#9e4837" stroke="#693c31" stroke-width="2"/>
+      <path d="M260 341H319" stroke="#f2c56d" stroke-width="4"/>
+      <path d="M272 337Q288 310 309 337Z" fill="#e9be64" stroke="#8a5d37" stroke-width="1.5"/>
+      <path d="M290 314V337M289 316L314 332" stroke="#795438" stroke-width="2"/>
+      <path d="M281 340H303" stroke="#fff0c8" stroke-width="2"/>
+    </g>
+    <g class="city-traffic">
+      <g transform="translate(356 193) rotate(26)" filter="url(#buildingShadow)">
+        <rect x="-11" y="-6" width="23" height="12" rx="3" fill="#e75b48" stroke="#7f302b" stroke-width="1.3"/>
+        <path d="M-5 -5L0 -10H7L10 -5Z" fill="#d9eef0"/><circle cx="-6" cy="6" r="2.5" fill="#293840"/><circle cx="7" cy="6" r="2.5" fill="#293840"/>
+      </g>
+      <g transform="translate(166 112) rotate(26)" filter="url(#buildingShadow)">
+        <rect x="-9" y="-5" width="19" height="10" rx="2.5" fill="#f7d35c" stroke="#8b682c" stroke-width="1.2"/>
+        <path d="M-4 -4L0 -8H6L8 -4Z" fill="#d7edf0"/><circle cx="-5" cy="5" r="2.2" fill="#293840"/><circle cx="6" cy="5" r="2.2" fill="#293840"/>
+      </g>
+    </g>
+    <g opacity=".8" fill="none" stroke="#fff6d3" stroke-width="2">
+      <path d="M70 151L260 245L450 151" stroke-dasharray="8 10"/>
+    </g>
+  </g>
+</svg>
               <div class="center-title">Cờ Tỷ Phú</div>
               <div class="center-subtitle">Miền Tây sông nước</div>
               <div id="centerStatus" class="center-status">Đang chờ người chơi...</div>
@@ -307,6 +356,6 @@
     <footer class="footer"><span>© 2026 Cờ Tỷ Phú Online</span><span>Làm để chơi với bạn bè</span></footer>
   </main>
 
-  <script type="module" src="./app.js?v=marmalade-camera-city-mobile3"></script>
+  <script type="module" src="./app.js?v=marmalade-city-diorama4"></script>
 </body>
 </html>

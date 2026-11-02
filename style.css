@@ -1377,3 +1377,117 @@ body:has(#gameView:not(.hidden)){overflow:hidden}
   #gameView .dice-stage{--ds:clamp(40px,12cqh,64px)}
   #gameView .roll-button{min-width:112px;min-height:40px;font-size:12px}
 }
+
+
+/* ===== Mekong City diorama: layered isometric landmark scene =====
+   Artwork is original inline SVG; game rules and realtime state remain untouched. */
+#gameView .board-center{
+  isolation:isolate;
+  background:linear-gradient(145deg,#4d8f75 0%,#1e645b 52%,#124a46 100%);
+}
+#gameView .board-center .scene{
+  display:block!important;
+  opacity:1!important;
+  filter:saturate(1.08) contrast(1.06) drop-shadow(0 2px 2px rgba(11,40,38,.22));
+}
+#gameView .board-center::before{
+  z-index:1;
+  background:linear-gradient(180deg,rgba(7,35,33,.02) 0%,rgba(7,35,33,.02) 62%,rgba(7,35,33,.3) 100%);
+}
+#gameView .center-title{
+  position:absolute;
+  left:50%;
+  bottom:12%;
+  transform:translateX(-50%);
+  z-index:3;
+  padding:.12em .65em .16em;
+  border:1.5px solid rgba(255,239,198,.8);
+  border-radius:999px;
+  background:linear-gradient(180deg,rgba(24,66,59,.88),rgba(11,43,42,.94));
+  box-shadow:0 2px 0 rgba(8,39,37,.55),0 5px 13px rgba(0,0,0,.26),inset 0 1px 0 rgba(255,255,255,.18);
+  font-size:clamp(14px,2.1cqw,25px);
+  line-height:1.05;
+  white-space:nowrap;
+}
+#gameView .center-subtitle{
+  position:absolute;
+  left:50%;
+  bottom:7.4%;
+  transform:translateX(-50%);
+  z-index:3;
+  margin:0;
+  font-size:clamp(6px,.72cqw,9px);
+  letter-spacing:.12em;
+  text-transform:uppercase;
+  white-space:nowrap;
+}
+#gameView .center-status{
+  bottom:1.4%;
+  max-width:84%;
+  padding:.1em .55em;
+  font-size:clamp(6px,.68cqw,8px);
+  line-height:1.15;
+}
+#gameView .mekong-city .city-building,
+#gameView .mekong-city .city-market,
+#gameView .mekong-city .city-bridge,
+#gameView .mekong-city .city-traffic{
+  transform-box:fill-box;
+}
+#gameView .mekong-city .city-highrise{filter:drop-shadow(0 4px 3px rgba(17,51,49,.27))}
+#gameView .mekong-city .city-park{filter:drop-shadow(0 2px 1px rgba(22,70,47,.2))}
+#gameView .mekong-city .city-street{filter:drop-shadow(0 1px 1px rgba(32,48,43,.25))}
+#gameView .mekong-city .city-boat{
+  transform-origin:50% 80%;
+  animation:mekongBoatFloat 3.8s ease-in-out infinite;
+}
+#gameView .mekong-city .city-lanterns circle{
+  transform-box:fill-box;
+  transform-origin:center;
+  animation:mekongLanternGlow 2.6s ease-in-out infinite alternate;
+}
+@keyframes mekongBoatFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-2px)}}
+@keyframes mekongLanternGlow{from{opacity:.22}to{opacity:.65}}
+/* Thẻ người chơi nổi như nameplate trên cạnh bàn; màu vẫn lấy từ dữ liệu từng người. */
+#gameView .player-card,
+#gameView .player-card:last-child{
+  background:linear-gradient(145deg,color-mix(in srgb,var(--pc) 76%,#fff 24%) 0%,var(--pc) 48%,color-mix(in srgb,var(--pc) 68%,#142b45 32%) 100%);
+  border-color:#213653;
+  border-radius:9px 15px 15px 9px;
+  box-shadow:0 3px 0 rgba(20,43,67,.42),0 8px 16px rgba(10,34,48,.22),inset 0 1px 0 rgba(255,255,255,.34);
+}
+#gameView .player-card::after{
+  content:"";
+  position:absolute;
+  left:6px;
+  right:6px;
+  top:3px;
+  height:1px;
+  border-radius:99px;
+  background:rgba(255,255,255,.45);
+  pointer-events:none;
+}
+#gameView .player-card.active{
+  outline:3px solid #ffe16a;
+  box-shadow:0 3px 0 rgba(20,43,67,.42),0 8px 18px rgba(10,34,48,.25),0 0 0 5px rgba(255,218,85,.16);
+}
+#gameView .player-avatar{
+  box-shadow:0 2px 0 rgba(22,47,69,.28),inset 0 1px 0 #fff;
+}
+#gameView .space{
+  background:linear-gradient(145deg,#fffef8 0%,#f7efd9 66%,#e9dec5 100%);
+  border-color:rgba(83,68,47,.42);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.96),inset 0 -1px 0 rgba(128,100,60,.12),0 1px 2px rgba(46,43,34,.2);
+}
+#gameView .space.corner{
+  background:linear-gradient(145deg,#fff7dc 0%,#f2d58b 100%);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.9),inset 0 -2px 0 rgba(139,94,39,.14),0 1px 2px rgba(46,43,34,.2);
+}
+#gameView .space .space-color{
+  filter:saturate(1.13);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.38),inset 0 -1px 0 rgba(0,0,0,.15);
+}
+@media(prefers-reduced-motion:reduce){
+  #gameView .mekong-city .city-boat,
+  #gameView .mekong-city .city-lanterns circle{animation:none}
+}
