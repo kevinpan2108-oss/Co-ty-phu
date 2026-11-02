@@ -30,8 +30,8 @@ test("player HUD is a vertical rail and the Mekong city scene is visible", () =>
 });
 
 test("visual redesign does not change the game script or add per-tile models", () => {
-  assert.match(html, /app\.js\?v=marmalade-camera-city-mobile3/);
-  assert.match(html, /style\.css\?v=marmalade-camera-city-mobile3/);
+  assert.ok(html.includes("app.js?v=marmalade-city-diorama4"));
+  assert.ok(html.includes("style.css?v=marmalade-city-diorama4"));
   assert.doesNotMatch(html, /space-model/);
 });
 
@@ -58,4 +58,26 @@ test("portrait and landscape mobile layouts keep their own responsive board and 
   assert.match(css, /env\(safe-area-inset-bottom\)/);
   assert.match(e2eSource, /inspectMobileOrientation\(w, h, "portrait"/);
   assert.match(e2eSource, /inspectMobileOrientation\(h, w, "landscape"/);
+});
+
+
+test("the central Mekong city is a layered isometric diorama, not a flat empty board center", () => {
+  assert.match(html, /class="city-building city-highrise"/);
+  assert.match(html, /class="city-bridge"/);
+  assert.match(html, /class="city-park"/);
+  assert.match(html, /class="city-traffic"/);
+  assert.match(html, /class="city-rail"/);
+  assert.match(html, /class="city-boat"/);
+  assert.match(css, /#gameView \.mekong-city \.city-highrise\{filter:drop-shadow/);
+  assert.match(css, /@keyframes mekongBoatFloat/);
+  assert.match(html, /viewBox="0 0 520 420"/);
+});
+
+test("the gameplay redesign keeps its original board, dice, event and Firebase logic separate from the art layer", () => {
+  assert.match(html, /id="diceStage"/);
+  assert.match(html, /id="eventPanel"/);
+  assert.match(html, /id="playersPanel"/);
+  assert.match(html, /id="rollButton"/);
+  assert.ok(html.includes("app.js?v=marmalade-city-diorama4"));
+  assert.ok(html.includes("style.css?v=marmalade-city-diorama4"));
 });
