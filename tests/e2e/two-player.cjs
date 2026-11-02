@@ -482,22 +482,27 @@ let rules;
     await cpu.context.close();
   }
 
-  // ===== 5. Giao diện điện thoại
+  // ===== 5. Giao diện điện thoại: portrait và landscape dùng hai context riêng.
+  // Một số trình duyệt Android vào fullscreen/khóa xoay sau khi vào game nên không thể setViewportSize
+  // trên cùng một page; tạo page độc lập cho mỗi hướng để đo layout thực tế.
   for (const [w, h, label] of [[390, 844, "iPhone 390"], [360, 740, "Android 360"]]) {
-    const m = await newPlayer(browser, "uidMMMMMMMMMMMMMMMMMMMMMMMMM", { viewport: { width: w, height: h }, mobile: true });
-    await m.page.goto(URL0); await m.page.waitForTimeout(500);
-    const lobbyOverflow = await m.page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
-    await m.page.fill("#playerName", "Mobile"); await m.page.click("#createRoomButton"); await m.page.waitForSelector("#gameView:not(.hidden)");
-    await m.page.waitForTimeout(400);
-    const overflow = await m.page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
-    const rollBox = await m.page.locator("#rollButton").boundingBox();
-    check(label + ": không tràn ngang (sảnh/ván)", lobbyOverflow <= 0 && overflow <= 0, `sảnh ${lobbyOverflow}px, ván ${overflow}px`);
-    check(label + ": nút Tung xúc xắc nằm trọn trong màn hình đầu, cao ≥ 40px", rollBox && rollBox.y >= 0 && rollBox.y + rollBox.height <= h && rollBox.height >= 40, rollBox ? `y=${Math.round(rollBox.y)}..${Math.round(rollBox.y + rollBox.height)}/${h}, cao ${Math.round(rollBox.height)}` : "không thấy");
-    const inputFont = await m.page.evaluate(() => getComputedStyle(document.getElementById("playerName")).fontSize);
-    const inspectOrientation = async (width, height) => {
-      await m.page.setViewportSize({ width, height });
-      await m.page.waitForTimeout(220);
-      return m.page.evaluate(() => {
+    const inspectMobileOrientation = async (width, height, orientation, uid) => {
+      const m = await newPlayer(browser, uid, { viewport: { width, height }, mobile: true });
+      await m.page.goto(URL0);
+      await m.page.waitForTimeout(450);
+      const lobbyOverflow = await m.page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+      await m.page.fill("#playerName", "Mobile");
+      await m.page.click("#createRoomButton");
+      await m.page.waitForSelector("#gameView:not(.hidden)");
+      await m.page.waitForTimeout(420);
+      const overflow = await m.page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+      const rollBox = await m.page.locator("#rollButton").boundingBox();
+      check(label + " " + orientation + ": không tràn ngang (sảnh/ván)",
+        lobbyOverflow <= 0 && overflow <= 0, `sảnh ${lobbyOverflow}px, ván ${overflow}px`);
+      check(label + " " + orientation + ": nút Tung xúc xắc nằm trọn trong màn hình, cao ≥ 40px",
+        rollBox && rollBox.y >= 0 && rollBox.y + rollBox.height <= height && rollBox.height >= 40,
+        rollBox ? `y=${Math.round(rollBox.y)}..${Math.round(rollBox.y + rollBox.height)}/${height}, cao ${Math.round(rollBox.height)}` : "không thấy");
+      const layout = await m.page.evaluate(() => {
         const rect = (selector) => {
           const el = document.querySelector(selector);
           if (!el) return null;
@@ -517,25 +522,20 @@ let rules;
           event: rect("#eventPanel")
         };
         if (wasHidden) panel.classList.add("is-hidden");
-        result.fits = inside(result.board) && inside(result.hud) && inside(result.roll) && inside(result.dice) && inside(result.event);
+        result.fits = inside(result.board) && inside(result.hud) && inside(result.roll) &&
+          inside(result.dice) && inside(result.event);
         result.noTextClipping = [...document.querySelectorAll("#board .space-name")].every((el) =>
           getComputedStyle(el).webkitLineClamp === "2" && getComputedStyle(el).overflowWrap === "anywhere");
         return result;
       });
+      check(label + " " + orientation + ": chữ/HUD/xúc xắc/bảng sự kiện vừa màn hình",
+        layout.fits && layout.noTextClipping, JSON.stringify(layout));
+      if (OUT) await m.page.screenshot({ path: `${OUT}/mobile-${w}-${orientation}.png` });
+      await m.context.close();
     };
-    const portraitLayout = await inspectOrientation(w, h);
-    check(label + ": chữ/HUD/xúc xắc/bảng sự kiện vừa màn hình dọc",
-      portraitLayout.fits && portraitLayout.noTextClipping, JSON.stringify(portraitLayout));
-    const landscapeLayout = await inspectOrientation(h, w);
-    check(label + ": chữ/HUD/xúc xắc/bảng sự kiện vừa màn hình ngang",
-      landscapeLayout.fits && landscapeLayout.noTextClipping, JSON.stringify(landscapeLayout));
-    if (OUT) {
-      await m.page.screenshot({ path: `${OUT}/mobile-${w}-landscape.png` });
-      await m.page.setViewportSize({ width:w, height:h });
-      await m.page.waitForTimeout(180);
-      await m.page.screenshot({ path: `${OUT}/mobile-${w}-portrait.png` });
-    }
-    await m.context.close();
+
+    await inspectMobileOrientation(w, h, "portrait", "uidMMMMMMMMMMMMMMMMMMMMMMMMM");
+    await inspectMobileOrientation(h, w, "landscape", "uidNNNNNNNNNNNNNNNNNNNNNNNNN");
   }
   if (OUT) {
     await pa.page.screenshot({ path: `${OUT}/desktop-game.png` });
