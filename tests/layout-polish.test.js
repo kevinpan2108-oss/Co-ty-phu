@@ -26,6 +26,7 @@ test("the deal card is wider, taller and its key details use readable type sizes
   assert.match(css, /\.deal-value-grid small \{[\s\S]*?font-size:9px/);
   assert.match(css, /\.deal-facts small \{[\s\S]*?font-size:8px/);
   assert.match(css, /\.deal-description \{\s*max-height:4\.1em/);
+  assert.match(css, /flex:0 1 150px;[\s\S]*?max-width:150px/);
 });
 
 test("the roll dock is anchored at the bottom right instead of covering the board center", () => {
