@@ -44,7 +44,7 @@ test("bank debt can be repaid from liquidation proceeds without creditor transfe
   assert.equal(room.players.a.cash,25);
 });
 
-test("jail fee debt resumes the same turn only when fully repaid",()=>{
+test("jail fee debt frees the player (same turn continues) only when fully repaid",()=>{
   const room={players:{a:{cash:0,jailTurns:1},b:{cash:10}},turnUid:"a",turnNumber:2,lastRoll:null,
     debt:{uid:"a",amount:30,creditorUid:"",reason:"Phí ra tù",resumeJail:true}};
   applyDebtFunds(room,"a",20);
@@ -53,6 +53,8 @@ test("jail fee debt resumes the same turn only when fully repaid",()=>{
   applyDebtFunds(room,"a",15);
   assert.equal(room.debt,null);
   assert.equal(room.players.a.jailTurns,0);
-  assert.equal(room.turnUid,"b");
-  assert.equal(room.turnNumber,3);
+  // Trả đủ phí ra tù: vẫn là lượt của người chơi để họ tung xúc xắc tiếp.
+  assert.equal(room.turnUid,"a");
+  assert.equal(room.turnNumber,2);
+  assert.equal(room.lastRoll,null);
 });
