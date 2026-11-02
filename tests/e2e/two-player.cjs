@@ -284,9 +284,13 @@ let rules;
     (await pb.page.locator("#rollButton").isDisabled()) && /Tiếp tục/.test(await text(pa.page, "#rollButton")) &&
     (await pa.page.locator("#confirmEventButton").count()) === 0);
   await confirmTurn(pa);
-  await pb.page.waitForFunction(() => document.querySelector("#rollButton")?.disabled === false, null, { timeout: 5000 }).catch(() => {});
+  await Promise.all([
+    pb.page.waitForFunction(() => document.querySelector("#rollButton")?.disabled === false && /Bình/.test(document.querySelector("#turnName")?.textContent || ""), null, { timeout: 7000 }),
+    pa.page.waitForFunction(() => document.querySelector("#rollButton")?.disabled === true && /Bình/.test(document.querySelector("#turnName")?.textContent || ""), null, { timeout: 7000 })
+  ]);
   check("sau khi A xác nhận: quyền chuyển sang B", !(await pb.page.locator("#rollButton").isDisabled()) &&
-    (await pa.page.locator("#rollButton").isDisabled()) && /Bình/.test(await text(pa.page, "#turnName")));
+    (await pa.page.locator("#rollButton").isDisabled()) && /Bình/.test(await text(pa.page, "#turnName")),
+    JSON.stringify({aTurn:await text(pa.page,"#turnName"),aDisabled:await pa.page.locator("#rollButton").isDisabled(),bTurn:await text(pb.page,"#turnName"),bDisabled:await pb.page.locator("#rollButton").isDisabled()}));
 
   // B thử ghi trái phép khi không có lượt (rules phải chặn)
   const denied = await pa.page.evaluate(async () => { try { const m = await import("https://www.gstatic.com/firebasejs/13.1.0/firebase-database.js"); return "no-error"; } catch (e) { return String(e); } });
