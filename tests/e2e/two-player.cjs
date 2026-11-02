@@ -264,6 +264,8 @@ let rules;
     JSON.stringify(exactMove));
   check("A thấy nút MUA NGAY; B không thấy", /MUA NGAY/.test(await text(pa.page, "#pendingActions")) && (await pb.page.locator("#pendingActions button").count()) === 0);
   check("chứng từ đất hiện giá mua và tiền thuê", (await text(pa.page, "#dealTitle")).includes("Cái Bè") && (await text(pa.page, "#dealPrice")).includes("600.000₫") && (await text(pa.page, "#dealRent")).includes("40.000₫"));
+  check("chứng từ đất có bảng thuê theo cấp từ đất trống đến khách sạn", /Đất trống/.test(await text(pa.page, "#dealRentSchedule")) && /Trọn bộ màu/.test(await text(pa.page, "#dealRentSchedule")) && /Khách sạn/.test(await text(pa.page, "#dealRentSchedule")));
+  check("chứng từ đất hiển thị giá trị thế chấp và chi phí xây", /300\\.000₫/.test(await text(pa.page, "#dealFacts")) && /500\\.000₫/.test(await text(pa.page, "#dealBuildCost")));
   check("nút giao dịch hiển thị MUA NGAY và ĐẤU GIÁ", /MUA NGAY/.test(await text(pa.page, "#pendingActions")) && /ĐẤU GIÁ/.test(await text(pa.page, "#pendingActions")));
   const buyBoxes = await pa.page.locator("#pendingActions button").evaluateAll((els) => els.map((el) => { const r = el.getBoundingClientRect(); return [Math.round(r.width), Math.round(r.height)]; }));
   check("hai lựa chọn mua/đấu giá nằm gọn trong thẻ, không che bàn cờ", buyBoxes.length === 2 && buyBoxes.every(([w,h]) => w <= 155 && h <= 48), JSON.stringify(buyBoxes));
