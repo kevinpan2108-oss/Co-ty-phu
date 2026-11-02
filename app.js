@@ -9,7 +9,7 @@ import {
   doublesOutcome, jailRollOutcome, jailStatus, isAuctionable, cashSnapshot, cashDeltas, appendEventLog, JAIL_MAX_ATTEMPTS
 } from "./economy.js?v=2";
 import { cubeTransform } from "./dice-visuals.js?v=1";
-import { createCamera, CAMERA } from "./camera.js?v=event-auto-overview1";
+import { createCamera, CAMERA } from "./camera.js?v=projected-quad-camera2";
 import { currentTurnEvent, eventLogList, eventReason } from "./events.js?v=1";
 import { getDatabase, ref, set, get, onValue, runTransaction } from "https://www.gstatic.com/firebasejs/13.1.0/firebase-database.js";
 
@@ -2082,8 +2082,17 @@ camera = createCamera({
   onChange: (mode) => { $("camOverviewButton").hidden = mode === "overview"; }
 });
 $("camOverviewButton").addEventListener("click", () => camera.manualOverview());
-window.addEventListener("resize", () => camera.invalidate());
-window.addEventListener("orientationchange", () => camera.invalidate());
+let cameraViewportTimer = null;
+function refreshCameraViewport() {
+  camera?.invalidate();
+  clearTimeout(cameraViewportTimer);
+  cameraViewportTimer = setTimeout(() => {
+    camera?.invalidate();
+    if (camera && camera.mode !== "overview") camera.overview(260);
+  }, 140);
+}
+window.addEventListener("resize", refreshCameraViewport, { passive: true });
+window.addEventListener("orientationchange", refreshCameraViewport, { passive: true });
 $("epMinButton").addEventListener("click", () => { epMinimized = !epMinimized; renderEventPanel(); });
 $("epHistoryButton").addEventListener("click", () => { renderHistory(); $("historyModal").hidden = false; });
 $("historyClose").addEventListener("click", () => { $("historyModal").hidden = true; });

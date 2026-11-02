@@ -1335,3 +1335,45 @@ body:has(#gameView:not(.hidden)){overflow:hidden}
   #gameView .space .space-name{font-size:.205em}
   #gameView .space .space-price{font-size:.235em;min-width:2.4em}
 }
+
+
+/* Lớp chiều sâu cho phố ven sông và bến ghe trung tâm (SVG nhẹ, không thêm mesh 3D). */
+#gameView .mekong-city .city-street{filter:drop-shadow(0 1px 1px rgba(25,49,39,.25))}
+#gameView .mekong-city .city-market{transform-origin:300px 150px}
+#gameView .mekong-city .city-quay{opacity:.98}
+#gameView .mekong-city .city-lanterns{filter:drop-shadow(0 0 3px rgba(255,218,125,.6))}
+#gameView .mekong-city .city-boat{opacity:.96}
+#gameView .board-center .scene{filter:saturate(1.02) contrast(1.06) drop-shadow(0 1px 0 rgba(8,37,34,.12))}
+#gameView .hud-top{z-index:32}
+#gameView .hud-bottom{padding:
+  max(7px,env(safe-area-inset-bottom)) max(10px,env(safe-area-inset-right)) max(7px,env(safe-area-inset-bottom)) max(10px,env(safe-area-inset-left))}
+#gameView .event-panel{max-width:calc(100cqw - 24px)}
+#gameView .dice-stage{max-width:calc(100cqw - 24px)}
+@media(max-width:900px) and (orientation:portrait){
+  #gameView .board{--S:min(82cqh,43cqw,700px)}
+  #gameView .hud-top{right:7px;width:min(18cqw,150px)}
+  #gameView .player-card,#gameView .player-card:last-child{min-height:42px;padding:4px 6px;gap:5px}
+  #gameView .player-avatar{width:27px;height:27px;font-size:15px}
+  #gameView .player-name{font-size:10px}
+  #gameView .player-cash{font-size:13px}
+  #gameView .event-panel{width:min(45cqw,360px);max-height:min(62cqh,390px)}
+  #gameView .event-panel.idle{width:min(36cqw,300px)}
+  #gameView .event-panel .ep-head{min-height:38px;padding:5px 8px}
+  #gameView .event-panel .ep-body{padding:8px;gap:7px}
+  #gameView .dice-stage{--ds:clamp(42px,12cqh,68px)}
+  #gameView .roll-button{min-width:116px;min-height:42px;font-size:13px}
+}
+@media(max-width:900px) and (orientation:landscape){
+  #gameView .board{--S:min(82cqh,43cqw,680px)}
+  #gameView .hud-top{right:6px;width:min(18cqw,148px)}
+  #gameView .player-card,#gameView .player-card:last-child{min-height:42px;padding:3px 5px;gap:4px}
+  #gameView .player-avatar{width:26px;height:26px;font-size:15px}
+  #gameView .player-name{font-size:9px}
+  #gameView .player-cash{font-size:12px}
+  #gameView .event-panel{width:min(44cqw,350px);max-height:58cqh}
+  #gameView .event-panel.idle{width:min(34cqw,280px)}
+  #gameView .event-panel .ep-head{min-height:36px;padding:4px 8px}
+  #gameView .event-panel .ep-body{padding:7px;gap:6px}
+  #gameView .dice-stage{--ds:clamp(40px,12cqh,64px)}
+  #gameView .roll-button{min-width:112px;min-height:40px;font-size:12px}
+}

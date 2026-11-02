@@ -494,7 +494,47 @@ let rules;
     check(label + ": không tràn ngang (sảnh/ván)", lobbyOverflow <= 0 && overflow <= 0, `sảnh ${lobbyOverflow}px, ván ${overflow}px`);
     check(label + ": nút Tung xúc xắc nằm trọn trong màn hình đầu, cao ≥ 40px", rollBox && rollBox.y >= 0 && rollBox.y + rollBox.height <= h && rollBox.height >= 40, rollBox ? `y=${Math.round(rollBox.y)}..${Math.round(rollBox.y + rollBox.height)}/${h}, cao ${Math.round(rollBox.height)}` : "không thấy");
     const inputFont = await m.page.evaluate(() => getComputedStyle(document.getElementById("playerName")).fontSize);
-    if (OUT) { await m.page.screenshot({ path: `${OUT}/mobile-${w}.png` }); await m.page.evaluate(() => document.getElementById("lobbyView").classList.remove("hidden")); }
+    const inspectOrientation = async (width, height) => {
+      await m.page.setViewportSize({ width, height });
+      await m.page.waitForTimeout(220);
+      return m.page.evaluate(() => {
+        const rect = (selector) => {
+          const el = document.querySelector(selector);
+          if (!el) return null;
+          const r = el.getBoundingClientRect();
+          return { left:r.left, top:r.top, right:r.right, bottom:r.bottom, width:r.width, height:r.height };
+        };
+        const inside = (r) => !!r && r.left >= -1 && r.top >= -1 &&
+          r.right <= window.innerWidth + 1 && r.bottom <= window.innerHeight + 1;
+        const panel = document.getElementById("eventPanel");
+        const wasHidden = panel.classList.contains("is-hidden");
+        panel.classList.remove("is-hidden");
+        const result = {
+          board: rect("#board"),
+          hud: rect("#playersPanel"),
+          roll: rect("#rollButton"),
+          dice: rect("#diceStage"),
+          event: rect("#eventPanel")
+        };
+        if (wasHidden) panel.classList.add("is-hidden");
+        result.fits = inside(result.board) && inside(result.hud) && inside(result.roll) && inside(result.event);
+        result.noTextClipping = [...document.querySelectorAll("#board .space-name")].every((el) =>
+          getComputedStyle(el).webkitLineClamp === "2" && getComputedStyle(el).overflowWrap === "anywhere");
+        return result;
+      });
+    };
+    const portraitLayout = await inspectOrientation(w, h);
+    check(label + ": chữ/HUD/xúc xắc/bảng sự kiện vừa màn hình dọc",
+      portraitLayout.fits && portraitLayout.noTextClipping, JSON.stringify(portraitLayout));
+    const landscapeLayout = await inspectOrientation(h, w);
+    check(label + ": chữ/HUD/xúc xắc/bảng sự kiện vừa màn hình ngang",
+      landscapeLayout.fits && landscapeLayout.noTextClipping, JSON.stringify(landscapeLayout));
+    if (OUT) {
+      await m.page.screenshot({ path: `${OUT}/mobile-${w}-landscape.png` });
+      await m.page.setViewportSize({ width:w, height:h });
+      await m.page.waitForTimeout(180);
+      await m.page.screenshot({ path: `${OUT}/mobile-${w}-portrait.png` });
+    }
     await m.context.close();
   }
   if (OUT) {

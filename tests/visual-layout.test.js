@@ -5,6 +5,7 @@ import { readFile } from "node:fs/promises";
 const css = await readFile(new URL("../style.css", import.meta.url), "utf8");
 const layoutCss = css.slice(css.lastIndexOf("Marmalade-inspired tabletop layout"));
 const html = await readFile(new URL("../index.html", import.meta.url), "utf8");
+const e2eSource = await readFile(new URL("./e2e/two-player.cjs", import.meta.url), "utf8");
 
 test("Marmalade-inspired presentation uses a mild perspective and square board", () => {
   assert.match(layoutCss, /--rx:8deg/);
@@ -32,4 +33,28 @@ test("visual redesign does not change the game script or add per-tile models", (
   assert.match(html, /app\.js\?v=marmalade-tile-labels2/);
   assert.match(html, /style\.css\?v=marmalade-tile-labels2/);
   assert.doesNotMatch(html, /space-model/);
+});
+
+test("camera measures actual perspective quads instead of the axis-aligned board rectangle", async () => {
+  const camera = await readFile(new URL("../camera.js", import.meta.url), "utf8");
+  assert.match(camera, /getBoxQuads\?\.\(\{ box: "border" \}\)/);
+  assert.match(camera, /quadCenter\(readQuad\(cell\)\)/);
+  assert.match(camera, /boundsFromPoints\(projectedCorners\)/);
+  assert.match(camera, /camera-geometry-marker/);
+});
+
+test("the riverside centerpiece has layered road, quay, lantern and pier details", () => {
+  assert.match(html, /class="city-street"/);
+  assert.match(html, /class="city-market"/);
+  assert.match(html, /class="city-quay"/);
+  assert.match(html, /class="city-lanterns"/);
+  assert.match(html, /class="city-boat"/);
+  assert.match(html, /id="townShadow"/);
+});
+
+test("portrait and landscape mobile layouts keep their own responsive board and HUD sizing", () => {
+  assert.match(css, /@media\(max-width:900px\) and \(orientation:portrait\)/);
+  assert.match(css, /@media\(max-width:900px\) and \(orientation:landscape\)/);
+  assert.match(css, /env\(safe-area-inset-bottom\)/);
+  assert.match(e2eSource, /chữ\/HUD\/xúc xắc\/bảng sự kiện vừa màn hình ngang/);
 });
