@@ -119,12 +119,16 @@ const UNIT_VND = 10000;
 function money(units) {
   return Math.round(Number(units || 0) * UNIT_VND).toLocaleString("vi-VN") + "₫";
 }
-// Dạng ngắn cho ô cờ nhỏ: 600k, 1,2tr, 4tr.
+// Dạng ngắn thống nhất cho ô cờ và thông báo: 600K, 1.2M, 2.8M.
 function moneyShort(units) {
-  const vnd = Number(units || 0) * UNIT_VND;
-  return vnd >= 1000000
-    ? (vnd / 1000000).toLocaleString("vi-VN", {maximumFractionDigits:1}) + "tr"
-    : Math.round(vnd / 1000) + "k";
+  const rawVnd = Number(units || 0) * UNIT_VND;
+  if (!Number.isFinite(rawVnd)) return "0K";
+  const vnd = Math.max(0, rawVnd);
+  if (vnd >= 1000000) {
+    const amount = Math.round((vnd / 1000000) * 10) / 10;
+    return String(amount) + "M";
+  }
+  return String(Math.round(vnd / 1000)) + "K";
 }
 // Dữ liệu phòng do trình duyệt của người chơi ghi lên, nên mọi giá trị đưa vào innerHTML/style phải được kiểm tra.
 function safeColor(value) {
