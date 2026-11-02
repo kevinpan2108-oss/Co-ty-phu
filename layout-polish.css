@@ -8,11 +8,11 @@
 }
 
 #gameView .deal-card {
-  top:clamp(220px,27cqh,260px);
+  top:clamp(266px,30cqh,300px);
   right:clamp(12px,2.4cqw,34px);
   width:min(27cqw,346px);
   min-width:min(286px,31cqw);
-  max-height:min(55cqh,520px);
+  max-height:min(50cqh,480px);
   gap:0;
 }
 
