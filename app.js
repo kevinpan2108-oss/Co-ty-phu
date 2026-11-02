@@ -9,7 +9,7 @@ import {
   doublesOutcome, jailRollOutcome, jailStatus, isAuctionable, cashSnapshot, cashDeltas, appendEventLog, JAIL_MAX_ATTEMPTS
 } from "./economy.js?v=2";
 import { cubeTransform } from "./dice-visuals.js?v=1";
-import { createCamera, CAMERA } from "./camera.js?v=event-center1";
+import { createCamera, CAMERA } from "./camera.js?v=marmalade-camera-20261102";
 import { currentTurnEvent, eventLogList, eventReason } from "./events.js?v=1";
 import { getDatabase, ref, set, get, onValue, runTransaction } from "https://www.gstatic.com/firebasejs/13.1.0/firebase-database.js";
 
@@ -1118,16 +1118,41 @@ function planCameraRoute(from, to, steps, diceDelay) {
   const distance = Number.isInteger(steps) ? steps : (to - from + 40) % 40;
   const hops = !reduceMotion && distance >= 1 && distance <= 12 && (from + distance) % 40 === to;
   const seq = camera.beginSequence();
+  const returnToOverview = () => {
+    camera.later(() => {
+      if (camera.isCurrent(seq)) camera.overview(CAMERA.zoomOutMs);
+    }, CAMERA.focusHoldMs);
+  };
+
   if (!hops) {
-    // Dịch chuyển thẳng (vào tù): bỏ qua hành trình, focus thẳng vào ô đích.
-    return { follow: false, teleport: (delay) => { camera.later(() => camera.focus(to, { seq }), delay); return CAMERA.focusMs; } };
+    // Dịch chuyển đặc biệt: cắt tới ô đích, giữ cận cảnh rồi trả camera về toàn bàn.
+    return {
+      follow: false,
+      teleport: (delay) => {
+        camera.later(() => {
+          camera.focus(to, { seq });
+          returnToOverview();
+        }, delay);
+        return CAMERA.focusMs + CAMERA.focusHoldMs;
+      }
+    };
   }
+
+  // Mở camera từ vị trí xuất phát, sau đó bám token từng ô với nhịp ngắn hơn
+  // thời gian nhảy token để mỗi lần pan hoàn tất trước bước kế tiếp.
   camera.later(() => camera.follow(from, { seq, ms: CAMERA.zoomInMs }), diceDelay);
   return {
     follow: true,
     hooks: {
-      step: (cell) => camera.follow(cell, { seq, ms: HOP_MS + 60, ease: "cubic-bezier(.3,.1,.6,.9)" }),
-      land: (cell) => camera.focus(cell, { seq })
+      step: (cell) => camera.follow(cell, {
+        seq,
+        ms: CAMERA.stepMs,
+        ease: "cubic-bezier(.22,.78,.25,1)"
+      }),
+      land: (cell) => {
+        camera.focus(cell, { seq });
+        returnToOverview();
+      }
     }
   };
 }
