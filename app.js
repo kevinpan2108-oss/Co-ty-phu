@@ -2113,7 +2113,7 @@ window.addEventListener("orientationchange", () => camera.invalidate());
 
 $("dealHistoryButton").addEventListener("click", () => { renderHistory(); $("historyModal").hidden = false; });
 $("dealCloseButton").addEventListener("click", () => { const event = currentTurnEvent(roomState); if (event) dealDismissedId = event.id; $("dealCard").hidden = true; });
-$("dealCloseButton").addEventListener("click", () => { const event = currentTurnEvent(roomState); if (event) dealDismissedId = event.id; $("dealCard").hidden = true; });
+
 $("historyClose").addEventListener("click", () => { $("historyModal").hidden = true; });
 $("historyModal").addEventListener("click", (event) => { if (event.target === $("historyModal")) $("historyModal").hidden = true; });
 $("cellInfo").addEventListener("click", (event) => { if (event.target.closest(".cell-info-close")) $("cellInfo").classList.remove("show"); });
