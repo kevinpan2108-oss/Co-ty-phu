@@ -166,6 +166,10 @@ let rules;
   await pb.page.evaluate(() => { Math.random = () => 0.01; });
   await pb.page.click("#rollButton");
   await pa.page.waitForFunction(() => document.querySelector("#rollButton")?.disabled === false && document.querySelector("#turnName")?.textContent.trim() === "An", null, { timeout: 6000 });
+  await Promise.all([
+    pa.page.waitForFunction(() => /Đến lượt bạn/i.test(document.querySelector("#centerStatus")?.textContent || ""), null, { timeout: 5000 }),
+    pb.page.waitForFunction(() => /Đợi đối thủ/i.test(document.querySelector("#centerStatus")?.textContent || ""), null, { timeout: 5000 })
+  ]);
   check("An thắng lượt xí ngầu và được đi trước", /Đến lượt bạn/i.test(await text(pa.page, "#centerStatus")) && /Đợi đối thủ/i.test(await text(pb.page, "#centerStatus")));
 
   await pc.page.fill("#roomCodeInput", code); await pc.page.fill("#playerName", "Chi"); await pc.page.click("#joinRoomButton"); await pc.page.waitForTimeout(600);
