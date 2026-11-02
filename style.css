@@ -1212,3 +1212,8 @@ body:has(#gameView:not(.hidden)){overflow:hidden}
   #gameView .stage::after{display:none}
   #gameView .board-wrap{will-change:auto}
 }
+
+
+/* Keep the player pieces compact on the tighter, square property tiles. */
+#gameView .token b{font-size:.44em!important}
+#gameView .space-players{gap:0}
