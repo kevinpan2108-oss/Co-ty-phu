@@ -1,0 +1,589 @@
+
+/* =====================================================================
+   Marmalade-inspired in-game interaction flow.
+   Contextual deed / auction / result cards replace the persistent event rail.
+   ===================================================================== */
+#gameView .interaction-card[hidden] { display:none!important; }
+#gameView .interaction-card {
+  position:absolute;
+  z-index:72;
+  left:clamp(16px,2.4cqw,36px);
+  top:50%;
+  transform:translateY(-43%);
+  width:min(34cqw,420px);
+  max-height:min(76cqh,650px);
+  overflow:auto;
+  padding:0 14px 14px;
+  border:2px solid #233958;
+  border-radius:15px;
+  background:linear-gradient(180deg,#fffdf7 0%,#f7f0df 100%);
+  color:#243852;
+  box-shadow:0 6px 0 rgba(24,42,65,.22),0 18px 44px rgba(14,34,56,.3),inset 0 1px 0 #fff;
+  scrollbar-width:thin;
+  scrollbar-color:#c4b38d transparent;
+}
+#gameView .interaction-card::before {
+  content:"";
+  position:absolute;
+  inset:4px;
+  border:1px solid rgba(63,73,82,.12);
+  border-radius:10px;
+  pointer-events:none;
+}
+#gameView .deal-ribbon {
+  position:relative;
+  display:table;
+  min-width:138px;
+  margin:-2px 0 12px -20px;
+  padding:7px 23px 7px 25px;
+  background:linear-gradient(180deg,#f04d43,#c9272a);
+  color:#fff;
+  border:2px solid #982628;
+  border-left:0;
+  border-radius:5px 7px 7px 0;
+  box-shadow:0 3px 0 rgba(93,28,29,.24),0 6px 12px rgba(47,32,31,.14);
+  font-size:clamp(10px,2.15cqh,13px);
+  font-weight:1000;
+  letter-spacing:.14em;
+  text-shadow:0 1px 1px rgba(0,0,0,.22);
+}
+#gameView .deal-ribbon::after {
+  content:"";
+  position:absolute;
+  left:0;
+  bottom:-8px;
+  border-top:7px solid #812428;
+  border-left:8px solid transparent;
+}
+#gameView .deal-header {
+  display:flex;
+  align-items:center;
+  gap:10px;
+  position:relative;
+  padding:0 2px 10px;
+  border-bottom:1px solid #ded5c4;
+}
+#gameView .deal-icon {
+  flex:none;
+  display:grid;
+  place-items:center;
+  width:46px;
+  height:46px;
+  border-radius:12px;
+  border:1.5px solid #d6c9af;
+  background:linear-gradient(145deg,#fff,#eee4ce);
+  font-size:28px;
+  box-shadow:0 2px 4px rgba(31,51,70,.1),inset 0 1px 0 #fff;
+}
+#gameView .deal-heading {
+  display:flex;
+  flex:1;
+  min-width:0;
+  flex-direction:column;
+  gap:2px;
+}
+#gameView .deal-heading small {
+  color:#9c6b25;
+  font-size:9px;
+  font-weight:1000;
+  letter-spacing:.12em;
+}
+#gameView .deal-title {
+  display:block;
+  color:#203651;
+  font-family:var(--display);
+  font-size:clamp(17px,3.3cqh,23px);
+  font-weight:1000;
+  line-height:1.1;
+  overflow-wrap:anywhere;
+}
+#gameView .deal-subtitle {
+  color:#6d7782;
+  font-size:10px;
+  font-weight:750;
+  line-height:1.2;
+}
+#gameView .deal-group {
+  flex:none;
+  max-width:96px;
+  padding:5px 8px;
+  border:1px solid #dacba7;
+  border-radius:99px;
+  background:#fff5dc;
+  color:#805d25;
+  font-size:9px;
+  font-weight:900;
+  text-align:center;
+}
+#gameView .deed-sheet {
+  position:relative;
+  margin:11px 0 10px;
+  padding:0 10px 9px;
+  border:1.5px solid #c9c6ba;
+  border-radius:5px;
+  background:linear-gradient(180deg,#fff 0%,#fffdf8 100%);
+  box-shadow:0 2px 5px rgba(32,49,68,.08);
+}
+#gameView .deed-sheet[hidden] { display:none!important; }
+#gameView .deed-color-strip {
+  height:17px;
+  margin:0 -10px 8px;
+  border-bottom:2px solid rgba(29,43,83,.28);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.45);
+}
+#gameView .deed-price-grid {
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+  margin:0 0 8px;
+  padding:0 2px 8px;
+  border-bottom:1px solid #e2ded3;
+}
+#gameView .deed-price-grid div {
+  display:flex;
+  align-items:baseline;
+  justify-content:space-between;
+  gap:6px;
+}
+#gameView .deed-price-grid small {
+  color:#747d86;
+  font-size:8px;
+  font-weight:1000;
+  letter-spacing:.07em;
+}
+#gameView .deed-price-grid strong {
+  color:#1d3552;
+  font-size:clamp(12px,2.3cqh,16px);
+  font-weight:1000;
+  white-space:nowrap;
+}
+#gameView .deed-rent-heading {
+  padding:0 2px 5px;
+  color:#7b6540;
+  font-size:8px;
+  font-weight:1000;
+  letter-spacing:.11em;
+}
+#gameView .deed-rent-list {
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:3px 10px;
+}
+#gameView .deed-rent-row {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:5px;
+  min-width:0;
+  padding:3px 4px;
+  border-bottom:1px dotted #d8d2c3;
+  color:#5e6975;
+  font-size:9px;
+  line-height:1.2;
+}
+#gameView .deed-rent-row span {
+  min-width:0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+#gameView .deed-rent-row strong {
+  color:#263e57;
+  font-size:9px;
+  font-weight:1000;
+  white-space:nowrap;
+}
+#gameView .deed-rent-row.base-rent {
+  background:#f2f5eb;
+  color:#305a42;
+}
+#gameView .deed-rent-row.base-rent strong { color:#21633d; }
+#gameView .deed-build-cost {
+  margin-top:8px;
+  padding:6px 7px;
+  border-radius:5px;
+  background:#f6f0e1;
+  color:#756344;
+  font-size:8px;
+  font-weight:900;
+  line-height:1.35;
+}
+#gameView .interaction-card .action-message {
+  position:static;
+  transform:none;
+  display:block;
+  max-width:none;
+  max-height:none;
+  min-height:0;
+  overflow:visible;
+  margin:9px 1px 8px;
+  padding:0;
+  border:0;
+  border-radius:0;
+  background:none;
+  box-shadow:none;
+  color:#33485f;
+  font-size:clamp(11px,2.3cqh,13px);
+  font-weight:700;
+  line-height:1.45;
+  text-align:left;
+}
+#gameView .deal-money {
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+  margin:8px 0 0;
+  padding:0;
+  list-style:none;
+}
+#gameView .deal-money:empty { display:none; }
+#gameView .deal-money li {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+  padding:6px 8px;
+  border:1px solid #c6d9c4;
+  border-radius:7px;
+  background:#edf6ec;
+  color:#425b4a;
+  font-size:10px;
+  font-weight:800;
+}
+#gameView .deal-money li.loss {
+  border-color:#e3b9b3;
+  background:#fff0ed;
+  color:#8a3934;
+}
+#gameView .deal-money li b { color:#176d3c; font-size:11px; font-weight:1000; white-space:nowrap; }
+#gameView .deal-money li.loss b { color:#ba3832; }
+#gameView .deal-money li small { color:#73806f; font-size:9px; font-weight:650; }
+#gameView .deal-money li.deal-transfer {
+  border:0;
+  padding:4px 2px;
+  background:transparent;
+  color:#69778a;
+  font-size:9px;
+}
+#gameView .deal-money li.deal-transfer b { color:#344c64; }
+#gameView .deal-balances {
+  display:flex;
+  gap:5px;
+  flex-wrap:wrap;
+  margin-top:8px;
+}
+#gameView .deal-balances:empty { display:none; }
+#gameView .deal-balances span {
+  display:flex;
+  flex:1 1 125px;
+  min-width:0;
+  align-items:center;
+  gap:5px;
+  padding:5px 7px;
+  border:1px solid var(--pc,#8090a0);
+  border-radius:7px;
+  background:#fff;
+  color:#42536a;
+  font-size:9px;
+  font-weight:800;
+}
+#gameView .deal-balances span i {
+  flex:none;
+  width:7px;
+  height:7px;
+  border-radius:50%;
+  background:var(--pc,#8090a0);
+}
+#gameView .deal-balances span b {
+  margin-left:auto;
+  color:#1e6440;
+  font-size:10px;
+  font-weight:1000;
+  white-space:nowrap;
+}
+#gameView .interaction-card .pending-actions {
+  position:static;
+  left:auto;
+  top:auto;
+  bottom:auto;
+  transform:none;
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  max-width:none;
+  margin:11px 0 0;
+  padding:0;
+  border:0;
+  border-radius:0;
+  background:transparent;
+  box-shadow:none;
+  backdrop-filter:none;
+}
+#gameView .interaction-card .pending-actions:empty { display:none; }
+#gameView .interaction-card .pending-actions button {
+  flex:1 1 125px;
+  width:auto;
+  max-width:none;
+  min-width:0!important;
+  min-height:43px;
+  height:auto;
+  max-height:none;
+  padding:8px 11px;
+  border:2px solid #243b5a;
+  border-radius:10px;
+  box-shadow:0 3px 0 rgba(33,53,79,.22);
+  font-size:clamp(11px,2.2cqh,13px);
+  font-weight:1000;
+  letter-spacing:.025em;
+  line-height:1.15;
+  transition:transform .15s,filter .15s,box-shadow .15s;
+}
+#gameView .interaction-card .pending-actions button:hover:not(:disabled) {
+  transform:translateY(-2px);
+  filter:brightness(1.04);
+  box-shadow:0 5px 0 rgba(33,53,79,.2);
+}
+#gameView .interaction-card .pending-actions .primary-button {
+  border-color:#a9272c;
+  background:linear-gradient(180deg,#f04d43,#d52f32);
+  color:#fff;
+  text-shadow:0 1px 1px rgba(91,16,17,.25);
+}
+#gameView .interaction-card .pending-actions .secondary-button {
+  border-color:#c6c5bd;
+  background:linear-gradient(180deg,#fff,#eeeae0);
+  color:#d43c36;
+}
+#gameView .interaction-card .ep-confirm-row {
+  display:flex;
+  flex-wrap:wrap;
+  gap:7px;
+  margin-top:9px;
+}
+#gameView .interaction-card .ep-confirm-row:empty { display:none; }
+#gameView .interaction-card .ep-confirm-row button {
+  flex:1 1 130px;
+  min-height:38px;
+  padding:7px 9px;
+  border:1.5px solid #b8c1c9;
+  border-radius:9px;
+  background:#fff;
+  color:#304660;
+  font-size:10px;
+  font-weight:900;
+}
+#gameView .interaction-card .ep-confirm-row .danger-button {
+  border-color:#ae3b3e;
+  background:linear-gradient(180deg,#fff0ed,#f2c4bd);
+  color:#8c292d;
+}
+#gameView .deal-wait {
+  flex:1 1 100%;
+  padding:7px 9px;
+  border-left:3px solid #d4a73d;
+  border-radius:4px;
+  background:#fff6df;
+  color:#80652f;
+  font-size:10px;
+  font-weight:800;
+  line-height:1.35;
+}
+#gameView .hud-menu .history-button {
+  background:linear-gradient(145deg,#fffdf6,#f4e6c9);
+}
+#gameView .hud-roll { left:39.5%; }
+#gameView .roll-button {
+  min-width:clamp(158px,29cqw,220px);
+  border:2px solid #a3252c;
+  background:linear-gradient(180deg,#f14d43 0%,#d12b31 100%);
+  color:#fff;
+  box-shadow:0 4px 0 #9e242b,0 8px 18px rgba(70,30,29,.25),inset 0 1px 0 rgba(255,255,255,.32);
+  text-shadow:0 1px 1px rgba(72,12,16,.3);
+  letter-spacing:.025em;
+}
+#gameView .roll-button:not(:disabled) {
+  animation:rollControlPulse 1.7s ease-in-out infinite;
+}
+#gameView .roll-button:disabled {
+  border-color:#8b949d;
+  background:linear-gradient(180deg,#d9dfe3,#b8c0c8);
+  color:#687583;
+  box-shadow:0 4px 0 #88929b;
+  text-shadow:none;
+}
+@keyframes rollControlPulse {
+  0%,100% { box-shadow:0 4px 0 #9e242b,0 8px 18px rgba(70,30,29,.22),0 0 0 0 rgba(227,55,58,.25); }
+  50% { box-shadow:0 4px 0 #9e242b,0 8px 18px rgba(70,30,29,.22),0 0 0 8px rgba(227,55,58,0); }
+}
+
+/* Property deed detail popup, also used when a player taps a board space. */
+#gameView .cell-info {
+  left:clamp(16px,2.4cqw,36px);
+  bottom:clamp(86px,13cqh,136px);
+  width:min(34cqw,420px);
+  max-height:min(66cqh,540px);
+  border:2px solid #263b58;
+  border-radius:14px;
+  background:linear-gradient(180deg,#fffdf8,#f4eddd);
+  color:#273d58;
+  box-shadow:0 5px 0 rgba(28,45,68,.2),0 16px 38px rgba(14,34,56,.26);
+}
+#gameView .cell-info.show {
+  padding:13px 42px 13px 14px;
+}
+#gameView .cell-info-head strong {
+  color:#203752;
+  font-size:clamp(15px,3cqh,21px);
+}
+#gameView .cell-info p {
+  color:#5c6a79;
+  font-size:clamp(10px,2cqh,12px);
+}
+#gameView .cell-info-chips span {
+  border:1px solid #e0cf9d;
+  background:#fff3d8;
+  color:#815c21;
+  font-weight:850;
+}
+#gameView .cell-info .cell-info-close {
+  border:1.5px solid #263b58;
+  background:#fff;
+  color:#263b58;
+}
+
+/* The dice are thrown onto the board, tumble in 3D and bounce before settling. */
+#gameView .dice-stage {
+  left:39.5%;
+  top:46%;
+  perspective:1100px;
+  transform:translate(-50%,-50%);
+  filter:drop-shadow(0 12px 12px rgba(19,38,70,.2));
+}
+#gameView .dice-stage.show::before {
+  display:block!important;
+  content:""!important;
+  position:absolute;
+  left:50%;
+  top:calc(50% + var(--ds) * .58);
+  width:calc(var(--ds) * 3.5);
+  height:calc(var(--ds) * .48);
+  transform:translateX(-50%);
+  clip-path:none!important;
+  border-radius:50%;
+  background:radial-gradient(ellipse,rgba(20,34,47,.3) 0%,rgba(20,34,47,.16) 43%,transparent 72%);
+  opacity:.7;
+  z-index:-2;
+  animation:diceShadowPulse 1.18s ease-out both;
+}
+#gameView .dice-stage.show::after {
+  content:"";
+  position:absolute;
+  left:50%;
+  top:50%;
+  width:calc(var(--ds) * 2.4);
+  height:calc(var(--ds) * 2.4);
+  transform:translate(-50%,-50%) scale(.5);
+  border:2px solid rgba(255,244,203,.8);
+  border-radius:50%;
+  opacity:0;
+  pointer-events:none;
+  z-index:-1;
+}
+#gameView .dice-stage.rolling::after { animation:diceImpactRing .58s .62s ease-out both; }
+#gameView .dice-stage .dice-row { gap:calc(var(--ds) * .42); }
+#gameView .dice-stage .cube-wrap {
+  transform-style:preserve-3d;
+  will-change:transform,opacity;
+  filter:drop-shadow(0 8px 4px rgba(13,31,47,.22));
+  animation:diceToss 1.18s cubic-bezier(.16,.78,.18,1) both;
+}
+#gameView .dice-stage.rolling .cube-wrap:nth-child(2) { animation-delay:.11s; }
+#gameView .dice-stage .cube {
+  transform-style:preserve-3d;
+  transition:transform 1.12s cubic-bezier(.16,.75,.18,1);
+}
+#gameView .dice-stage .cube .die.face {
+  border:1px solid rgba(155,126,73,.35)!important;
+  border-radius:calc(var(--ds) * .17);
+  background:
+    radial-gradient(circle at 28% 22%,#fff 0%,#fffdf4 35%,#f1e4c4 100%);
+  box-shadow:
+    inset 0 2px 1px rgba(255,255,255,.95),
+    inset 0 -5px 0 rgba(106,78,37,.12),
+    0 1px 2px rgba(70,52,28,.18);
+  backface-visibility:hidden;
+}
+#gameView .dice-stage .cube .die.face i {
+  box-shadow:inset 0 1px 1px rgba(0,0,0,.12);
+}
+#gameView .dice-stage .cube .die.face[data-v="1"] i:nth-child(5) {
+  background:#d43a35;
+}
+@keyframes diceToss {
+  0% { transform:translate(480%,330%) rotateZ(88deg) scale(.36); opacity:0; }
+  13% { opacity:1; }
+  32% { transform:translate(195%,-90%) rotateZ(188deg) scale(1.09); opacity:1; }
+  48% { transform:translate(38%,22%) rotateZ(285deg) scale(1.02); }
+  62% { transform:translate(-5%,-12%) rotateZ(345deg) scale(1.04); }
+  75% { transform:translate(2%,4%) rotateZ(372deg) scale(.985); }
+  88% { transform:translate(0,-2%) rotateZ(358deg) scale(1.01); }
+  100% { transform:translate(0,0) rotateZ(360deg) scale(1); opacity:1; }
+}
+@keyframes diceShadowPulse {
+  0% { opacity:0; transform:translateX(-50%) scale(.5); }
+  45% { opacity:.9; transform:translateX(-50%) scale(1.08); }
+  100% { opacity:.7; transform:translateX(-50%) scale(1); }
+}
+@keyframes diceImpactRing {
+  0% { opacity:.8; transform:translate(-50%,-50%) scale(.45); }
+  100% { opacity:0; transform:translate(-50%,-50%) scale(1.7); }
+}
+@media(max-width:620px) {
+  #gameView .interaction-card {
+    left:10px;
+    top:auto;
+    bottom:clamp(76px,12cqh,108px);
+    transform:none;
+    width:min(48cqw,390px);
+    max-height:56cqh;
+    padding:0 10px 10px;
+  }
+  #gameView .deal-ribbon { margin-left:-15px; min-width:120px; padding:6px 16px 6px 19px; }
+  #gameView .deal-icon { width:38px; height:38px; font-size:23px; }
+  #gameView .deed-rent-row { font-size:8px; }
+  #gameView .deed-rent-row strong { font-size:8px; }
+  #gameView .interaction-card .pending-actions button { min-height:37px; }
+  #gameView .cell-info {
+    left:10px;
+    bottom:clamp(76px,12cqh,108px);
+    width:min(48cqw,390px);
+  }
+  #gameView .hud-roll { left:39.5%; }
+  #gameView .roll-button { min-width:124px; min-height:42px; font-size:13px; padding:0 12px; }
+  #gameView .dice-stage { --ds:clamp(48px,15cqh,68px); }
+}
+@media(max-height:560px) and (orientation:landscape) {
+  #gameView .interaction-card {
+    top:48%;
+    bottom:auto;
+    width:min(31cqw,360px);
+    max-height:68cqh;
+    transform:translateY(-45%);
+  }
+  #gameView .deed-color-strip { height:13px; margin-bottom:5px; }
+  #gameView .deal-ribbon { margin-bottom:7px; padding-top:5px; padding-bottom:5px; }
+  #gameView .deal-header { padding-bottom:6px; }
+  #gameView .deal-icon { width:36px; height:36px; }
+  #gameView .deed-sheet { margin:7px 0; padding-bottom:6px; }
+  #gameView .deed-rent-row { padding:2px 3px; }
+  #gameView .deal-money li { padding:4px 6px; }
+  #gameView .interaction-card .pending-actions { margin-top:7px; gap:6px; }
+  #gameView .interaction-card .pending-actions button { min-height:34px; padding:6px 8px; }
+  #gameView .dice-stage { --ds:clamp(42px,14cqh,68px); }
+}
+@media(prefers-reduced-motion:reduce) {
+  #gameView .roll-button:not(:disabled) { animation:none; }
+  #gameView .dice-stage.show::before,
+  #gameView .dice-stage.rolling::after,
+  #gameView .dice-stage .cube-wrap { animation:none!important; }
+}
