@@ -30,8 +30,8 @@ test("player HUD is a vertical rail and the Mekong city scene is visible", () =>
 });
 
 test("visual redesign does not change the game script or add per-tile models", () => {
-  assert.match(html, /app\\.js\\?v=marmalade-city-diorama4/);
-  assert.match(html, /style\\.css\\?v=marmalade-city-diorama4/);
+  assert.ok(html.includes("app.js?v=marmalade-city-diorama4"));
+  assert.ok(html.includes("style.css?v=marmalade-city-diorama4"));
   assert.doesNotMatch(html, /space-model/);
 });
 
@@ -78,6 +78,6 @@ test("the gameplay redesign keeps its original board, dice, event and Firebase l
   assert.match(html, /id="eventPanel"/);
   assert.match(html, /id="playersPanel"/);
   assert.match(html, /id="rollButton"/);
-  assert.match(html, /app\.js\?v=marmalade-city-diorama4/);
-  assert.match(html, /style\.css\?v=marmalade-city-diorama4/);
+  assert.ok(html.includes("app.js?v=marmalade-city-diorama4"));
+  assert.ok(html.includes("style.css?v=marmalade-city-diorama4"));
 });
