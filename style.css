@@ -1217,7 +1217,7 @@ body:has(#gameView:not(.hidden)){overflow:hidden}
 #gameView .player-card,
 #gameView .player-card:last-child{
   width:100%;
-  min-height:clamp(48px,14cqh,66px);
+  min-height:clamp(44px,7cqh,58px);
   padding:5px 8px;
   flex-direction:row;
   text-align:left;
@@ -1232,8 +1232,8 @@ body:has(#gameView:not(.hidden)){overflow:hidden}
   outline-offset:1px;
 }
 #gameView .player-avatar{
-  width:clamp(30px,7.5cqh,42px);
-  height:clamp(30px,7.5cqh,42px);
+  width:clamp(28px,6cqh,40px);
+  height:clamp(28px,6cqh,40px);
   border-width:2px;
   font-size:clamp(17px,4.8cqh,25px);
 }
