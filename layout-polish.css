@@ -121,12 +121,41 @@
     left:37.5%;
     top:48%;
   }
-  #gameView .deal-card {
-    top:clamp(70px,18cqh,110px);
-    right:10px;
-    width:min(29cqw,330px);
+  #gameView .players-panel {
+    top:8px;
+    left:10px;
+    right:auto;
+    width:min(48cqw,400px);
+    max-height:none;
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:6px;
+  }
+  #gameView .player-card,
+  #gameView .player-card:last-child {
+    width:100%;
     min-width:0;
-    max-height:calc(100cqh - 170px);
+    min-height:52px;
+    padding:5px 7px;
+    gap:5px;
+  }
+  #gameView .player-avatar { width:30px; height:30px; }
+  #gameView .player-position,
+  #gameView .player-metrics { display:none; }
+  #gameView .room-pill {
+    left:10px;
+    right:auto;
+    top:68px;
+    transform:none;
+    align-items:flex-start;
+  }
+  #gameView .deal-card {
+    top:8px;
+    right:10px;
+    bottom:52px;
+    width:min(31cqw,350px);
+    min-width:0;
+    max-height:none;
   }
   #gameView .deal-property-head { min-height:48px; padding:6px 9px; }
   #gameView .deal-icon { width:34px; height:34px; font-size:21px; }
