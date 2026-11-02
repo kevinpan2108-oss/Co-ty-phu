@@ -149,7 +149,7 @@ let rules;
     const stage = document.querySelector("#stage").getBoundingClientRect();
     const board = document.querySelector("#board");
     const rect = board.getBoundingClientRect();
-    const quad = board.getBoxQuads?.()[0];
+    const transform = new DOMMatrix(getComputedStyle(board).transform);
     const players = document.querySelector("#playersPanel");
     const playerRect = players.getBoundingClientRect();
     const city = document.querySelector("#board .city-diorama");
@@ -162,13 +162,13 @@ let rules;
       playerLeft: playerRect.left,
       playerDirection: getComputedStyle(players).flexDirection,
       cityVisible: !!city && cityStyle.display !== "none" && Number(cityStyle.opacity) > 0.9,
-      topEdgeSlope: quad ? Math.abs(quad.p2.y - quad.p1.y) / Math.max(1, quad.p2.x - quad.p1.x) : 99
+      horizontalRotation: Math.max(Math.abs(transform.b), Math.abs(transform.c))
     };
   });
   check("bản đồ giữ đủ 40 ô quanh một bàn vuông nhìn gần từ trên xuống",
     mapComposition.spaces === 40 &&
     mapComposition.boardCenterX < mapComposition.stageWidth * 0.55 &&
-    mapComposition.topEdgeSlope < 0.08,
+    mapComposition.horizontalRotation < 0.08,
     JSON.stringify(mapComposition));
   check("thành phố 3D ở trung tâm đang hiển thị",
     mapComposition.cityVisible, JSON.stringify(mapComposition));
