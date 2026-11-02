@@ -854,28 +854,6 @@ body:has(#gameView:not(.hidden)){overflow:hidden}
 /* ===== Event Panel theo đúng người chơi liên quan ===== */
 #gameView .event-panel.is-hidden{display:none!important;visibility:hidden;pointer-events:none}
 
-/* ===== Mô hình isometric 3D cho bến phà và công ty tiện ích ===== */
-#gameView .space-model{
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  flex:0 0 auto;
-  width:min(94%,42px);
-  height:clamp(22px,2.6vw,31px);
-  margin:7px 0 1px;
-  filter:drop-shadow(0 2px 1px rgba(25,47,53,.24));
-  transform:translateZ(0);
-}
-#gameView .space-model svg{display:block;width:100%;height:100%;overflow:visible}
-#gameView .space-model + .space-text .space-name{margin-top:1px}
-#gameView .model-ferry{width:min(96%,45px);height:clamp(23px,2.8vw,33px)}
-#gameView .model-water,#gameView .model-power{width:min(96%,43px);height:clamp(23px,2.8vw,33px)}
-@media(max-width:800px){
-  #gameView .space-model{width:min(98%,40px);height:clamp(22px,4.8vw,30px);margin-top:6px}
-  #gameView .model-ferry,#gameView .model-water,#gameView .model-power{width:min(100%,43px);height:clamp(23px,5vw,32px)}
-}
-
-
 /* Larger event details and player-linked money notifications. */
 #gameView .event-panel{width:min(66cqw,600px);max-height:min(76cqh,620px);border-radius:20px}
 #gameView .ep-head{padding:8px 10px 8px 14px;gap:9px}
@@ -888,9 +866,6 @@ body:has(#gameView:not(.hidden)){overflow:hidden}
 #gameView .space .space-name{font-size:clamp(6px,1.65cqw,12px);line-height:1.04;letter-spacing:-.015em}
 #gameView .space .space-price{font-size:clamp(6.5px,1.85cqw,13px);padding:0 3px;line-height:1.05}
 #gameView .space.corner .space-name{font-size:clamp(6px,1.55cqw,11px);line-height:1.05}
-#gameView .space-model{width:min(100%,48px);height:clamp(27px,3.1vw,38px);margin:5px 0 1px;filter:drop-shadow(0 3px 2px rgba(25,47,53,.28))}
-#gameView .model-ferry,#gameView .model-water,#gameView .model-power{width:min(100%,50px);height:clamp(28px,3.3vw,40px)}
-#gameView .space.corner .space-model{width:min(100%,56px);height:clamp(30px,3.7vw,44px);margin:0 0 2px}
 #gameView .space:has(.player-event-bubble){overflow:visible;z-index:32}
 #gameView .space-players{z-index:33;gap:5px}
 #gameView .token{position:relative;display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto}
@@ -908,10 +883,66 @@ body:has(#gameView:not(.hidden)){overflow:hidden}
   #gameView .event-panel{width:min(78cqw,540px);max-height:min(78cqh,560px)}
   #gameView .space .space-name{font-size:clamp(6px,1.7cqw,11px)}
   #gameView .space .space-price{font-size:clamp(6.5px,1.9cqw,12px)}
-  #gameView .space-model{height:clamp(25px,4.8vw,35px)}
-  #gameView .space.corner .space-model{height:clamp(28px,5vw,38px)}
 }
 @media(max-height:500px) and (orientation:landscape){
   #gameView .event-panel{width:min(68cqw,560px);max-height:78cqh}
   #gameView .ep-body{padding:9px 12px;gap:7px}
 }
+
+
+/* ===== Giao diện gọn hơn: Event Panel và thông tin người chơi ===== */
+#gameView .event-panel{
+  width:min(46cqw,430px);
+  max-height:min(62cqh,470px);
+  border-width:2px;
+  border-radius:14px;
+  box-shadow:0 5px 0 rgba(29,43,83,.28),0 12px 34px rgba(15,35,60,.22);
+}
+#gameView .event-panel.idle{width:min(38cqw,340px)}
+#gameView .ep-head{padding:5px 8px;gap:6px;border-bottom-width:1px}
+#gameView .ep-head .ep-icon{font-size:clamp(14px,3.5cqh,18px)}
+#gameView .ep-title{font-size:clamp(13px,3.5cqh,17px)}
+#gameView .ep-icon-btn{width:24px;height:24px;border-width:1px;font-size:12px}
+#gameView .ep-body{padding:8px 10px 10px;gap:6px}
+#gameView .event-panel .action-message{font-size:clamp(12px,2.9cqh,14px);line-height:1.38}
+#gameView .ep-money li{padding:3px 7px;font-size:clamp(10px,2.6cqh,12px)}
+#gameView .ep-balances span{padding:2px 7px;font-size:clamp(9px,2.4cqh,11px)}
+#gameView .event-panel .pending-actions button,
+#gameView .ep-confirm-row button{min-height:32px;padding:5px 7px;font-size:clamp(10px,2.5cqh,12px);border-width:1px;border-radius:9px;box-shadow:0 2px 0 rgba(29,43,83,.25)}
+#gameView .hud-top{padding:6px 8px}
+#gameView .players-panel{gap:6px}
+#gameView .player-card{
+  width:min(29cqw,220px);
+  gap:6px;
+  padding:4px 8px 4px 5px;
+  border-width:2px;
+  border-radius:13px;
+  box-shadow:0 3px 0 rgba(29,43,83,.28);
+}
+#gameView .player-card:last-child{padding:4px 5px 4px 8px}
+#gameView .player-card.active{outline-width:3px;outline-offset:1px}
+#gameView .player-avatar{
+  width:clamp(28px,7cqh,38px);
+  height:clamp(28px,7cqh,38px);
+  border-width:2px;
+  font-size:clamp(17px,5cqh,24px);
+}
+#gameView .player-name{font-size:clamp(10px,2.8cqh,13px)}
+#gameView .you-label{font-size:8px;padding:1px 5px}
+#gameView .player-cash{font-size:clamp(13px,4cqh,19px)}
+#gameView .room-pill{top:6px;gap:2px}
+#gameView .room-pill .section-kicker{padding:1px 9px;font-size:10px;border-width:1px}
+#gameView .turn-card{gap:5px;padding:2px 8px;border-width:1px;font-size:10px}
+#gameView .turn-card small{font-size:9px}
+#gameView .turn-card strong{font-size:11px}
+@media(max-width:800px){
+  #gameView .event-panel{width:min(58cqw,420px);max-height:min(66cqh,440px)}
+  #gameView .event-panel.idle{width:min(48cqw,330px)}
+  #gameView .player-card{width:min(30cqw,205px)}
+}
+@media(max-height:500px) and (orientation:landscape){
+  #gameView .event-panel{width:min(48cqw,410px);max-height:62cqh}
+  #gameView .ep-body{padding:6px 8px;gap:5px}
+  #gameView .player-avatar{width:clamp(26px,6.5cqh,34px);height:clamp(26px,6.5cqh,34px)}
+}
+@media(prefers-reduced-motion:reduce){#gameView .event-panel{transition:none}}
