@@ -892,7 +892,7 @@ let diceAnimating = false;
 let diceTimer = null;
 let diceFinishTimer = null;
 let diceAnimationId = 0;
-const DICE_MS = 1200;
+const DICE_MS = 1320;
 const HOP_MS = 190;
 
 function tokensHtml(index) {
@@ -911,7 +911,7 @@ function renderTokens() {
   });
 }
 function resetEffects() {
-  clearTimeout(holdTimer); holdTimer = null; eventHoldUntil = 0; epSeenId = 0; dealDismissedId = null;
+  clearTimeout(holdTimer); holdTimer = null; eventHoldUntil = 0; epSeenId = 0; dealDismissedId = null; dealDismissedId = null;
   cameraRestored = false;
   camera?.overview(0);
   clearInterval(diceTimer);
