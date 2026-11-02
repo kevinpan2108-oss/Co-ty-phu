@@ -248,7 +248,18 @@ let rules;
     const face = stage.querySelector(".die.face");
     return { burst: getComputedStyle(stage, "::before").display, border: face ? getComputedStyle(face).borderTopWidth : null };
   });
-  check("xúc xắc không còn tia trắng hoặc viền trắng", diceStyle.burst === "none" && diceStyle.border === "0px", JSON.stringify(diceStyle));
+  const diceStageCenter = await pb.page.evaluate(() => {
+    const stage = document.querySelector("#diceStage").getBoundingClientRect();
+    const board = document.querySelector("#board").getBoundingClientRect();
+    return {stageCenter:stage.left + stage.width / 2,boardCenter:board.left + board.width / 2,
+      animation: getComputedStyle(document.querySelector("#diceStage .cube-wrap")).animationName,
+      shadow: getComputedStyle(document.querySelector("#diceStage"), "::before").clipPath};
+  });
+  check("xúc xắc 3D được ném vào giữa bàn, có hoạt ảnh nảy và bóng đổ",
+    Math.abs(diceStageCenter.stageCenter - diceStageCenter.boardCenter) < 40 &&
+    /diceToss/.test(diceStageCenter.animation) &&
+    diceStageCenter.shadow === "none",
+    JSON.stringify({...diceStageCenter,diceStyle}));
   const sawHop = await pb.page.waitForFunction(() => document.querySelector(".token.moving"), null, { timeout: 4000, polling: 20 }).then(() => true).catch(() => false);
   if (OUT) { await pb.page.screenshot({ path: `${OUT}/dice-live.png` }); await pb.page.evaluate(() => { const s = document.getElementById("diceStage"); s.className = "dice-stage show"; s.innerHTML = '<div class="dice-row"><span class="die" data-v="4">' + "<i></i>".repeat(9) + '</span><span class="die" data-v="6">' + "<i></i>".repeat(9) + '</span><b class="dice-total">10</b></div>'; });     await pb.page.waitForTimeout(100); await pb.page.screenshot({ path: `${OUT}/desktop-dice.png`, clip: { x: 280, y: 220, width: 720, height: 480 } }); console.log("stage@shot", await pb.page.evaluate(() => { const s = document.getElementById("diceStage"); const d = s.querySelector(".die"); const r = d && d.getBoundingClientRect(); return s.className + " " + JSON.stringify(r && [r.x, r.y, r.width, r.height].map(Math.round)); })); }
   check("hiệu ứng: quân cờ nhảy từng ô", sawHop, sawHop ? "" : await pb.page.evaluate(() => JSON.stringify({tokens: document.querySelectorAll(".token").length, pass: document.querySelectorAll(".space.pass,.space.land").length, ds: document.getElementById("diceStage")?.className})));
@@ -413,7 +424,7 @@ let rules;
     await pa.page.locator('#propertyList [data-deed-action="build-house"][data-index="3"]').click();
     await pa.page.waitForSelector('#board .space[data-index="3"].built', { timeout:4000 });
     check("xây nhà được ghi vào nhật ký với khoản tiền đã chi", store.rooms[code].log?.at(-1)?.kind === "build" && store.rooms[code].log.at(-1).deltas?.[uidA] === -50);
-    check("Event Panel nêu rõ lý do chi tiền xây nhà", /xây nhà.*khách sạn/.test(await text(pa.page, "#epMoney")));
+    check("thẻ giao dịch nêu rõ lý do chi tiền xây nhà", /xây nhà.*khách sạn/.test(await text(pa.page, "#epMoney")));
     check("xây căn đầu tiên ở ô 3, bắt buộc chuyển sang ô 1 để xây đều", store.rooms[code].houses.s3 === 1 &&
       store.rooms[code].houses.s1 !== 1 &&
       await pa.page.locator('#propertyList [data-deed-action="build-house"][data-index="3"]').count() === 0);
@@ -428,7 +439,7 @@ let rules;
     await pa.page.waitForSelector('#board .space[data-index="1"]:not(.built)', { timeout:4000 });
     check("bán công trình theo thứ tự đồng đều, nhận lại tiền", !store.rooms[code].houses.s3 && !store.rooms[code].houses.s1 && store.rooms[code].players[uidA].cash === 1450);
     check("bán nhà được ghi nhận thành sự kiện nhận tiền", store.rooms[code].log?.at(-1)?.kind === "sellHouse" && store.rooms[code].log.at(-1).deltas?.[uidA] === 25);
-    check("Event Panel nêu rõ khoản thu từ bán nhà", /bán nhà.*khách sạn/.test(await text(pa.page, "#epMoney")));
+    check("thẻ giao dịch nêu rõ khoản thu từ bán nhà", /bán nhà.*khách sạn/.test(await text(pa.page, "#epMoney")));
 
     // Giả lập khoản thiếu tiền thuê/thuế; dùng cầm cố tài sản để trả nợ trước.
     const beforeCreditor = store.rooms[code].players[uidB].cash;
