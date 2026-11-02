@@ -1,0 +1,573 @@
+/* Marmalade-inspired contextual title-deed, auction and receipt flow.
+   Original UI components for Cờ Tỷ Phú; no licensed assets or branding. */
+
+#gameView .deal-card[hidden],
+#gameView #dealCloseButton[hidden],
+#gameView #epBalances[hidden] { display:none!important; }
+
+#gameView .deal-card {
+  position:absolute;
+  z-index:72;
+  top:clamp(252px,38cqh,360px);
+  right:clamp(12px,2.4cqw,34px);
+  width:min(25cqw,330px);
+  min-width:min(220px,30cqw);
+  max-height:min(50cqh,500px);
+  display:flex;
+  flex-direction:column;
+  gap:0;
+  overflow:hidden;
+  border:2px solid #263a57;
+  border-radius:17px;
+  background:linear-gradient(180deg,#fffef9 0%,#f7f1e3 100%);
+  color:#263a57;
+  box-shadow:0 5px 0 rgba(34,54,81,.2),0 16px 38px rgba(24,43,69,.25);
+  transform-origin:top right;
+  animation:dealCardEnter .24s cubic-bezier(.2,.8,.2,1) both;
+}
+@keyframes dealCardEnter {
+  from { opacity:0; transform:translateY(12px) scale(.97); }
+  to { opacity:1; transform:translateY(0) scale(1); }
+}
+#gameView .deal-topline {
+  min-height:31px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+  padding:6px 10px 5px 12px;
+  background:#263a57;
+  color:#fff6df;
+}
+#gameView .deal-topline span {
+  font-size:clamp(9px,1.85cqh,11px);
+  line-height:1.1;
+  font-weight:1000;
+  letter-spacing:.1em;
+}
+#gameView .deal-close {
+  flex:none;
+  width:24px;
+  height:24px;
+  padding:0;
+  border:1px solid rgba(255,255,255,.65);
+  border-radius:50%;
+  background:rgba(255,255,255,.12);
+  color:#fff;
+  font-size:17px;
+  line-height:1;
+  cursor:pointer;
+}
+#gameView .deal-close:hover { background:rgba(255,255,255,.26); }
+#gameView .deal-property-head {
+  position:relative;
+  min-height:64px;
+  display:flex;
+  align-items:center;
+  gap:11px;
+  padding:11px 13px;
+  border-bottom:1px solid rgba(38,58,87,.12);
+  background:linear-gradient(105deg,color-mix(in srgb,var(--deal-color,#8b9b80) 24%,#fff) 0%,#fffdf7 80%);
+}
+#gameView .deal-property-head::before {
+  content:"";
+  position:absolute;
+  inset:0 auto 0 0;
+  width:7px;
+  background:var(--deal-color,#8b9b80);
+  box-shadow:1px 0 0 rgba(38,58,87,.12);
+}
+#gameView .deal-icon {
+  flex:none;
+  width:43px;
+  height:43px;
+  display:grid;
+  place-items:center;
+  border:1.5px solid rgba(38,58,87,.16);
+  border-radius:12px;
+  background:rgba(255,255,255,.84);
+  box-shadow:0 2px 5px rgba(26,43,63,.1),inset 0 1px 0 #fff;
+  font-size:25px;
+}
+#gameView .deal-heading-copy { min-width:0; display:flex; flex-direction:column; gap:4px; }
+#gameView .deal-heading-copy strong {
+  color:#243954;
+  font-family:var(--display);
+  font-size:clamp(16px,2.9cqh,21px);
+  line-height:1.04;
+  font-weight:900;
+  overflow-wrap:anywhere;
+}
+#gameView .deal-heading-copy small {
+  color:#7a6336;
+  font-size:clamp(9px,1.7cqh,10px);
+  font-weight:900;
+  letter-spacing:.06em;
+  text-transform:uppercase;
+}
+#gameView .deal-value-grid {
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+  padding:10px 12px 9px;
+}
+#gameView .deal-value-grid > div {
+  min-width:0;
+  min-height:54px;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  gap:5px;
+  padding:7px 9px;
+  border:1px solid #dfd7c4;
+  border-radius:10px;
+  background:linear-gradient(180deg,#fff,#f8f3e7);
+  box-shadow:inset 0 1px 0 #fff;
+}
+#gameView .deal-value-grid > div:first-child {
+  border-color:#e4c77e;
+  background:linear-gradient(180deg,#fff7dc,#f8e6b7);
+}
+#gameView .deal-value-grid small {
+  color:#74694f;
+  font-size:8px;
+  line-height:1.05;
+  letter-spacing:.08em;
+  font-weight:1000;
+}
+#gameView .deal-value-grid strong {
+  color:#214b3d;
+  font-family:var(--display);
+  font-size:clamp(15px,3cqh,21px);
+  line-height:1;
+  font-weight:1000;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+#gameView .deal-value-grid > div:first-child strong { color:#8a5411; }
+#gameView .deal-facts {
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:5px;
+  padding:0 12px 9px;
+}
+#gameView .deal-facts:empty { display:none; }
+#gameView .deal-facts span {
+  min-width:0;
+  display:flex;
+  flex-direction:column;
+  gap:3px;
+  padding:6px 8px;
+  border-radius:8px;
+  background:#edf1eb;
+}
+#gameView .deal-facts small {
+  color:#6a7780;
+  font-size:7px;
+  font-weight:1000;
+  letter-spacing:.06em;
+  line-height:1;
+}
+#gameView .deal-facts b {
+  color:#304b50;
+  font-size:clamp(9px,1.8cqh,11px);
+  line-height:1.15;
+  font-weight:900;
+  overflow-wrap:anywhere;
+}
+#gameView .deal-description {
+  position:static;
+  left:auto;
+  top:auto;
+  transform:none;
+  min-height:0;
+  max-width:none;
+  max-height:7.4em;
+  display:block;
+  overflow:auto;
+  margin:0;
+  padding:9px 13px;
+  border:0;
+  border-top:1px solid #e5dece;
+  border-radius:0;
+  background:#fffdf7;
+  box-shadow:none;
+  color:#40536b;
+  text-align:left;
+  font-size:clamp(10px,1.9cqh,12px);
+  line-height:1.42;
+  font-weight:650;
+  -webkit-line-clamp:unset;
+}
+#gameView .deal-money {
+  list-style:none;
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+  max-height:100px;
+  overflow:auto;
+  margin:0;
+  padding:7px 12px;
+  border-top:1px solid #e5dece;
+  background:#f9f5eb;
+}
+#gameView .deal-money:empty { display:none; }
+#gameView .deal-money li {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:9px;
+  padding:6px 8px;
+  border:1px solid #a9d0b0;
+  border-radius:8px;
+  background:#eef8ed;
+  font-size:clamp(9px,1.8cqh,11px);
+  font-weight:850;
+}
+#gameView .deal-money li.loss { border-color:#e3b0a8; background:#fff0ed; }
+#gameView .deal-money li span { min-width:0; display:flex; flex-direction:column; gap:2px; }
+#gameView .deal-money li small { color:#66768a; font-size:8px; font-weight:650; }
+#gameView .deal-money li b { flex:none; color:#187244; font-size:11px; white-space:nowrap; }
+#gameView .deal-money li.loss b { color:#bd4038; }
+#gameView .deal-actions {
+  position:static;
+  left:auto;
+  top:auto;
+  bottom:auto;
+  transform:none;
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  max-width:none;
+  margin:0;
+  padding:10px 12px 11px;
+  border-top:1px solid #e1d8c4;
+  border-radius:0;
+  background:linear-gradient(180deg,#f8f2e4,#fffaf0);
+  box-shadow:none;
+  backdrop-filter:none;
+}
+#gameView .deal-actions:empty { display:none; }
+#gameView .deal-actions button {
+  flex:1 1 112px;
+  width:auto;
+  min-width:0!important;
+  max-width:none;
+  min-height:42px;
+  height:auto;
+  max-height:none;
+  padding:8px 10px;
+  border:1.5px solid #263a57;
+  border-radius:11px;
+  box-shadow:0 3px 0 rgba(38,58,87,.22);
+  font-size:clamp(10px,2cqh,12px);
+  line-height:1.1;
+  font-weight:1000;
+  letter-spacing:.025em;
+  transition:transform .14s,filter .14s,box-shadow .14s;
+}
+#gameView .deal-actions button:hover:not(:disabled) {
+  transform:translateY(-2px);
+  filter:brightness(1.035);
+  box-shadow:0 5px 0 rgba(38,58,87,.2);
+}
+#gameView .deal-actions .primary-button {
+  border-color:#9b6e21;
+  background:linear-gradient(180deg,#ffe88f,#f2bd43);
+  color:#493719;
+}
+#gameView .deal-actions .secondary-button {
+  border-color:#435872;
+  background:linear-gradient(180deg,#fff,#e9eef1);
+  color:#2d435e;
+}
+#gameView .deal-actions .danger-button {
+  border-color:#a54242;
+  background:linear-gradient(180deg,#ffe5df,#f3b5a9);
+  color:#842c2c;
+}
+#gameView .deal-footer {
+  display:flex;
+  flex-wrap:wrap;
+  gap:7px;
+  padding:0 12px 10px;
+}
+#gameView .deal-footer:empty { display:none; }
+#gameView .deal-footer button {
+  flex:1 1 100px;
+  min-height:34px;
+  padding:6px 9px;
+  border:1px solid #526a80;
+  border-radius:9px;
+  background:#fff;
+  color:#31445f;
+  font-size:10px;
+  font-weight:900;
+  cursor:pointer;
+}
+#gameView .deal-footer .danger-button {
+  border-color:#a94343;
+  background:#ffe1dc;
+  color:#812d2d;
+}
+#gameView .deal-wait {
+  width:100%;
+  padding:5px 2px;
+  color:#68778a;
+  font-size:10px;
+  font-weight:750;
+  line-height:1.3;
+  text-align:center;
+}
+#gameView .deal-card[data-kind="purchase"] .deal-topline { background:linear-gradient(100deg,#244c3e,#32674d); }
+#gameView .deal-card[data-kind="auction"] .deal-topline { background:linear-gradient(100deg,#8a4e1f,#bd7933); }
+#gameView .deal-card[data-kind="debt"] .deal-topline { background:linear-gradient(100deg,#842f37,#b54d49); }
+#gameView .deal-card[data-kind="chance"] .deal-property-head,
+#gameView .deal-card[data-kind="fortune"] .deal-property-head { background:linear-gradient(105deg,#f3e2aa,#fffdf4); }
+#gameView .deal-card[data-kind="debt"] .deal-value-grid > div:first-child {
+  border-color:#e0aaa4;
+  background:linear-gradient(180deg,#fff0ec,#f8d8d2);
+}
+#gameView .deal-card[data-kind="debt"] .deal-value-grid > div:first-child strong { color:#ac3b3b; }
+
+/* Remove the old floating message layer; transaction content lives in the deal card. */
+#gameView .action-message { position:static; transform:none; }
+
+/* Dice presentation: two large, glossy 3D cubes thrown into the middle of the board. */
+#gameView .dice-stage {
+  --ds:clamp(78px,17cqh,108px);
+  left:50%;
+  top:46%;
+  z-index:76;
+  filter:none;
+  perspective:1000px;
+}
+#gameView .dice-row {
+  position:relative;
+  display:flex;
+  align-items:center;
+  gap:calc(var(--ds) * .34);
+  transform-style:preserve-3d;
+}
+#gameView .dice-row::before {
+  content:"";
+  position:absolute;
+  z-index:-2;
+  left:50%;
+  bottom:calc(var(--ds) * -.3);
+  width:175%;
+  height:31%;
+  border-radius:50%;
+  background:radial-gradient(ellipse,rgba(15,33,48,.36) 0%,rgba(15,33,48,.16) 40%,transparent 74%);
+  filter:blur(9px);
+  transform:translateX(-50%);
+}
+#gameView .cube-wrap {
+  position:relative;
+  width:var(--ds);
+  height:var(--ds);
+  flex:none;
+  perspective:calc(var(--ds) * 8);
+  --h:calc(var(--ds) / 2);
+  transform-style:preserve-3d;
+  filter:drop-shadow(0 13px 9px rgba(19,39,55,.24));
+}
+#gameView .cube {
+  position:relative;
+  width:100%;
+  height:100%;
+  transform-style:preserve-3d;
+  transition:transform 1.12s cubic-bezier(.12,.78,.18,1);
+}
+#gameView .cube .die.face {
+  position:absolute;
+  inset:0;
+  width:auto;
+  height:auto;
+  --s:var(--ds);
+  display:grid;
+  grid-template:repeat(3,1fr)/repeat(3,1fr);
+  place-items:center;
+  padding:calc(var(--ds) * .145);
+  gap:calc(var(--ds) * .035);
+  border:1px solid #d7dce2!important;
+  outline:1px solid rgba(255,255,255,.88)!important;
+  border-radius:calc(var(--ds) * .19);
+  background:linear-gradient(145deg,#ffffff 0%,#f8fafc 42%,#dce3eb 100%);
+  box-shadow:inset 0 2px 0 #fff,inset 0 -7px 10px rgba(68,82,101,.12),0 0 0 1px rgba(82,100,125,.08);
+  backface-visibility:hidden;
+  font-size:0;
+}
+#gameView .cube .die.face::after {
+  content:"";
+  position:absolute;
+  inset:1px 1px auto 1px;
+  height:38%;
+  border-radius:inherit;
+  background:linear-gradient(180deg,rgba(255,255,255,.92),rgba(255,255,255,0));
+  pointer-events:none;
+}
+#gameView .cube .die.face i {
+  position:relative;
+  z-index:1;
+  width:100%;
+  aspect-ratio:1;
+  border-radius:50%;
+  background:transparent;
+  box-shadow:none;
+}
+#gameView .cube .die.face[data-v="1"] i:nth-child(5),
+#gameView .cube .die.face[data-v="2"] i:nth-child(1),
+#gameView .cube .die.face[data-v="2"] i:nth-child(9),
+#gameView .cube .die.face[data-v="3"] i:nth-child(1),
+#gameView .cube .die.face[data-v="3"] i:nth-child(5),
+#gameView .cube .die.face[data-v="3"] i:nth-child(9),
+#gameView .cube .die.face[data-v="4"] i:nth-child(1),
+#gameView .cube .die.face[data-v="4"] i:nth-child(3),
+#gameView .cube .die.face[data-v="4"] i:nth-child(7),
+#gameView .cube .die.face[data-v="4"] i:nth-child(9),
+#gameView .cube .die.face[data-v="5"] i:nth-child(1),
+#gameView .cube .die.face[data-v="5"] i:nth-child(3),
+#gameView .cube .die.face[data-v="5"] i:nth-child(5),
+#gameView .cube .die.face[data-v="5"] i:nth-child(7),
+#gameView .cube .die.face[data-v="5"] i:nth-child(9),
+#gameView .cube .die.face[data-v="6"] i:nth-child(1),
+#gameView .cube .die.face[data-v="6"] i:nth-child(3),
+#gameView .cube .die.face[data-v="6"] i:nth-child(4),
+#gameView .cube .die.face[data-v="6"] i:nth-child(6),
+#gameView .cube .die.face[data-v="6"] i:nth-child(7),
+#gameView .cube .die.face[data-v="6"] i:nth-child(9) {
+  background:radial-gradient(circle at 35% 28%,#51627a 0%,#1e2f46 52%,#0e1d31 100%);
+  box-shadow:inset 0 1px 1px rgba(255,255,255,.28),0 1px 2px rgba(17,31,47,.25);
+}
+#gameView .cube .face[data-v="1"] { transform:translateZ(var(--h)); }
+#gameView .cube .face[data-v="6"] { transform:rotateY(180deg) translateZ(var(--h)); }
+#gameView .cube .face[data-v="2"] { transform:rotateY(90deg) translateZ(var(--h)); }
+#gameView .cube .face[data-v="5"] { transform:rotateY(-90deg) translateZ(var(--h)); }
+#gameView .cube .face[data-v="3"] { transform:rotateX(90deg) translateZ(var(--h)); }
+#gameView .cube .face[data-v="4"] { transform:rotateX(-90deg) translateZ(var(--h)); }
+
+#gameView .dice-stage.rolling .cube-wrap { animation:diceThrowFromLeft 1.18s cubic-bezier(.15,.78,.18,1) both; }
+#gameView .dice-stage.rolling .cube-wrap:nth-child(2) { animation:diceThrowFromRight 1.22s cubic-bezier(.15,.78,.18,1) .06s both; }
+@keyframes diceThrowFromLeft {
+  0% { transform:translate(min(540%,34cqw),min(300%,30cqh)) rotateZ(34deg) scale(.5); opacity:0; }
+  16% { opacity:1; }
+  45% { transform:translate(12%,-19%) rotateZ(-13deg) scale(1.12); opacity:1; }
+  64% { transform:translate(-5%,7%) rotateZ(8deg) scale(.97); }
+  82% { transform:translate(2%,-3%) rotateZ(-3deg) scale(1.02); }
+  100% { transform:translate(0,0) rotateZ(0) scale(1); opacity:1; }
+}
+@keyframes diceThrowFromRight {
+  0% { transform:translate(max(-540%,-34cqw),min(300%,30cqh)) rotateZ(-42deg) scale(.48); opacity:0; }
+  16% { opacity:1; }
+  45% { transform:translate(-12%,-17%) rotateZ(15deg) scale(1.1); opacity:1; }
+  64% { transform:translate(5%,8%) rotateZ(-8deg) scale(.98); }
+  82% { transform:translate(-2%,-3%) rotateZ(3deg) scale(1.015); }
+  100% { transform:translate(0,0) rotateZ(0) scale(1); opacity:1; }
+}
+#gameView .dice-stage.landed .cube-wrap { animation:diceSettle .28s ease-out both; }
+@keyframes diceSettle {
+  0% { transform:translateY(-6px) scale(1.035); }
+  65% { transform:translateY(2px) scale(.985); }
+  100% { transform:translateY(0) scale(1); }
+}
+#gameView .dice-total {
+  top:calc(100% + 14px);
+  left:50%;
+  transform:translateX(-50%);
+  min-width:66px;
+  padding:5px 17px;
+  border:2px solid #263a57;
+  border-radius:99px;
+  background:linear-gradient(180deg,#fff0a8,#efb83d);
+  color:#3c3525;
+  font-family:var(--display);
+  font-size:clamp(22px,5cqh,30px);
+  font-weight:1000;
+  line-height:1.1;
+  text-align:center;
+  box-shadow:0 4px 0 rgba(38,58,87,.25),0 8px 18px rgba(19,39,55,.2);
+}
+#gameView .dice-result .die { --s:30px; border:1px solid #c9d1da; }
+#gameView .dice-result .die i { border-radius:50%; }
+#gameView .roll-button {
+  min-width:clamp(150px,29cqw,220px);
+  min-height:clamp(48px,8cqh,62px);
+  border:2px solid #7c5b25;
+  border-radius:28px;
+  background:linear-gradient(180deg,#fff0a7 0%,#f3bd45 100%);
+  color:#493719;
+  box-shadow:0 5px 0 #a77a2d,0 9px 20px rgba(31,47,37,.2);
+  font-family:var(--display);
+  font-size:clamp(15px,3.4cqh,20px);
+  font-weight:1000;
+  letter-spacing:.015em;
+}
+#gameView .roll-button:not(:disabled) { animation:rollButtonGlow 1.65s ease-in-out infinite; }
+@keyframes rollButtonGlow {
+  0%,100% { box-shadow:0 5px 0 #a77a2d,0 0 0 0 rgba(255,211,90,0); }
+  50% { box-shadow:0 5px 0 #a77a2d,0 0 0 7px rgba(255,211,90,.24); }
+}
+@media(max-height:560px) and (orientation:landscape) {
+  #gameView .deal-card {
+    top:110px;
+    right:12px;
+    width:min(28cqw,255px);
+    min-width:204px;
+    max-height:48cqh;
+  }
+  #gameView .deal-property-head { min-height:52px; padding:7px 10px; }
+  #gameView .deal-icon { width:35px; height:35px; font-size:21px; }
+  #gameView .deal-value-grid { padding:7px 9px; }
+  #gameView .deal-facts { padding:0 9px 7px; }
+  #gameView .deal-description { padding:7px 10px; }
+  #gameView .deal-actions { padding:7px 9px; gap:6px; }
+  #gameView .deal-actions button { min-height:35px; }
+  #gameView .dice-stage { --ds:clamp(54px,15cqh,78px); }
+  #gameView .roll-button { min-height:42px; min-width:145px; font-size:15px; }
+}
+@media(max-width:620px) {
+  #gameView .deal-card {
+    top:auto;
+    right:10px;
+    bottom:clamp(82px,13cqh,108px);
+    width:min(36cqw,280px);
+    min-width:205px;
+    max-height:54cqh;
+  }
+  #gameView .deal-property-head { min-height:50px; padding:7px 10px; gap:8px; }
+  #gameView .deal-icon { width:34px; height:34px; font-size:20px; }
+  #gameView .deal-heading-copy strong { font-size:15px; }
+  #gameView .deal-heading-copy small { font-size:8px; }
+  #gameView .deal-value-grid { gap:6px; padding:7px 9px; }
+  #gameView .deal-value-grid > div { min-height:44px; padding:6px 7px; }
+  #gameView .deal-value-grid strong { font-size:15px; }
+  #gameView .deal-facts { padding:0 9px 7px; gap:4px; }
+  #gameView .deal-facts span { padding:5px 6px; }
+  #gameView .deal-description { padding:7px 10px; font-size:10px; }
+  #gameView .deal-money { padding:6px 9px; }
+  #gameView .deal-actions { padding:7px 9px; gap:6px; }
+  #gameView .deal-actions button { min-height:38px; flex-basis:90px; font-size:10px; }
+  #gameView .deal-footer { padding:0 9px 8px; }
+  #gameView .dice-stage { --ds:clamp(48px,15cqh,76px); }
+  #gameView .dice-row { gap:calc(var(--ds) * .25); }
+  #gameView .hud-menu { gap:5px; }
+  #gameView .roll-button { min-width:126px; min-height:42px; font-size:14px; }
+}
+@media(max-width:420px) {
+  #gameView .deal-card { width:min(38cqw,250px); min-width:192px; }
+  #gameView .deal-topline { min-height:27px; padding:5px 8px; }
+  #gameView .deal-topline span { font-size:8px; }
+  #gameView .deal-value-grid small { font-size:7px; }
+  #gameView .deal-value-grid strong { font-size:13px; }
+  #gameView .deal-description { max-height:5.2em; }
+  #gameView .deal-actions button { min-height:35px; padding:6px; }
+}
+@media(prefers-reduced-motion:reduce) {
+  #gameView .deal-card { animation:none; }
+  #gameView .dice-stage.rolling .cube-wrap,
+  #gameView .dice-stage.landed .cube-wrap { animation:none; }
+  #gameView .cube { transition:none; }
+  #gameView .roll-button:not(:disabled) { animation:none; }
+}
