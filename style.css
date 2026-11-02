@@ -849,3 +849,27 @@ body:has(#gameView:not(.hidden)){overflow:hidden}
   #gameView .event-panel.idle{width:min(58cqw,360px)}
 }
 @media(prefers-reduced-motion:reduce){#gameView .event-panel{transition:none}}
+
+
+/* Cinematic camera: keep event actions in a side rail while the board follows the token. */
+#gameView .stage[data-camera="follow"] .event-panel,
+#gameView .stage[data-camera="focus"] .event-panel{
+  left:auto;
+  right:clamp(12px,2.2cqw,28px);
+  top:50%;
+  bottom:auto;
+  width:min(38cqw,360px);
+  min-width:min(220px,42cqw);
+  max-height:min(68cqh,480px);
+  transform:translateY(-50%);
+}
+#gameView .stage[data-camera="follow"] .event-panel.min,
+#gameView .stage[data-camera="focus"] .event-panel.min{
+  transform:translateY(-50%);
+}
+#gameView .board-wrap{
+  will-change:transform;
+}
+@media(prefers-reduced-motion:reduce){
+  #gameView .board-wrap{will-change:auto}
+}
