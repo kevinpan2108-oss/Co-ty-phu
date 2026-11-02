@@ -145,6 +145,37 @@ let rules;
   await pb.page.fill("#roomCodeInput", code); await pb.page.click("#joinRoomButton");
   await pb.page.waitForSelector("#gameView:not(.hidden)", { timeout: 4000 }).catch(() => {});
   check("người thứ hai tham gia được (transaction không bị hủy vì dữ liệu null)", await pb.page.locator("#gameView").isVisible(), await text(pb.page, "#lobbyMessage"));
+  const mapComposition = await pa.page.evaluate(() => {
+    const stage = document.querySelector("#stage").getBoundingClientRect();
+    const board = document.querySelector("#board");
+    const rect = board.getBoundingClientRect();
+    const quad = board.getBoxQuads?.()[0];
+    const players = document.querySelector("#playersPanel");
+    const playerRect = players.getBoundingClientRect();
+    const city = document.querySelector("#board .city-diorama");
+    const cityStyle = city && getComputedStyle(city);
+    return {
+      spaces: board.querySelectorAll(".space").length,
+      boardCenterX: rect.left + rect.width / 2,
+      stageWidth: stage.width,
+      boardRight: rect.right,
+      playerLeft: playerRect.left,
+      playerDirection: getComputedStyle(players).flexDirection,
+      cityVisible: !!city && cityStyle.display !== "none" && Number(cityStyle.opacity) > 0.9,
+      topEdgeSlope: quad ? Math.abs(quad.p2.y - quad.p1.y) / Math.max(1, quad.p2.x - quad.p1.x) : 99
+    };
+  });
+  check("bản đồ giữ đủ 40 ô quanh một bàn vuông nhìn gần từ trên xuống",
+    mapComposition.spaces === 40 &&
+    mapComposition.boardCenterX < mapComposition.stageWidth * 0.55 &&
+    mapComposition.topEdgeSlope < 0.08,
+    JSON.stringify(mapComposition));
+  check("thành phố 3D ở trung tâm đang hiển thị",
+    mapComposition.cityVisible, JSON.stringify(mapComposition));
+  check("thẻ người chơi xếp dọc bên phải, tách khỏi bản đồ",
+    mapComposition.playerDirection === "column" &&
+    mapComposition.playerLeft > mapComposition.boardRight,
+    JSON.stringify(mapComposition));
   await pa.page.waitForTimeout(400);
   check("cả hai vào bước tung xí ngầu chọn người đi trước", /Tung xí ngầu chọn người đi trước/i.test(await text(pa.page, "#centerStatus")) && /Tung xí ngầu chọn người đi trước/i.test(await text(pb.page, "#centerStatus")));
   check("bàn cờ có cả thẻ Cơ hội và Khí vận", (await pa.page.locator("#board .space[data-index='2']").getAttribute("title")).includes("rút thẻ Cơ hội") && (await pa.page.locator("#board .space[data-index='7']").getAttribute("title")).includes("rút thẻ Khí vận"));
