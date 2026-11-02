@@ -241,7 +241,8 @@ let rules;
   check("Bảng sự kiện nêu ô vừa đến, tiền trừ và số dư", /Chợ nổi Cái Bè|Làng nổi/.test(await text(pa.page, "#epTitle")) && /600\.000₫/.test(await text(pa.page, "#epMoney")) && /14\.400\.000₫/.test(await text(pa.page, "#epBalances")));
   check("đối thủ cũng thấy bảng sự kiện và nút xác nhận chỉ hiện cho người có lượt", /Chợ nổi Cái Bè|Làng nổi/.test(await text(pb.page, "#epTitle")) && (await pb.page.locator("#confirmEventButton").count()) === 0);
   await pa.page.click("#epHistoryButton");
-  check("lịch sử giữ lại sự kiện và giao dịch vừa xảy ra", /Chợ nổi Cái Bè|Làng nổi/.test(await text(pa.page, "#historyList")) && /600\\.000₫/.test(await text(pa.page, "#historyList")));
+  const historyText = await text(pa.page, "#historyList");
+  check("lịch sử giữ lại sự kiện và giao dịch vừa xảy ra", /Chợ nổi Cái Bè|Làng nổi/.test(historyText) && historyText.includes("600.000₫"), historyText);
   await pa.page.click("#historyClose");
   await confirmTurn(pa);
   await pa.page.waitForFunction(() => document.querySelector("#stage")?.dataset.camera === "overview", null, { timeout: 5000 });
@@ -370,7 +371,7 @@ let rules;
     await pa.page.waitForSelector("#board .space[data-index='3']:not(.mortgaged)", { timeout:4000 });
     check("giải chấp được ghi vào lịch sử và trừ đúng 33 đơn vị", store.rooms[code].log?.at(-1)?.kind === "redeem" &&
       store.rooms[code].log.at(-1).deltas?.[uidA] === -33 && store.rooms[code].players[uidA].cash === 17);
-    check("ô đã giải chấp không còn dấu cầm cố", await pa.page.locator("#board .space[data-index='3'].mortgaged .space-mortgage-mark").count() === 1);
+    check("ô đã giải chấp không còn dấu cầm cố", await pa.page.locator("#board .space[data-index='3'].mortgaged").count() === 0);
     await pa.page.locator("#propsClose").click();
   }
 
