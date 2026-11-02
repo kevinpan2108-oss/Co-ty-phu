@@ -63,7 +63,7 @@ export const runTransaction=async(r,fn)=>{
 
 // Lượt tự chuyển sau khi thông báo sự kiện đã hiển thị đủ lâu.
 async function confirmTurn(p) {
-  const before = await text(p.page, "#centerStatus");
+  const before = await p.page.locator("#centerStatus").innerText();
   if (/Đợi đối thủ/i.test(before)) return;
   await p.page.waitForFunction((previous) => {
     const current = document.querySelector("#centerStatus")?.textContent || "";
