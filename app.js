@@ -1182,10 +1182,14 @@ function renderInteractionPanel() {
     : null;
   const space = Number.isInteger(spaceIndex) ? SPACE_DATA[spaceIndex] : null;
   const playing = roomState.status === "playing" && getPlayerEntries(roomState).length === 2;
+  const jailed = Number(players[uid]?.jailTurns || 0) > 0 && roomState.turnUid === uid &&
+    !roomState.lastRoll && !pending && !auction && !debt;
+  const hasContextActions = !!$("pendingActions")?.children.length;
 
   const shouldShow = !holding && roomState.status !== "waiting" &&
-    (roomState.status === "finished" || openingPhase || !!pending || !!auction || !!debt || (!!roomState.lastRoll && !!event));
+    (roomState.status === "finished" || openingPhase || !!pending || !!auction || !!debt || jailed || hasContextActions || (!!roomState.lastRoll && !!event));
   panel.hidden = !shouldShow;
+  panel.dataset.mode = roomState.status === "finished" ? "finished" : pending ? "for-sale" : auction ? "auction" : debt ? "debt" : openingPhase ? "opening" : jailed ? "jail" : "result";
   if (!shouldShow) return;
 
   const ribbon = $("dealRibbon");
@@ -1293,6 +1297,11 @@ function renderInteractionPanel() {
     actionMessage.textContent = roomState.message || space.name + " đang được đấu giá.";
     showDeed(spaceIndex, null);
     if (auction.turnUid !== uid) addWait("Đang chờ " + nameOf(auction.turnUid) + " trả giá hoặc bỏ lượt.");
+  } else if (jailed) {
+    ribbon.textContent = "IN JAIL";
+    eyebrow.textContent = "BẠN ĐANG Ở TRONG TÙ";
+    subtitle.textContent = "Chọn nộp phạt, dùng thẻ hoặc thử tung đôi";
+    actionMessage.textContent = "Bạn có " + Number(players[uid]?.jailTurns || 0) + " lượt thử để tung được đôi và ra tù.";
   } else if (debt) {
     ribbon.textContent = "PAYMENT DUE";
     eyebrow.textContent = "CẦN XỬ LÝ KHOẢN NỢ";
