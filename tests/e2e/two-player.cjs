@@ -517,7 +517,7 @@ let rules;
           event: rect("#eventPanel")
         };
         if (wasHidden) panel.classList.add("is-hidden");
-        result.fits = inside(result.board) && inside(result.hud) && inside(result.roll) && inside(result.event);
+        result.fits = inside(result.board) && inside(result.hud) && inside(result.roll) && inside(result.dice) && inside(result.event);
         result.noTextClipping = [...document.querySelectorAll("#board .space-name")].every((el) =>
           getComputedStyle(el).webkitLineClamp === "2" && getComputedStyle(el).overflowWrap === "anywhere");
         return result;
