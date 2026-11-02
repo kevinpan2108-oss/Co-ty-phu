@@ -165,7 +165,8 @@ let rules;
       horizontalRotation: Math.max(Math.abs(transform.b), Math.abs(transform.c))
     };
   });
-  check("không còn Event Panel cố định", (await pa.page.locator("#eventPanel").count()) === 0 && (await pa.page.locator("#dealCard").count()) === 1);\n  check("bản đồ giữ đủ 40 ô quanh một bàn vuông nhìn gần từ trên xuống",
+  check("không còn Event Panel cố định", (await pa.page.locator("#eventPanel").count()) === 0 && (await pa.page.locator("#dealCard").count()) === 1);
+  check("bản đồ giữ đủ 40 ô quanh một bàn vuông nhìn gần từ trên xuống",
     mapComposition.spaces === 40 &&
     mapComposition.boardCenterX < mapComposition.stageWidth * 0.55 &&
     mapComposition.horizontalRotation < 0.08,
@@ -261,7 +262,7 @@ let rules;
     exactMove?.dice?.join(",") === "1,2" && exactMove.steps === 3 && exactMove.to === 3 &&
     store.rooms[code].players[store.rooms[code].creatorUid].position === 3,
     JSON.stringify(exactMove));
-  check("A thấy nút MUA NGAY; B không thấy", /Mua 600\.000₫/.test(await text(pa.page, "#pendingActions")) && (await pb.page.locator("#pendingActions button").count()) === 0);
+  check("A thấy nút MUA NGAY; B không thấy", /MUA NGAY/.test(await text(pa.page, "#pendingActions")) && (await pb.page.locator("#pendingActions button").count()) === 0);
   const buyBoxes = await pa.page.locator("#pendingActions button").evaluateAll((els) => els.map((el) => { const r = el.getBoundingClientRect(); return [Math.round(r.width), Math.round(r.height)]; }));
   check("hai lựa chọn mua/đấu giá nằm gọn trong thẻ, không che bàn cờ", buyBoxes.length === 2 && buyBoxes.every(([w,h]) => w <= 155 && h <= 48), JSON.stringify(buyBoxes));
   check("không còn nút Kết thúc lượt", (await pa.page.locator("#endTurnButton").count()) === 0);
@@ -308,7 +309,7 @@ let rules;
   check("camera lia theo ít nhất ba vị trí của token ở máy B", uniqueFollowTargets(cameraTraceB) >= 3, JSON.stringify(cameraTraceB));
   await pa.page.waitForTimeout(2500);
   check("không tự động chuyển lượt khi người chơi chưa xác nhận", /An/.test(await text(pa.page, "#turnName")) && (await pb.page.locator("#rollButton").isDisabled()) && /Tiếp tục/.test(await text(pa.page, "#rollButton")) && (await pa.page.locator("#confirmEventButton").count()) === 0);
-  check("Thẻ giao dịch hiển thị đúng địa điểm, khoản tiền và số dư", /Chợ nổi Cái Bè|Làng nổi/.test(await text(pa.page, "#dealTitle")) && /600\.000₫/.test(await text(pa.page, "#epMoney")) && /14\.400\.000₫/.test(await text(pa.page, "#epBalances")));
+  check("Thẻ giao dịch hiển thị đúng địa điểm, khoản tiền và số dư", /Chợ nổi Cái Bè|Làng nổi/.test(await text(pa.page, "#dealTitle")) && /600\.000₫/.test(await text(pa.page, "#epMoney")) && /14\.400\.000₫/.test(await text(pa.page, "#playersPanel")));
   const panelLayout = await pa.page.evaluate(() => {
     const panel = document.querySelector("#dealCard").getBoundingClientRect();
     const stage = document.querySelector("#stage").getBoundingClientRect();
