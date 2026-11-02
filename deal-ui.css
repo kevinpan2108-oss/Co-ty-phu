@@ -571,3 +571,82 @@
   #gameView .cube { transition:none; }
   #gameView .roll-button:not(:disabled) { animation:none; }
 }
+
+
+/* Full title-deed rent ladder, like a printed property certificate. */
+#gameView .deal-rent-schedule {
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:4px;
+  padding:0 12px 8px;
+}
+#gameView .deal-rent-schedule[hidden],
+#gameView .deal-build-cost[hidden] { display:none!important; }
+#gameView .deal-rent-row {
+  min-width:0;
+  min-height:25px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:6px;
+  padding:5px 7px;
+  border:1px solid #e4dece;
+  border-radius:7px;
+  background:#f5f3eb;
+  color:#5c6874;
+  font-size:clamp(8px,1.55cqh,10px);
+  line-height:1.1;
+}
+#gameView .deal-rent-row span {
+  min-width:0;
+  font-weight:750;
+  overflow-wrap:anywhere;
+}
+#gameView .deal-rent-row b {
+  flex:none;
+  color:#2e455b;
+  font-weight:1000;
+  white-space:nowrap;
+  font-size:clamp(8px,1.55cqh,10px);
+}
+#gameView .deal-rent-row.active {
+  border-color:#d6a94b;
+  background:linear-gradient(100deg,#fff0c5,#fffaeb);
+  box-shadow:inset 3px 0 0 #d49b28;
+}
+#gameView .deal-rent-row.active b { color:#8b5813; }
+#gameView .deal-build-cost {
+  margin:0 12px 8px;
+  padding:7px 9px;
+  border:1px dashed #c7b88f;
+  border-radius:8px;
+  background:#f8f2e3;
+  color:#775e32;
+  font-size:clamp(8px,1.55cqh,10px);
+  line-height:1.3;
+  font-weight:950;
+  letter-spacing:.025em;
+}
+#gameView .deal-facts { padding-top:0; }
+#gameView .deal-card[data-kind="purchase"] .deal-value-grid > div:first-child {
+  background:linear-gradient(180deg,#fff5d2,#f2dfa8);
+  border-color:#d5ad52;
+}
+#gameView .deal-card[data-kind="purchase"] .deal-rent-row.active {
+  background:linear-gradient(100deg,#e9f4e9,#f7fff2);
+  border-color:#99c49a;
+  box-shadow:inset 3px 0 0 #52935c;
+}
+#gameView .deal-card[data-kind="purchase"] .deal-rent-row.active b { color:#2e7443; }
+@media(max-height:560px) and (orientation:landscape) {
+  #gameView .deal-rent-schedule { padding:0 9px 6px; gap:3px; }
+  #gameView .deal-rent-row { min-height:21px; padding:3px 5px; font-size:8px; }
+  #gameView .deal-rent-row b { font-size:8px; }
+  #gameView .deal-build-cost { margin:0 9px 6px; padding:5px 7px; }
+}
+@media(max-width:620px) {
+  #gameView .deal-rent-schedule { padding:0 9px 7px; gap:4px; }
+  #gameView .deal-rent-row { min-height:23px; padding:4px 6px; font-size:8px; }
+  #gameView .deal-rent-row b { font-size:8px; }
+  #gameView .deal-build-cost { margin:0 9px 7px; padding:6px 7px; font-size:8px; }
+}
