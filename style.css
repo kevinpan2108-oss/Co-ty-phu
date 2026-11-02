@@ -873,3 +873,347 @@ body:has(#gameView:not(.hidden)){overflow:hidden}
 @media(prefers-reduced-motion:reduce){
   #gameView .board-wrap{will-change:auto}
 }
+
+
+/* =====================================================================
+   Marmalade-style board composition — original Mekong city artwork.
+   Keep the 40-property perimeter and game rules; rebuild the presentation.
+   ===================================================================== */
+#gameView:not(.hidden){
+  background:
+    radial-gradient(ellipse at 8% 14%,rgba(226,232,173,.45),transparent 23%),
+    radial-gradient(ellipse at 92% 86%,rgba(31,110,71,.36),transparent 28%),
+    linear-gradient(145deg,#8fb879 0%,#6e9b68 44%,#4d7f61 100%);
+}
+#gameView .stage{
+  background:
+    radial-gradient(ellipse at 12% 75%,rgba(238,226,174,.35) 0 5%,transparent 5.6%),
+    radial-gradient(ellipse at 88% 22%,rgba(218,232,176,.34) 0 6%,transparent 6.6%),
+    repeating-linear-gradient(165deg,transparent 0 62px,rgba(255,255,255,.045) 63px 65px,transparent 66px 126px);
+}
+#gameView .stage::after{
+  content:"";
+  position:absolute;
+  inset:-8%;
+  pointer-events:none;
+  opacity:.3;
+  background:
+    radial-gradient(ellipse at 6% 34%,#315f43 0 2.4%,transparent 2.8%),
+    radial-gradient(ellipse at 11% 42%,#477d4d 0 1.8%,transparent 2.2%),
+    radial-gradient(ellipse at 91% 72%,#315f43 0 2.2%,transparent 2.7%),
+    radial-gradient(ellipse at 96% 63%,#477d4d 0 1.7%,transparent 2.1%);
+}
+#gameView .board-wrap{z-index:1}
+#gameView .board{
+  --S:min(82cqh,68cqw,740px);
+  --rx:9deg;
+  --rz:0deg;
+  left:39.5%;
+  top:49%;
+  width:var(--S);
+  height:var(--S);
+  font-size:calc(var(--S) / 12);
+  padding:.12em;
+  gap:.035em;
+  transform:perspective(1500px) rotateX(var(--rx)) rotateZ(var(--rz));
+  transform-origin:50% 50%;
+  background:
+    repeating-linear-gradient(90deg,rgba(255,242,208,.1) 0 .025em,transparent .025em .22em),
+    linear-gradient(145deg,#b78b58 0%,#80563a 52%,#563b2d 100%);
+  border:.065em solid #51372b;
+  border-radius:.28em;
+  outline:2px solid rgba(240,220,173,.65);
+  box-shadow:
+    0 2px 0 #a37a4d,
+    0 6px 0 #6d4933,
+    0 10px 0 #443128,
+    0 26px 42px rgba(23,50,37,.45),
+    inset 0 2px 0 rgba(255,244,214,.55);
+}
+#gameView .board::before,
+#gameView .board::after{
+  inset:-.075em;
+  border:.05em solid rgba(57,39,27,.85);
+  border-radius:.3em;
+  background:linear-gradient(145deg,#98704a,#5e402f);
+  transform:translateZ(-.18em);
+  box-shadow:inset 0 1px 0 rgba(255,239,205,.3);
+}
+#gameView .board::after{
+  background:linear-gradient(145deg,#755137,#3d2d25);
+  transform:translateZ(-.36em);
+  box-shadow:0 0 2em .6em rgba(19,46,35,.28);
+}
+#gameView .board-center{
+  border:.045em solid rgba(255,232,185,.55);
+  border-radius:.13em;
+  background:linear-gradient(145deg,#85b875,#4a885e 58%,#285d4b);
+  overflow:hidden;
+  box-shadow:inset 0 0 0 .12em rgba(255,242,204,.18),inset 0 .5em 1.2em rgba(17,45,34,.22);
+}
+#gameView .board-center .scene{
+  display:block!important;
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  opacity:1!important;
+  filter:saturate(1.04) contrast(1.04);
+}
+#gameView .board-center::before{
+  display:none!important;
+}
+#gameView .board-center::after{display:none!important}
+#gameView .center-title{
+  position:absolute;
+  left:3%;
+  bottom:3%;
+  z-index:4;
+  margin:0;
+  padding:.12em .45em;
+  border:.045em solid rgba(255,236,192,.75);
+  border-radius:.18em;
+  background:linear-gradient(145deg,rgba(69,53,39,.88),rgba(35,51,42,.9));
+  color:#fff0ce;
+  font-family:var(--display);
+  font-size:clamp(7px,.34em,13px);
+  line-height:1.1;
+  letter-spacing:.06em;
+  text-shadow:0 1px 2px rgba(0,0,0,.45);
+  box-shadow:0 2px 7px rgba(0,0,0,.22);
+}
+#gameView .center-subtitle{display:none!important}
+#gameView .center-status{
+  position:absolute;
+  left:50%;
+  top:3%;
+  bottom:auto;
+  z-index:5;
+  max-width:84%;
+  margin:0;
+  padding:.16em .62em;
+  transform:translateX(-50%);
+  border:1px solid rgba(255,238,194,.72);
+  border-radius:99px;
+  background:rgba(24,52,43,.82);
+  color:#fff4d7;
+  font-size:clamp(7px,.29em,11px);
+  line-height:1.2;
+  box-shadow:0 2px 8px rgba(0,0,0,.2);
+}
+#gameView .space{
+  overflow:hidden;
+  border:1px solid rgba(105,80,52,.38);
+  border-radius:.035em;
+  background:linear-gradient(145deg,#fffdf3 0%,#f2ecd9 72%,#e4d9bf 100%);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.92),inset 0 -1px 0 rgba(128,96,59,.12),0 1px 2px rgba(49,43,31,.22);
+}
+#gameView .space.corner{
+  background:linear-gradient(145deg,#fff7da 0%,#ead5a1 100%);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.88),inset 0 -2px 0 rgba(116,85,48,.16),0 1px 2px rgba(49,43,31,.22);
+}
+#gameView .space .space-color{
+  filter:saturate(1.12);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.36),inset 0 -1px 0 rgba(0,0,0,.18);
+}
+#gameView .space .space-name{
+  color:#243a32;
+  font-family:var(--display);
+  font-weight:900;
+  font-size:.185em;
+  line-height:1.02;
+  letter-spacing:-.01em;
+  text-shadow:0 1px 0 rgba(255,255,255,.55);
+}
+#gameView .space .space-price{
+  color:#263c33;
+  font-family:var(--display);
+  font-size:.255em;
+  font-weight:900;
+  line-height:1.02;
+}
+#gameView .space.side-top .space-text{transform:rotate(180deg)}
+#gameView .space.side-bottom .space-text{transform:none}
+#gameView .space.side-left .space-text{
+  width:88%;
+  transform:rotate(-90deg);
+  align-items:center;
+  text-align:center;
+}
+#gameView .space.side-right .space-text{
+  width:88%;
+  transform:rotate(90deg);
+  align-items:center;
+  text-align:center;
+}
+#gameView .space.corner .space-text{
+  position:absolute;
+  left:7%;
+  right:7%;
+  bottom:9%;
+  width:auto;
+  transform:none;
+  text-align:center;
+}
+#gameView .space.corner .space-name{font-size:.19em}
+#gameView .space.corner::after{
+  position:absolute;
+  left:50%;
+  top:13%;
+  transform:translateX(-50%);
+  z-index:1;
+  color:#345b48;
+  font-family:Arial,sans-serif;
+  font-size:.62em;
+  font-weight:900;
+  line-height:1;
+  text-shadow:0 1px 0 rgba(255,255,255,.5);
+}
+#gameView .space.corner[data-index="0"]::after{content:"➜"}
+#gameView .space.corner[data-index="10"]::after{content:"▥"}
+#gameView .space.corner[data-index="20"]::after{content:"P"}
+#gameView .space.corner[data-index="30"]::after{content:"↗"}
+#gameView .space-players{
+  transform:translateZ(.8em) translate(-50%,-25%) rotateZ(calc(var(--rz) * -1)) rotateX(calc(var(--rx) * -1)) translateY(.45em);
+}
+#gameView .token{margin:0 -.07em}
+#gameView .token b{font-size:.58em!important}
+#gameView .hud-top{z-index:20}
+#gameView .players-panel{
+  position:absolute;
+  top:clamp(48px,10cqh,86px);
+  right:clamp(10px,2.1cqw,30px);
+  left:auto;
+  width:min(22cqw,238px);
+  max-height:64cqh;
+  display:flex;
+  flex-direction:column;
+  align-items:stretch;
+  gap:clamp(8px,1.4cqh,14px);
+  overflow:visible;
+  pointer-events:none;
+}
+#gameView .player-card,
+#gameView .player-card:last-child{
+  width:100%;
+  min-height:clamp(56px,10cqh,82px);
+  box-sizing:border-box;
+  flex-direction:row;
+  text-align:left;
+  gap:9px;
+  padding:7px 11px 7px 7px;
+  border:2px solid rgba(42,58,50,.92);
+  border-radius:9px 18px 18px 9px;
+  background:linear-gradient(110deg,color-mix(in srgb,var(--pc) 78%,#fff 22%) 0%,var(--pc) 54%,color-mix(in srgb,var(--pc) 62%,#1b3b35 38%) 100%);
+  box-shadow:0 3px 0 rgba(38,55,45,.45),0 8px 18px rgba(17,45,33,.22),inset 0 1px 0 rgba(255,255,255,.38);
+}
+#gameView .player-card:last-child .player-head{flex-direction:row}
+#gameView .player-card::after{
+  content:"";
+  position:absolute;
+  left:7px;
+  right:7px;
+  top:3px;
+  height:1px;
+  border-radius:99px;
+  background:rgba(255,255,255,.52);
+  pointer-events:none;
+}
+#gameView .player-card.active{
+  outline:3px solid #ffe18a;
+  outline-offset:2px;
+  box-shadow:0 3px 0 rgba(38,55,45,.45),0 8px 18px rgba(17,45,33,.22),0 0 0 5px rgba(255,221,107,.18);
+}
+#gameView .player-avatar{
+  width:clamp(39px,8cqh,56px);
+  height:clamp(39px,8cqh,56px);
+  border:2px solid #fff5dc;
+  background:radial-gradient(circle at 32% 25%,#fff 0%,#e8eee3 74%,#c7d4c7 100%);
+  box-shadow:0 2px 0 rgba(24,52,43,.32),inset 0 1px 0 #fff;
+}
+#gameView .player-name{font-size:clamp(10px,2.7cqh,14px)}
+#gameView .player-cash{font-size:clamp(14px,3.7cqh,21px)}
+#gameView .room-pill{
+  left:39.5%;
+  top:clamp(8px,1.8cqh,18px);
+  transform:translateX(-50%);
+  gap:3px;
+}
+#gameView .room-pill .section-kicker{
+  background:rgba(255,248,224,.92);
+  border:1px solid rgba(83,64,40,.55);
+  color:#31483a;
+  box-shadow:0 2px 6px rgba(24,48,36,.16);
+}
+#gameView .turn-card{
+  border:1px solid #79633f;
+  background:linear-gradient(180deg,#fff0b9,#e5bd62);
+  color:#394938;
+  box-shadow:0 2px 0 rgba(72,56,34,.24);
+}
+#gameView .turn-card small,#gameView .turn-card strong{color:#394938}
+#gameView .hud-bottom{
+  left:0;
+  right:0;
+  bottom:clamp(6px,1.4cqh,14px);
+  padding:0 clamp(10px,1.8cqw,24px);
+  align-items:flex-end;
+}
+#gameView .hud-menu{gap:7px}
+#gameView .hud-roll{
+  position:absolute;
+  left:39.5%;
+  bottom:0;
+  transform:translateX(-50%);
+  align-items:center;
+  gap:8px;
+}
+#gameView .hud-button{
+  border:2px solid #594933;
+  background:linear-gradient(145deg,#fffdf0,#e9dbb9);
+  color:#354739;
+  box-shadow:0 3px 0 rgba(59,51,36,.35),inset 0 1px 0 #fff;
+}
+#gameView .roll-button{
+  border:2px solid #72502b;
+  border-radius:24px;
+  background:linear-gradient(180deg,#fff0a4,#e8a83a);
+  color:#3c3827;
+  box-shadow:0 4px 0 #956327,0 8px 18px rgba(26,48,34,.24);
+}
+#gameView .dice-result .die{
+  filter:drop-shadow(0 3px 5px rgba(24,39,30,.3));
+}
+#gameView .stage[data-camera="follow"] .event-panel,
+#gameView .stage[data-camera="focus"] .event-panel{
+  top:66%;
+  right:clamp(10px,2.1cqw,30px);
+  width:min(25cqw,300px);
+  max-height:42cqh;
+  transform:translateY(-50%);
+}
+#gameView .stage[data-camera="follow"] .event-panel.min,
+#gameView .stage[data-camera="focus"] .event-panel.min{transform:translateY(-50%)}
+@media(max-height:500px) and (orientation:landscape){
+  #gameView .board{--S:min(80cqh,68cqw,740px);left:39.5%;top:48%}
+  #gameView .players-panel{top:9%;gap:6px;width:min(22cqw,190px)}
+  #gameView .player-card,#gameView .player-card:last-child{min-height:54px;padding:5px 8px 5px 6px}
+  #gameView .player-avatar{width:36px;height:36px}
+  #gameView .player-name{font-size:10px}
+  #gameView .player-cash{font-size:13px}
+  #gameView .room-pill{top:4px}
+  #gameView .hud-button{width:42px;height:42px}
+  #gameView .hud-roll{bottom:0}
+}
+@media(max-width:900px) and (orientation:portrait){
+  #gameView .board{--S:min(82cqh,68cqw,740px)}
+}
+@media(prefers-reduced-motion:reduce){
+  #gameView .stage::after{display:none}
+  #gameView .board-wrap{will-change:auto}
+}
+
+
+/* Keep the player pieces compact on the tighter, square property tiles. */
+#gameView .token b{font-size:.44em!important}
+#gameView .space-players{gap:0}
