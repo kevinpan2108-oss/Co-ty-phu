@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;800&family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="./style.css?v=marmalade-tile-labels2" />
+  <link rel="stylesheet" href="./style.css?v=marmalade-camera-city-mobile3" />
 </head>
 <body>
   <div class="ambient ambient-one"></div>
@@ -96,6 +96,9 @@
                   <radialGradient id="sunGlow" cx=".5" cy=".5" r=".5">
                     <stop offset="0" stop-color="#ffe9a8" stop-opacity=".95"/><stop offset="1" stop-color="#ffe9a8" stop-opacity="0"/>
                   </radialGradient>
+                  <filter id="townShadow" x="-20%" y="-20%" width="140%" height="150%">
+                    <feDropShadow dx="0" dy="1.8" stdDeviation="1.4" flood-color="#173a33" flood-opacity=".35"/>
+                  </filter>
                 </defs>
                 <rect width="400" height="300" fill="url(#skyGrad)"/>
                 <g class="cloud cloud-a" fill="#fff" opacity=".55"><ellipse cx="80" cy="46" rx="34" ry="8"/><ellipse cx="100" cy="40" rx="22" ry="8"/></g>
@@ -163,6 +166,26 @@
                     <path d="M211 139 L235 124 L264 136 L240 151Z" fill="#579a87"/>
                     <path d="M223 145 h7 v9 h-7z M237 140 h7 v9 h-7z" fill="#74abb0"/>
                   </g>
+                  <!-- Đường phố lát gạch, bờ kè nhiều lớp và lối xuống bến ghe. -->
+                  <g class="city-street">
+                    <path d="M88 164 Q145 146 202 156 T318 158 L318 171 Q257 167 205 166 T88 176Z" fill="#765b45" opacity=".38"/>
+                    <path d="M91 162 Q145 145 202 154 T316 156 L316 165 Q257 163 205 163 T91 171Z" fill="#d8bc87"/>
+                    <path d="M96 163 Q151 150 204 158 T312 158" fill="none" stroke="#fff0c7" stroke-width="2" opacity=".65"/>
+                    <path d="M106 165 l18 -5 M135 162 l18 -5 M164 160 l18 -4 M193 160 l18 2 M224 162 l18 2 M255 162 l18 1 M285 161 l18 1" stroke="#a4865d" stroke-width="1.2" opacity=".62"/>
+                    <path d="M88 174 Q146 157 204 166 T318 167 L318 179 Q256 174 205 175 T88 186Z" fill="#8e765a"/>
+                    <path d="M88 174 Q146 157 204 166 T318 167" fill="none" stroke="#f4dfb4" stroke-width="2"/>
+                    <path d="M94 179 Q146 164 204 172 T314 172" fill="none" stroke="#5e4a39" stroke-width="1.4" opacity=".65"/>
+                  </g>
+                  <g class="city-market" filter="url(#townShadow)">
+                    <path d="M276 144 L310 140 L326 147 L292 153Z" fill="#8b4c36"/>
+                    <path d="M280 143 L312 139 L324 145 L292 149Z" fill="#f0c66f"/>
+                    <path d="M283 142 L290 141 L298 148 L291 149Z" fill="#c84d3d"/>
+                    <path d="M297 140 L304 140 L312 147 L305 148Z" fill="#f7e8c8"/>
+                    <path d="M311 140 L317 142 L324 146 L318 145Z" fill="#4d8f85"/>
+                    <path d="M286 150 V163 M316 147 V160" stroke="#67452f" stroke-width="2"/>
+                    <path d="M283 163 H319" stroke="#f3dba5" stroke-width="2"/>
+                  </g>
+                  </g>
                   <!-- Cây xanh, mái chợ và bến ghe -->
                   <g fill="#2f7549">
                     <circle cx="100" cy="153" r="8"/><circle cx="100" cy="153" r="5" fill="#5a9a5a"/>
@@ -173,6 +196,31 @@
                   <text x="206" y="166" font-size="5" font-weight="900" fill="#fff1ca" text-anchor="middle" letter-spacing=".6">PHỐ VEN SÔNG</text>
                 </g>
                 <rect y="176" width="400" height="124" fill="url(#riverGrad)"/>
+                  <g class="city-quay">
+                    <path d="M104 177 l-6 9 M154 171 l-4 15 M250 174 l4 13 M300 176 l5 10" stroke="#a2c5ad" stroke-width="2.2" opacity=".8"/>
+                    <path d="M98 186 H108 M146 186 H158 M248 187 H260 M298 186 H310" stroke="#d9c49a" stroke-width="3" stroke-linecap="round"/>
+                    <path d="M98 184 V190 M108 184 V190 M146 184 V190 M158 184 V190 M248 185 V191 M260 185 V191 M298 184 V190 M310 184 V190" stroke="#6b5039" stroke-width="1.8"/>
+                    <path d="M233 170 V195 M233 170 l9 -2" stroke="#7b5337" stroke-width="3" fill="none"/>
+                    <path d="M229 195 H239" stroke="#d6bd8d" stroke-width="3" stroke-linecap="round"/>
+                    <path d="M266 175 V198 M266 175 l9 -2" stroke="#7b5337" stroke-width="3" fill="none"/>
+                    <path d="M262 198 H272" stroke="#d6bd8d" stroke-width="3" stroke-linecap="round"/>
+                  </g>
+                  <g class="city-lanterns">
+                    <path d="M91 153 V171 M91 153 q0 -5 5 -5" stroke="#594431" stroke-width="2" fill="none"/>
+                    <path d="M88 147 H97 L95 153 H90Z" fill="#f1cf83" stroke="#76533a" stroke-width="1"/>
+                    <circle cx="92.5" cy="150" r="4.5" fill="#ffd875" opacity=".28"/>
+                    <path d="M322 148 V169 M322 148 q0 -5 -5 -5" stroke="#594431" stroke-width="2" fill="none"/>
+                    <path d="M316 142 H325 L323 148 H318Z" fill="#f1cf83" stroke="#76533a" stroke-width="1"/>
+                    <circle cx="320.5" cy="145" r="4.5" fill="#ffd875" opacity=".28"/>
+                  <g class="city-boat" filter="url(#townShadow)">
+                    <path d="M269 190 H326 Q321 200 306 201 H283 Q274 199 269 190Z" fill="#8c3f31"/>
+                    <path d="M275 190 H321" stroke="#f2bd60" stroke-width="2.8"/>
+                    <path d="M290 189 Q299 176 313 189Z" fill="#e9c16f"/>
+                    <path d="M301 177 V190" stroke="#69472e" stroke-width="1.8"/>
+                    <path d="M298 181 H315 L311 187 H298Z" fill="#f6e7c4"/>
+                    <circle cx="278" cy="194" r="1.5" fill="#fff1c9"/>
+                  </g>
+
                 <ellipse cx="290" cy="192" rx="28" ry="3" fill="#ffe08a" opacity=".55"/>
                 <ellipse cx="290" cy="203" rx="18" ry="2.5" fill="#ffe08a" opacity=".35"/>
                 <g class="wave wave-a"><path d="M-80 204 q20 -6 40 0 t40 0 t40 0 t40 0 t40 0 t40 0 t40 0 t40 0 t40 0 t40 0 t40 0 t40 0 t40 0 t40 0 t40 0" fill="none" stroke="#fff" stroke-opacity=".28" stroke-width="2"/></g>
@@ -259,6 +307,6 @@
     <footer class="footer"><span>© 2026 Cờ Tỷ Phú Online</span><span>Làm để chơi với bạn bè</span></footer>
   </main>
 
-  <script type="module" src="./app.js?v=marmalade-tile-labels2"></script>
+  <script type="module" src="./app.js?v=marmalade-camera-city-mobile3"></script>
 </body>
 </html>

@@ -11,6 +11,21 @@ export const CAMERA = Object.freeze({
 });
 
 const clampNumber = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
+export function quadCenter(points) {
+  if (!Array.isArray(points) || points.length < 3) throw new TypeError("quadCenter requires at least three points");
+  const total = points.reduce((sum, point) => ({ x: sum.x + Number(point.x), y: sum.y + Number(point.y) }), { x: 0, y: 0 });
+  return { x: total.x / points.length, y: total.y / points.length };
+}
+
+export function boundsFromPoints(points) {
+  if (!Array.isArray(points) || points.length < 3) throw new TypeError("boundsFromPoints requires at least three points");
+  const xs = points.map((point) => Number(point.x));
+  const ys = points.map((point) => Number(point.y));
+  if (![...xs, ...ys].every(Number.isFinite)) throw new TypeError("boundsFromPoints received a non-finite coordinate");
+  const x = Math.min(...xs), y = Math.min(...ys);
+  return { x, y, w: Math.max(...xs) - x, h: Math.max(...ys) - y };
+}
+
 
 // Tính camera để điểm `focus` (toạ độ gốc, chưa zoom) nằm đúng vị trí `anchor` trong khung nhìn,
 // đồng thời không cho tấm bàn cờ trượt ra khỏi khung (bounds = hộp bao của bàn cờ ở camera gốc).
@@ -61,21 +76,68 @@ export function createCamera({ stage, wrap, board, onChange, reduceMotion = fals
     wrap.style.transform = cam.scale === 1 && cam.tx === 0 && cam.ty === 0 ? "" : `translate(${cam.tx.toFixed(2)}px,${cam.ty.toFixed(2)}px) scale(${cam.scale.toFixed(4)})`;
     stage.dataset.cameraScale = cam.scale.toFixed(2);
   };
-  // Đo vị trí gốc của mọi ô một lần (đảo ngược camera hiện hành) rồi dùng lại cho tới khi đổi kích thước.
+  // Đọc đúng tứ giác sau phối cảnh. getBoundingClientRect() chỉ trả hình chữ nhật
+  // bao ngoài nên không thể dùng tâm AABB làm tâm ô trên một mặt phẳng đang nghiêng.
+  const geometryMarkers = new WeakMap();
+  const readQuad = (element) => {
+    try {
+      const quads = element.getBoxQuads?.({ box: "border" });
+      if (quads?.length) {
+        const q = quads[0];
+        return [q.p1, q.p2, q.p3, q.p4].map((p) => ({ x: p.x, y: p.y }));
+      }
+    } catch { /* trình duyệt không hỗ trợ getBoxQuads: đo bằng điểm neo DOM */ }
+
+    let markers = geometryMarkers.get(element);
+    if (!markers) {
+      markers = Array.from({ length: 4 }, () => {
+        const marker = document.createElement("i");
+        marker.className = "camera-geometry-marker";
+        marker.setAttribute("aria-hidden", "true");
+        Object.assign(marker.style, {
+          position: "absolute", width: "0", height: "0", padding: "0", margin: "0",
+          border: "0", pointerEvents: "none", visibility: "hidden", zIndex: "-1"
+        });
+        element.append(marker);
+        return marker;
+      });
+      geometryMarkers.set(element, markers);
+    }
+
+    const style = getComputedStyle(element);
+    const bl = parseFloat(style.borderLeftWidth) || 0;
+    const br = parseFloat(style.borderRightWidth) || 0;
+    const bt = parseFloat(style.borderTopWidth) || 0;
+    const bb = parseFloat(style.borderBottomWidth) || 0;
+    const right = element.clientWidth + br;
+    const bottom = element.clientHeight + bb;
+    const positions = [
+      { left: -bl, top: -bt },
+      { left: right, top: -bt },
+      { left: right, top: bottom },
+      { left: -bl, top: bottom }
+    ];
+    markers.forEach((marker, i) => {
+      marker.style.left = positions[i].left + "px";
+      marker.style.top = positions[i].top + "px";
+    });
+    return markers.map((marker) => {
+      const r = marker.getBoundingClientRect();
+      return { x: r.left, y: r.top };
+    });
+  };
+  const toBase = (point, matrix, cam) => screenToBase(point, matrix, cam);
+  // Đo vị trí các ô và bốn góc thật một lần; invalidate() yêu cầu đo lại sau resize/xoay máy.
   const measure = () => {
     state.cells.clear();
     const cam = readCamera(wrap);
-    const m = stageMatrix();
+    const matrix = stageMatrix();
     document.querySelectorAll("#board .space").forEach((cell) => {
-      const r = cell.getBoundingClientRect();
-      state.cells.set(Number(cell.dataset.index), screenToBase({ x: r.left + r.width / 2, y: r.top + r.height / 2 }, m, cam));
+      const center = quadCenter(readQuad(cell));
+      state.cells.set(Number(cell.dataset.index), toBase(center, matrix, cam));
     });
-    const b = board.getBoundingClientRect();
-    const tl = screenToBase({ x: b.left, y: b.top }, m, cam);
-    const br = screenToBase({ x: b.right, y: b.bottom }, m, cam);
-    const corners = [tl, br, screenToBase({ x: b.right, y: b.top }, m, cam), screenToBase({ x: b.left, y: b.bottom }, m, cam)];
-    const xs = corners.map((c) => c.x), ys = corners.map((c) => c.y);
-    state.bounds = { x: Math.min(...xs), y: Math.min(...ys), w: Math.max(...xs) - Math.min(...xs), h: Math.max(...ys) - Math.min(...ys) };
+    const projectedCorners = readQuad(board).map((point) => toBase(point, matrix, cam));
+    state.bounds = boundsFromPoints(projectedCorners);
   };
   const cellBase = (index) => {
     if (!state.cells.size || !state.bounds) measure();
