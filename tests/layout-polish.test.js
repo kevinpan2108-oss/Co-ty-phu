@@ -21,7 +21,8 @@ test("the board is enlarged while leaving a right-side transaction rail", () => 
 
 test("the deal card is wider, taller and its key details use readable type sizes", () => {
   assert.match(css, /width:min\(27cqw,346px\)/);
-  assert.match(css, /max-height:min\(55cqh,520px\)/);
+  assert.match(css, /max-height:min\(50cqh,480px\)/);
+  assert.match(css, /top:clamp\(266px,30cqh,300px\)/);
   assert.match(css, /\.deal-value-grid small \{[\s\S]*?font-size:9px/);
   assert.match(css, /\.deal-facts small \{[\s\S]*?font-size:8px/);
   assert.match(css, /\.deal-description \{\s*max-height:4\.1em/);
