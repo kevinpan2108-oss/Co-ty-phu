@@ -911,7 +911,7 @@ function renderTokens() {
   });
 }
 function resetEffects() {
-  clearTimeout(holdTimer); holdTimer = null; eventHoldUntil = 0; epSeenId = 0; dealDismissedId = null; dealDismissedId = null;
+  clearTimeout(holdTimer); holdTimer = null; eventHoldUntil = 0; epSeenId = 0; dealDismissedId = null;
   cameraRestored = false;
   camera?.overview(0);
   clearInterval(diceTimer);
