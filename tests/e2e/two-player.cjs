@@ -327,7 +327,7 @@ let rules;
     await pa.page.locator('#propertyList [data-deed-action="build-house"][data-index="3"]').click();
     await pa.page.waitForSelector('#board .space[data-index="3"].built', { timeout:4000 });
     check("xây nhà được ghi vào nhật ký với khoản tiền đã chi", store.rooms[code].log?.at(-1)?.kind === "build" && store.rooms[code].log.at(-1).deltas?.[uidA] === -50);
-    check("Event Panel nêu rõ lý do chi tiền xây nhà", /xây nhà\\/khách sạn/.test(await text(pa.page, "#epMoney")));
+    check("Event Panel nêu rõ lý do chi tiền xây nhà", /xây nhà.*khách sạn/.test(await text(pa.page, "#epMoney")));
     check("xây căn đầu tiên ở ô 3, bắt buộc chuyển sang ô 1 để xây đều", store.rooms[code].houses.s3 === 1 &&
       store.rooms[code].houses.s1 !== 1 &&
       await pa.page.locator('#propertyList [data-deed-action="build-house"][data-index="3"]').count() === 0);
@@ -342,7 +342,7 @@ let rules;
     await pa.page.waitForSelector('#board .space[data-index="1"]:not(.built)', { timeout:4000 });
     check("bán công trình theo thứ tự đồng đều, nhận lại tiền", !store.rooms[code].houses.s3 && !store.rooms[code].houses.s1 && store.rooms[code].players[uidA].cash === 1450);
     check("bán nhà được ghi nhận thành sự kiện nhận tiền", store.rooms[code].log?.at(-1)?.kind === "sellHouse" && store.rooms[code].log.at(-1).deltas?.[uidA] === 25);
-    check("Event Panel nêu rõ khoản thu từ bán nhà", /bán nhà\\/khách sạn/.test(await text(pa.page, "#epMoney")));
+    check("Event Panel nêu rõ khoản thu từ bán nhà", /bán nhà.*khách sạn/.test(await text(pa.page, "#epMoney")));
 
     // Giả lập khoản thiếu tiền thuê/thuế; dùng cầm cố tài sản để trả nợ trước.
     const beforeCreditor = store.rooms[code].players[uidB].cash;

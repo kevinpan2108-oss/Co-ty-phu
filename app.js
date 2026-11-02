@@ -1131,7 +1131,7 @@ function planCameraRoute(from, to, steps, diceDelay) {
 function restoreCameraAfterReload() {
   if (cameraRestored || !camera || !roomState) return;
   cameraRestored = true;
-  const e = currentTurnEvent();
+  const e = currentTurnEvent(roomState);
   if (!camera.state.enabled || !e || !Number.isInteger(e.index) || roomState.status !== "playing" || !roomState.lastRoll) return;
   const seq = camera.beginSequence();
   camera.later(() => camera.focus(e.index, { ms: 700, seq }), 350);
@@ -1145,7 +1145,7 @@ let holdTimer = null;
 function renderEventPanel() {
   const panel = $("eventPanel");
   if (!panel || !roomState || !currentUser) return;
-  const e = currentTurnEvent();
+  const e = currentTurnEvent(roomState);
   const holding = Date.now() < eventHoldUntil;
   const uid = currentUser.uid;
   const players = roomState.players || {};
@@ -1210,7 +1210,7 @@ function renderEventPanel() {
 }
 function renderHistory() {
   const players = roomState?.players || {};
-  const list = eventLogList().slice().reverse();
+  const list = eventLogList(roomState).slice().reverse();
   $("historyList").innerHTML = list.length ? list.map((e) => {
     const space = Number.isInteger(e.index) ? SPACE_DATA[e.index] : null;
     const d = Object.entries(e.deltas || {}).map(([id, v]) => `<span class="hl-d ${v > 0 ? "gain" : "loss"}">${escapeHtml(players[id]?.name || "")} ${v > 0 ? "+" : "−"}${money(Math.abs(v))}</span>`).join("");
