@@ -9,7 +9,7 @@ export const CAMERA = Object.freeze({
   stepMs: 150,
   focusMs: 430,
   zoomOutMs: 780,
-  anchorX: 0.27,
+  anchorX: 0.22,
   anchorY: 0.50
 });
 

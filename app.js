@@ -1304,10 +1304,12 @@ function renderDealCard() {
   }
 
   const facts = [];
-  if (space?.group) facts.push(["NHÓM MÀU", space.group]);
+  // Tên nhóm đã nằm ngay dưới tên ô; tránh lặp lại trong chứng từ mua đất.
+  if (space?.group && !isPending) facts.push(["NHÓM MÀU", space.group]);
   if (space?.price) facts.push(["GIÁ TRỊ THẾ CHẤP", money(mortgage > 0 ? mortgage : mortgageValue(space))]);
   if (mortgage > 0) facts.push(["PHÍ GIẢI CHẤP", money(redemptionCost(mortgage))]);
-  if (space?.houseCost) facts.push(["CHI PHÍ XÂY NHÀ", money(space.houseCost)]);
+  // Chi phí xây đã có một dòng riêng trong bảng quyền thuê.
+  if (space?.houseCost && !isPending) facts.push(["CHI PHÍ XÂY NHÀ", money(space.houseCost)]);
   if (space?.type === "station") facts.push(["TIỀN THUÊ", "Tăng theo số bến sở hữu"]);
   if (space?.type === "utility") facts.push(["CÁCH TÍNH THUÊ", "Theo điểm xúc xắc"]);
   if (owner) facts.push(["CHỦ SỞ HỮU", owner.name]);
