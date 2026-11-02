@@ -183,6 +183,20 @@ let rules;
       return !stage?.classList.contains("show") && !result?.classList.contains("rolling");
     }, null, { timeout: 5000 });
   }));
+  // Theo dõi các trạng thái camera để xác nhận có follow → focus → overview trên cả hai thiết bị.
+  for (const page of [pa.page, pb.page]) {
+    await page.evaluate(() => {
+      const stage = document.querySelector("#stage");
+      window.__cameraHistory = [];
+      window.__cameraObserver = new MutationObserver(() => {
+        window.__cameraHistory.push({
+          mode: stage?.dataset.camera,
+          scale: Number(stage?.dataset.cameraScale || 1)
+        });
+      });
+      window.__cameraObserver.observe(stage, { attributes: true, attributeFilter: ["data-camera", "data-camera-scale"] });
+    });
+  }
   // Tung xúc xắc [1,2] → ô 3 (Đường Đồng Khởi, $60)
   await pa.page.evaluate(() => { const q = [0, 0.2]; Math.random = () => (q.length ? q.shift() : 0.5); });
   await pa.page.click("#rollButton");
@@ -235,21 +249,14 @@ let rules;
     await pa.page.locator("#board .space[data-index='28'] .model-water").count() === 1);
   // Không tự chuyển lượt: người chơi chủ động bấm nút Tiếp tục ở đáy màn hình.
   await pa.page.waitForFunction(() => document.querySelector("#rollButton")?.textContent.includes("Tiếp tục"), null, { timeout: 9000 });
-  await pa.page.waitForFunction(() => document.querySelector("#stage")?.dataset.camera === "focus", null, { timeout: 7000 });
-  const landingCamera = await pa.page.evaluate(() => {
-    const stage = document.querySelector("#stage");
-    const wrap = document.querySelector("#gameView .board-wrap");
-    const matrix = new DOMMatrix(getComputedStyle(wrap).transform);
-    return { mode: stage?.dataset.camera, scale: matrix.a, overviewVisible: !document.querySelector("#camOverviewButton")?.hidden };
-  });
-  check("camera focus vào ô đích trong lúc quân di chuyển", landingCamera.mode === "focus" && landingCamera.scale > 1.2 && landingCamera.overviewVisible, JSON.stringify(landingCamera));
-  const spectatorCamera = await pb.page.evaluate(() => {
-    const stage = document.querySelector("#stage");
-    const wrap = document.querySelector("#gameView .board-wrap");
-    const matrix = new DOMMatrix(getComputedStyle(wrap).transform);
-    return { mode: stage?.dataset.camera, scale: matrix.a, overviewVisible: !document.querySelector("#camOverviewButton")?.hidden };
-  });
-  check("camera trên thiết bị đối thủ cũng theo quân trong đoạn di chuyển", spectatorCamera.mode === "focus" && spectatorCamera.scale > 1.2 && spectatorCamera.overviewVisible, JSON.stringify(spectatorCamera));
+  const cameraHistoryA = await pa.page.evaluate(() => window.__cameraHistory || []);
+  const cameraHistoryB = await pb.page.evaluate(() => window.__cameraHistory || []);
+  const sawFocusA = cameraHistoryA.some(x => x.mode === "focus" && x.scale > 1.2);
+  const sawOverviewA = cameraHistoryA.some(x => x.mode === "overview" && x.scale <= 1.01);
+  const sawFocusB = cameraHistoryB.some(x => x.mode === "focus" && x.scale > 1.2);
+  const sawOverviewB = cameraHistoryB.some(x => x.mode === "overview" && x.scale <= 1.01);
+  check("camera có follow/focus rồi tự zoom ra toàn cảnh ở máy A", sawFocusA && sawOverviewA, JSON.stringify(cameraHistoryA));
+  check("camera đồng bộ follow/focus/overview ở máy B", sawFocusB && sawOverviewB, JSON.stringify(cameraHistoryB));
   check("Event Panel hiển thị đúng cho người mua tài sản", await pa.page.locator("#eventPanel.is-hidden").count() === 0 &&
     /Chợ nổi Cái Bè|Làng nổi/.test(await text(pa.page, "#epTitle")) &&
     /600\.000₫/.test(await text(pa.page, "#epMoney")) &&
