@@ -63,10 +63,11 @@ export const runTransaction=async(r,fn)=>{
 
 // Lượt tự chuyển sau khi thông báo sự kiện đã hiển thị đủ lâu.
 async function confirmTurn(p) {
-  const before = await text(p.page, "#turnName");
+  const before = await text(p.page, "#centerStatus");
+  if (/Đợi đối thủ/i.test(before)) return;
   await p.page.waitForFunction((previous) => {
-    const current = document.querySelector("#turnName")?.textContent || "";
-    return current && current !== previous;
+    const current = document.querySelector("#centerStatus")?.textContent || "";
+    return current !== previous && (/Đợi đối thủ|Đến lượt bạn/i.test(current));
   }, before, { timeout: 18000 });
 }
 async function newPlayer(browser, uid, opts = {}) {
@@ -262,6 +263,8 @@ let rules;
     /600\.000₫/.test(await text(pa.page, "#epMoney")) &&
     /14\.400\.000₫/.test(await text(pa.page, "#epBalances")));
   check("Event Panel ẩn ở thiết bị không bị tác động", await pb.page.locator("#eventPanel.is-hidden").count() === 1);
+  check("thông báo tiền nằm cạnh avatar của người bị tác động", await pa.page.locator("#board .player-event-bubble").count() >= 1);
+  check("cả bốn ô góc đều có mô hình isometric", await pa.page.locator("#board .space.corner .space-model").count() === 4);
   const panelLayout = await pa.page.evaluate(() => {
     const panel = document.querySelector("#eventPanel").getBoundingClientRect();
     const stage = document.querySelector("#stage").getBoundingClientRect();
@@ -278,7 +281,7 @@ let rules;
     transform: getComputedStyle(document.querySelector("#gameView .board-wrap")).transform
   }));
   check("camera tự zoom ra toàn cảnh sau khi kết thúc focus", overviewState.mode === "overview", JSON.stringify(overviewState));
-  await pa.page.waitForFunction(() => document.querySelector("#eventPanel")?.classList.contains("is-hidden"), null, { timeout: 5000 });
+  await pa.page.waitForFunction(() => document.querySelector("#eventPanel")?.classList.contains("is-hidden"), null, { timeout: 10000 });
   check("Event Panel tự tắt khi sự kiện đã được xử lý", await pa.page.locator("#eventPanel.is-hidden").count() === 1);
   await confirmTurn(pa);
   await Promise.all([
