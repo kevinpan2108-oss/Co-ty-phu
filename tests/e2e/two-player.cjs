@@ -281,9 +281,18 @@ let rules;
   const panelLayout = await pa.page.evaluate(() => {
     const panel = document.querySelector("#eventPanel").getBoundingClientRect();
     const stage = document.querySelector("#stage").getBoundingClientRect();
-    return {dx:Math.abs((panel.left + panel.width / 2) - (stage.left + stage.width / 2)),dy:Math.abs((panel.top + panel.height / 2) - (stage.top + stage.height / 2))};
+    return {
+      left: panel.left,
+      right: panel.right,
+      width: panel.width,
+      stageMid: stage.left + stage.width / 2,
+      mode: document.querySelector("#stage")?.dataset.camera
+    };
   });
-  check("Event Panel nằm giữa màn hình, không bị ghim ở góc", panelLayout.dx < 8 && panelLayout.dy < 8, JSON.stringify(panelLayout));
+  check("Event Panel né vùng camera đang theo token và nằm ở cạnh phải",
+    panelLayout.mode === "focus" && panelLayout.left > panelLayout.stageMid &&
+    panelLayout.right <= 1280 && panelLayout.width <= 380,
+    JSON.stringify(panelLayout));
   check("đối thủ cũng thấy bảng sự kiện nhưng không có nút kết thúc lượt riêng trong panel", /Chợ nổi Cái Bè|Làng nổi/.test(await text(pb.page, "#epTitle")) && (await pb.page.locator("#confirmEventButton").count()) === 0);
   await pa.page.click("#epHistoryButton");
   const historyText = await text(pa.page, "#historyList");
