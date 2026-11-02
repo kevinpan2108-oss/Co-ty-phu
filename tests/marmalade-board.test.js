@@ -36,7 +36,7 @@ test("the 40-space perimeter and game controls remain in place", () => {
   assert.match(app, /div\.dataset\.index = String\(index\)/);
   assert.match(html, /id="board"/);
   assert.match(html, /id="diceStage"/);
-  assert.match(html, /id="eventPanel"/);
+  assert.match(html, /id="interactionCard"/);
 });
 
 test("the redesigned board stylesheet has its own cache version", () => {
