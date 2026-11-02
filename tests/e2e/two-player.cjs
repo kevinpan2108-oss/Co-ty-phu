@@ -244,10 +244,8 @@ let rules;
     width:el.getBoundingClientRect().width
   }));
   check("tên ô cờ dùng bố cục tự co và giới hạn hai dòng", tileFit.clamp === "2" && tileFit.wrap === "anywhere" && tileFit.width > 0, JSON.stringify(tileFit));
-  check("ô bến phà và hai công ty có mô hình isometric 3D",
-    await pa.page.locator("#board .space[data-index='5'] .model-ferry").count() === 1 &&
-    await pa.page.locator("#board .space[data-index='12'] .model-power").count() === 1 &&
-    await pa.page.locator("#board .space[data-index='28'] .model-water").count() === 1);
+  check("mô hình 3D ở bến phà và hai công ty đã được gỡ bỏ",
+    await pa.page.locator("#board .space-model").count() === 0);
   // Không tự chuyển lượt: người chơi chủ động bấm nút Đang chuyển lượt ở đáy màn hình.
   await pa.page.waitForFunction(() => document.querySelector("#rollButton")?.textContent.includes("Đang chuyển lượt"), null, { timeout: 9000 });
   const cameraHistoryA = await pa.page.evaluate(() => window.__cameraHistory || []);
@@ -264,13 +262,24 @@ let rules;
     /14\.400\.000₫/.test(await text(pa.page, "#epBalances")));
   check("Event Panel ẩn ở thiết bị không bị tác động", await pb.page.locator("#eventPanel.is-hidden").count() === 1);
   check("thông báo tiền nằm cạnh avatar của người bị tác động", await pa.page.locator("#board .player-event-bubble").count() >= 1);
-  check("cả bốn ô góc đều có mô hình isometric", await pa.page.locator("#board .space.corner .space-model").count() === 4);
+  check("các ô góc không còn mô hình 3D", await pa.page.locator("#board .space.corner .space-model").count() === 0);
   const panelLayout = await pa.page.evaluate(() => {
     const panel = document.querySelector("#eventPanel").getBoundingClientRect();
     const stage = document.querySelector("#stage").getBoundingClientRect();
     return {dx:Math.abs((panel.left + panel.width / 2) - (stage.left + stage.width / 2)),dy:Math.abs((panel.top + panel.height / 2) - (stage.top + stage.height / 2))};
   });
   check("Event Panel nằm giữa màn hình, không bị ghim ở góc", panelLayout.dx < 8 && panelLayout.dy < 8, JSON.stringify(panelLayout));
+  const compactUi = await pa.page.evaluate(() => {
+    const panel = document.querySelector("#eventPanel").getBoundingClientRect();
+    const stage = document.querySelector("#stage").getBoundingClientRect();
+    const card = document.querySelector("#playersPanel .player-card").getBoundingClientRect();
+    const avatar = document.querySelector("#playersPanel .player-avatar").getBoundingClientRect();
+    return {panelRatio:panel.width / stage.width,cardHeight:card.height,avatarSize:avatar.width};
+  });
+  check("Event Panel và khung người chơi đã được thu gọn",
+    compactUi.panelRatio <= .55 && compactUi.cardHeight <= 60 && compactUi.avatarSize <= 40,
+    JSON.stringify(compactUi));
+
   await pa.page.click("#epHistoryButton");
   const historyText = await text(pa.page, "#historyList");
   check("lịch sử giữ lại sự kiện và giao dịch vừa xảy ra", /Chợ nổi Cái Bè|Làng nổi/.test(historyText) && historyText.includes("600.000₫"), historyText);
