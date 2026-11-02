@@ -459,8 +459,8 @@ function openRoom(code) {
   clearTimeout(holdTimer);
   holdTimer = null;
   cameraRestored = false;
-  epSeenId = 0;
-  epMinimized = false;
+  
+  
   eventHoldUntil = 0;
   computerGame = false;
   computerBusy = false;
@@ -605,8 +605,8 @@ function leaveRoom(message) {
   clearTimeout(holdTimer);
   holdTimer = null;
   cameraRestored = false;
-  epSeenId = 0;
-  epMinimized = false;
+  
+  
   eventHoldUntil = 0;
   if (computerTimer) clearTimeout(computerTimer);
   computerTimer = null;
@@ -911,7 +911,7 @@ function renderTokens() {
   });
 }
 function resetEffects() {
-  clearTimeout(holdTimer); holdTimer = null; eventHoldUntil = 0; epSeenId = 0; epMinimized = false;
+  clearTimeout(holdTimer); holdTimer = null; eventHoldUntil = 0;  
   cameraRestored = false;
   camera?.overview(0);
   clearInterval(diceTimer);
@@ -1103,7 +1103,7 @@ function runEffects(previous, next) {
   if (holdMs > 0) {
     eventHoldUntil = Date.now() + holdMs + 150;
     clearTimeout(holdTimer);
-    holdTimer = setTimeout(() => { holdTimer = null; if (roomState) { renderActions(); renderEventPanel(); } }, holdMs + 170);
+    holdTimer = setTimeout(() => { holdTimer = null; if (roomState) { renderActions(); renderInteractionPanel(); } }, holdMs + 170);
   }
   for (const key of Object.keys(next.propertyOwners || {})) {
     if (previous.propertyOwners?.[key]) continue;
@@ -1160,71 +1160,200 @@ function restoreCameraAfterReload() {
 }
 
 // ===== Bảng sự kiện =====
-let epMinimized = false;
-let epSeenId = 0;
 let eventHoldUntil = 0;
 let holdTimer = null;
-function renderEventPanel() {
-  const panel = $("eventPanel");
+
+function renderInteractionPanel() {
+  const panel = $("interactionCard");
   if (!panel || !roomState || !currentUser) return;
-  const e = currentTurnEvent(roomState);
-  const holding = Date.now() < eventHoldUntil;
+
   const uid = currentUser.uid;
   const players = roomState.players || {};
   const nameOf = (id) => players[id]?.name || "Người chơi";
-  if (e && e.id !== epSeenId) { epSeenId = e.id; epMinimized = false; }
-  panel.classList.toggle("idle", !e || holding);
-  panel.classList.toggle("min", epMinimized);
-  $("epMinButton").setAttribute("aria-expanded", String(!epMinimized));
-  $("epMinButton").textContent = epMinimized ? "▴" : "▾";
-  const space = e && Number.isInteger(e.index) ? SPACE_DATA[e.index] : null;
-  $("epIcon").textContent = space?.icon || "🎲";
-  $("epTitle").textContent = holding && e ? nameOf(e.uid) + " đang di chuyển…" : space ? space.name : "Lượt chơi";
-  const money$ = $("epMoney"), bal = $("epBalances"), confirmRow = $("epConfirmRow");
-  money$.innerHTML = ""; bal.innerHTML = ""; confirmRow.innerHTML = "";
-  if (holding) {
-    $("actionMessage").textContent = "🎲 Quân cờ đang di chuyển…";
-    $("pendingActions").innerHTML = "";
-    return;
-  }
-  // Tiền cộng/trừ, lý do, người trả và người nhận.
-  if (e?.deltas) {
-    const rows = Object.entries(e.deltas).filter(([, d]) => Number(d) !== 0);
-    money$.innerHTML = rows.map(([id, d]) => {
-      const cls = d > 0 ? "gain" : "loss";
-      const why = eventReason(e, id, d);
-      return `<li class="${cls === "loss" ? "loss" : ""}"><span>${escapeHtml(nameOf(id))}${why ? ` <small>· ${escapeHtml(why)}</small>` : ""}</span><b class="${cls}">${d > 0 ? "+" : "−"}${money(Math.abs(d))}</b></li>`;
-    }).join("");
-    const payer = rows.find(([, d]) => d < 0), receiver = rows.find(([, d]) => d > 0);
-    if (payer && receiver && (e.kind === "property" || e.kind === "station" || e.kind === "utility" || e.kind === "chance" || e.kind === "fortune") && payer[0] !== receiver[0]) {
-      const amount = Math.min(Math.abs(payer[1]), receiver[1]);
-      money$.insertAdjacentHTML("beforeend", `<li class="ep-flow-row"><span class="ep-flow">💸 ${escapeHtml(nameOf(payer[0]))} trả cho ${escapeHtml(nameOf(receiver[0]))} ${money(amount)}</span></li>`);
+  const event = currentTurnEvent(roomState);
+  const pending = roomState.pending;
+  const auction = roomState.auction;
+  const debt = roomState.debt;
+  const openingPhase = isOpeningRollPhase(roomState);
+  const holding = Date.now() < eventHoldUntil;
+  const spaceIndex = Number.isInteger(pending?.index) ? Number(pending.index)
+    : Number.isInteger(auction?.index) ? Number(auction.index)
+    : Number.isInteger(event?.index) ? Number(event.index)
+    : null;
+  const space = Number.isInteger(spaceIndex) ? SPACE_DATA[spaceIndex] : null;
+  const playing = roomState.status === "playing" && getPlayerEntries(roomState).length === 2;
+
+  const shouldShow = !holding && roomState.status !== "waiting" &&
+    (roomState.status === "finished" || openingPhase || !!pending || !!auction || !!debt || (!!roomState.lastRoll && !!event));
+  panel.hidden = !shouldShow;
+  if (!shouldShow) return;
+
+  const ribbon = $("dealRibbon");
+  const eyebrow = $("dealEyebrow");
+  const subtitle = $("dealSubtitle");
+  const group = $("dealGroup");
+  const deed = $("dealPropertySheet");
+  const actionMessage = $("actionMessage");
+  const moneyList = $("epMoney");
+  const balances = $("epBalances");
+  const confirmRow = $("epConfirmRow");
+  moneyList.innerHTML = "";
+  balances.innerHTML = "";
+  confirmRow.innerHTML = "";
+  deed.hidden = true;
+
+  const ownerUid = Number.isInteger(spaceIndex) ? roomState.propertyOwners?.[getSpaceId(spaceIndex)] : null;
+
+  const showDeed = (index, ownerId) => {
+    const property = SPACE_DATA[index];
+    if (!property || !["property","station","utility"].includes(property.type) || !property.price) return;
+    const currentOwner = ownerId ? players[ownerId] : null;
+    $("dealColorStrip").style.background = property.color || "#8b9298";
+    $("dealPrice").textContent = money(property.price);
+    $("dealMortgage").textContent = money(Math.floor(property.price / 2));
+    const rows = [];
+    if (property.type === "property") {
+      const base = Number(property.rent || 0);
+      const multipliers = [5, 15, 45, 80, 125];
+      rows.push(["Đất trống", base]);
+      rows.push(["Trọn bộ màu", base * 2]);
+      multipliers.forEach((factor, i) => rows.push([i === 4 ? "Khách sạn" : (i + 1) + " nhà", base * factor]));
+      $("dealBuildCost").textContent = "GIÁ MỖI NHÀ / KHÁCH SẠN  " + money(getHouseCost(SPACE_DATA, index));
+    } else if (property.type === "station") {
+      [1,2,3,4].forEach((count) => rows.push([count + " bến phà", 40 * Math.pow(2, count - 1)]));
+      $("dealBuildCost").textContent = "Sở hữu nhiều bến phà sẽ làm tăng tiền thuê.";
+    } else {
+      rows.push(["Sở hữu 1 công ty", "4× tổng xúc xắc"]);
+      rows.push(["Sở hữu cả 2 công ty", "10× tổng xúc xắc"]);
+      $("dealBuildCost").textContent = "Tiền thuê được tính theo tổng điểm của lần tung xúc xắc.";
+    }
+    $("dealRentList").innerHTML = rows.map(([label,value], i) =>
+      '<div class="deed-rent-row ' + (i === 0 ? "base-rent" : "") + '">' +
+        "<span>" + escapeHtml(label) + "</span><strong>" +
+        (typeof value === "number" ? money(value) : escapeHtml(value)) +
+        "</strong></div>"
+    ).join("");
+    if (currentOwner) {
+      const houseCount = Number(roomState.houses?.[getSpaceId(index)] || 0);
+      const mortgaged = Number(roomState.mortgages?.[getSpaceId(index)] || 0) > 0;
+      $("dealBuildCost").textContent += " · Chủ sở hữu: " + currentOwner.name +
+        (mortgaged ? " · ĐANG THẾ CHẤP" : houseCount === 5 ? " · Có khách sạn" : houseCount ? " · " + houseCount + " nhà" : "");
+    }
+    deed.hidden = false;
+  };
+
+  const addButton = (cls, text, handler, attrs = {}) => {
+    const button = document.createElement("button");
+    button.className = cls;
+    button.type = "button";
+    button.textContent = text;
+    Object.entries(attrs).forEach(([key,value]) => button.setAttribute(key,value));
+    button.addEventListener("click", handler);
+    confirmRow.append(button);
+    return button;
+  };
+  const addWait = (text) => {
+    const note = document.createElement("div");
+    note.className = "deal-wait";
+    note.textContent = text;
+    confirmRow.append(note);
+  };
+
+  $("epIcon").textContent = space?.icon || (debt ? "⚠️" : openingPhase ? "🎲" : "🏆");
+  $("epTitle").textContent = space?.name || (debt ? "Khoản nợ cần thanh toán" : roomState.status === "finished" ? "Ván đấu kết thúc" : "Chọn người đi trước");
+  group.textContent = space?.group || "";
+  group.hidden = !space?.group;
+
+  if (roomState.status === "finished") {
+    ribbon.textContent = "GAME OVER";
+    eyebrow.textContent = "KẾT QUẢ VÁN ĐẤU";
+    subtitle.textContent = roomState.winner ? nameOf(roomState.winner) + " chiến thắng" : "Ván đấu đã kết thúc";
+    actionMessage.textContent = roomState.winner
+      ? "🏆 Chúc mừng " + nameOf(roomState.winner) + " đã trở thành người chiến thắng!"
+      : roomState.message || "Ván đấu đã kết thúc.";
+  } else if (openingPhase) {
+    ribbon.textContent = "ROLL TO START";
+    eyebrow.textContent = "CHỌN NGƯỜI ĐI TRƯỚC";
+    subtitle.textContent = Number(roomState.openingRound) > 1 ? "Vòng tung lại " + roomState.openingRound : "Mỗi người tung hai viên xúc xắc";
+    actionMessage.textContent = roomState.message || "Ai có tổng điểm cao hơn sẽ được đi trước.";
+  } else if (pending && space) {
+    ribbon.textContent = "FOR SALE";
+    eyebrow.textContent = "CƠ HỘI SỞ HỮU";
+    subtitle.textContent = "Tài sản chưa có chủ · " + money(space.price);
+    actionMessage.textContent = roomState.message || "Bạn có muốn mua " + space.name + " không?";
+    showDeed(spaceIndex, null);
+    if (pending.uid !== uid) addWait("Đang chờ " + nameOf(pending.uid) + " quyết định mua hoặc đưa tài sản ra đấu giá.");
+  } else if (auction && space) {
+    ribbon.textContent = "AUCTION";
+    eyebrow.textContent = "PHIÊN ĐẤU GIÁ";
+    const leader = auction.highestUid ? players[auction.highestUid] : null;
+    subtitle.textContent = leader
+      ? "Giá cao nhất " + money(auction.currentBid) + " · " + leader.name
+      : "Giá khởi điểm " + money(AUCTION_INCREMENT);
+    actionMessage.textContent = roomState.message || space.name + " đang được đấu giá.";
+    showDeed(spaceIndex, null);
+    if (auction.turnUid !== uid) addWait("Đang chờ " + nameOf(auction.turnUid) + " trả giá hoặc bỏ lượt.");
+  } else if (debt) {
+    ribbon.textContent = "PAYMENT DUE";
+    eyebrow.textContent = "CẦN XỬ LÝ KHOẢN NỢ";
+    subtitle.textContent = debt.uid === uid ? "Bạn đang thiếu " + money(debt.amount) : nameOf(debt.uid) + " đang cần xử lý khoản nợ";
+    actionMessage.textContent = (debt.reason || "Khoản thanh toán chưa đủ") + ". Bán nhà/khách sạn hoặc cầm cố tài sản để trả nợ.";
+    if (debt.uid === uid && playing) {
+      addButton("secondary-button", "📋 QUẢN LÝ TÀI SẢN", () => { $("propsModal").hidden = false; });
+      if (canDeclareBankruptcy(roomState, uid)) addButton("danger-button", "🏳️ TUYÊN BỐ PHÁ SẢN", () => declareBankruptcy(), { id: "bankruptButton" });
+    } else {
+      addWait("Đang chờ " + nameOf(debt.uid) + " xử lý khoản nợ.");
+    }
+  } else {
+    const eventTitle = event?.kind === "tax" ? "THUẾ & PHÍ"
+      : event?.kind === "chance" ? "CƠ HỘI"
+      : event?.kind === "fortune" ? "KHÍ VẬN"
+      : event?.kind === "jail" ? "NHÀ TÙ"
+      : event?.kind === "buy" ? "ĐÃ MUA TÀI SẢN"
+      : event?.kind === "auction" ? "KẾT QUẢ ĐẤU GIÁ"
+      : event?.kind === "build" ? "XÂY DỰNG"
+      : event?.kind === "sellHouse" ? "BÁN CÔNG TRÌNH"
+      : event?.kind === "mortgage" ? "THẾ CHẤP TÀI SẢN"
+      : event?.kind === "redeem" ? "GIẢI CHẤP"
+      : event?.kind === "start" ? "XUẤT PHÁT"
+      : "KẾT QUẢ LƯỢT";
+    ribbon.textContent = eventTitle;
+    eyebrow.textContent = "THÔNG TIN GIAO DỊCH";
+    subtitle.textContent = space?.group || (space ? "Thông tin ô đất" : "Lượt " + (Number(roomState.turnNumber) || 1));
+    actionMessage.textContent = event?.text || roomState.message || "Lượt chơi đã được cập nhật.";
+    if (space && ["property","station","utility"].includes(space.type)) showDeed(spaceIndex, ownerUid);
+    if (event?.deltas) {
+      const rows = Object.entries(event.deltas).filter(([,delta]) => Number(delta) !== 0);
+      moneyList.innerHTML = rows.map(([id,delta]) => {
+        const cls = delta > 0 ? "gain" : "loss";
+        const why = eventReason(event,id,delta);
+        return '<li class="' + cls + '"><span>' + escapeHtml(nameOf(id)) +
+          (why ? " <small>· " + escapeHtml(why) + "</small>" : "") +
+          '</span><b>' + (delta > 0 ? "+" : "−") + money(Math.abs(delta)) + "</b></li>";
+      }).join("");
+      const payer = rows.find(([,delta]) => delta < 0);
+      const receiver = rows.find(([,delta]) => delta > 0);
+      if (payer && receiver && payer[0] !== receiver[0]) {
+        moneyList.insertAdjacentHTML("beforeend",
+          '<li class="deal-transfer"><span>💸 ' + escapeHtml(nameOf(payer[0])) + " trả cho " +
+          escapeHtml(nameOf(receiver[0])) + '</span><b>' + money(Math.min(Math.abs(payer[1]),receiver[1])) + "</b></li>");
+      }
+    }
+    if (event) {
+      balances.innerHTML = Object.entries(players).map(([id,player]) =>
+        '<span style="--pc:' + safeColor(player.color) + '"><i></i>' +
+        escapeHtml(player.name) + "<b>" + money(player.cash) + "</b></span>"
+      ).join("");
+    }
+    if (debt?.uid === uid && playing) {
+      addButton("secondary-button", "📋 QUẢN LÝ TÀI SẢN", () => { $("propsModal").hidden = false; });
+      if (canDeclareBankruptcy(roomState,uid)) addButton("danger-button", "🏳️ PHÁ SẢN", () => declareBankruptcy(), {id:"bankruptButton"});
+    } else if (playing && roomState.turnUid !== uid) {
+      addWait(computerGame ? "Đối thủ máy đang chơi…" : "Đang chờ " + nameOf(roomState.turnUid) + " xác nhận tiếp tục lượt…");
     }
   }
-  if (e) {
-    bal.innerHTML = Object.entries(players).map(([id, p]) => `<span style="--pc:${safeColor(p.color)}">${escapeHtml(p.name)}: ${money(p.cash)}</span>`).join("");
-  }
-  // Không đặt nút kết thúc lượt trong Event Panel. Người đang chơi dùng nút lớn "Tiếp tục" ở đáy màn hình.
-  const playing = roomState.status === "playing" && getPlayerEntries(roomState).length === 2;
-  const resolved = !roomState.pending && !roomState.auction && !roomState.debt;
-  const addButton = (cls, text, handler, attrs = {}) => {
-    const b = document.createElement("button");
-    b.className = cls; b.type = "button"; b.textContent = text;
-    Object.entries(attrs).forEach(([k, v]) => b.setAttribute(k, v));
-    b.addEventListener("click", handler);
-    confirmRow.append(b);
-    return b;
-  };
-  if (roomState.debt?.uid === uid && playing) {
-    addButton("secondary-button", "📋 Mở Sổ đất", () => { $("propsModal").hidden = false; });
-    if (canDeclareBankruptcy(roomState, uid)) addButton("danger-button", "🏳️ Phá sản", () => declareBankruptcy(), { id: "bankruptButton" });
-  } else if (playing && e && roomState.turnUid !== uid && resolved) {
-    const note = document.createElement("div");
-    note.className = "ep-wait";
-    note.textContent = computerGame ? "Máy đang chơi…" : "Đang chờ " + nameOf(roomState.turnUid) + " tiếp tục lượt…";
-    confirmRow.append(note);
-  }
 }
+
 function renderHistory() {
   const players = roomState?.players || {};
   const list = eventLogList(roomState).slice().reverse();
@@ -1244,7 +1373,7 @@ function renderRoom() {
   renderBoard();
   renderProperties();
   renderActions();
-  renderEventPanel();
+  renderInteractionPanel();
   restoreCameraAfterReload();
 }
 
@@ -1850,8 +1979,8 @@ function startComputerGame() {
   clearTimeout(holdTimer);
   holdTimer = null;
   cameraRestored = false;
-  epSeenId = 0;
-  epMinimized = false;
+  
+  
   eventHoldUntil = 0;
   const humanUid = getPlayerId();
   currentUser = {uid:humanUid};
@@ -2023,7 +2152,7 @@ camera = createCamera({
 $("camOverviewButton").addEventListener("click", () => camera.manualOverview());
 window.addEventListener("resize", () => camera.invalidate());
 window.addEventListener("orientationchange", () => camera.invalidate());
-$("epMinButton").addEventListener("click", () => { epMinimized = !epMinimized; renderEventPanel(); });
+
 $("epHistoryButton").addEventListener("click", () => { renderHistory(); $("historyModal").hidden = false; });
 $("historyClose").addEventListener("click", () => { $("historyModal").hidden = true; });
 $("historyModal").addEventListener("click", (event) => { if (event.target === $("historyModal")) $("historyModal").hidden = true; });
