@@ -587,3 +587,27 @@
   #gameView .dice-stage.rolling::after,
   #gameView .dice-stage .cube-wrap { animation:none!important; }
 }
+
+
+/* State-specific ribbons and higher-specificity 3D roll override. */
+#gameView .interaction-card[data-mode="auction"] .deal-ribbon {
+  background:linear-gradient(180deg,#e6a33e,#bd7526);
+  border-color:#925a20;
+}
+#gameView .interaction-card[data-mode="debt"] .deal-ribbon {
+  background:linear-gradient(180deg,#e7544b,#ad282e);
+}
+#gameView .interaction-card[data-mode="jail"] .deal-ribbon {
+  background:linear-gradient(180deg,#657e9b,#394f6c);
+  border-color:#293c57;
+}
+#gameView .interaction-card[data-mode="result"] .deal-ribbon {
+  background:linear-gradient(180deg,#4e9b72,#26724f);
+  border-color:#205b42;
+}
+#gameView .dice-stage.rolling .cube-wrap {
+  animation:diceToss 1.18s cubic-bezier(.16,.78,.18,1) both!important;
+}
+#gameView .dice-stage.rolling .cube-wrap:nth-child(2) {
+  animation-delay:.11s!important;
+}
