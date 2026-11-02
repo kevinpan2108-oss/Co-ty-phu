@@ -1133,7 +1133,7 @@ function runEffects(previous, next) {
   else if (rolled) animateDice(next.lastRoll);
   // Mọi sự kiện mới (mua/bán/xây/cầm cố...) đều có khoảng hiển thị ngắn,
   // kể cả khi không phát sinh animation di chuyển hay tung xúc xắc.
-  let holdMs = Math.max(rolled ? DICE_MS : 0, eventChanged ? 4200 : 0);
+  let holdMs = Math.max(rolled ? DICE_MS : 0, eventChanged && !rolled ? 4200 : 0);
   // Qua lượt (hoặc tung thêm do được đôi): camera từ từ trở về toàn cảnh.
   if (Number(next.turnNumber) !== Number(previous.turnNumber) && !rolled) camera?.overview();
   for (const [uid, now] of getPlayerEntries(next)) {
