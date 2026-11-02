@@ -644,6 +644,15 @@ function getBoardCoords(index) {
   return [index-30,10];
 }
 function specialSpaceModelMarkup(space) {
+  if (space.corner) {
+    const models = {
+      start:'<span class="space-model model-corner model-start" aria-hidden="true"><svg viewBox="0 0 80 64"><ellipse cx="40" cy="57" rx="31" ry="5" fill="#000" opacity=".18"/><polygon points="7,47 39,29 73,46 41,62" fill="#b9a17a" stroke="#806849" stroke-width="1.5"/><path d="M17 45 L41 32 L64 43" fill="none" stroke="#fff0c8" stroke-width="2.5"/><path d="M23 39 V17 H28 V39 M54 43 V12 H59 V43" fill="#e2b54d" stroke="#7b5428" stroke-width="1.5"/><path d="M28 18 L48 24 L28 30Z" fill="#e64c3c" stroke="#85372e" stroke-width="1.2"/><path d="M59 13 L72 18 L59 23Z" fill="#f3cf49"/><path d="M35 42 l6 -4 l6 4 l-6 4z M47 49 l6 -4 l6 4 l-6 4z" fill="#fff" opacity=".85"/></svg></span>',
+      jail:'<span class="space-model model-corner model-jail" aria-hidden="true"><svg viewBox="0 0 80 64"><ellipse cx="40" cy="58" rx="30" ry="4" fill="#000" opacity=".18"/><polygon points="8,47 40,29 72,46 40,63" fill="#a9a18f"/><path d="M17 44 V23 L40 10 L63 23 V45 L40 58Z" fill="#d8c9a8" stroke="#655a4c" stroke-width="1.5"/><path d="M17 23 L40 36 L63 23 L40 10Z" fill="#8c7770" stroke="#655a4c" stroke-width="1.4"/><path d="M25 31 V48 M32 35 V52 M40 38 V56 M48 35 V52 M55 31 V48" stroke="#4d5961" stroke-width="3"/><path d="M22 30 L58 30 M22 48 L58 48" stroke="#4d5961" stroke-width="2"/><rect x="35" y="42" width="10" height="12" rx="2" fill="#9a6c3e"/></svg></span>',
+      free:'<span class="space-model model-corner model-free" aria-hidden="true"><svg viewBox="0 0 80 64"><ellipse cx="40" cy="57" rx="31" ry="5" fill="#000" opacity=".18"/><polygon points="6,47 39,28 74,46 41,63" fill="#79b8a0" stroke="#477d69" stroke-width="1.5"/><path d="M15 47 Q38 33 65 47" fill="none" stroke="#d8f1cf" stroke-width="3"/><path d="M25 41 V20 M25 20 Q13 13 12 23 Q20 23 25 20 Q29 8 39 13 Q35 21 25 20" fill="#39834c"/><path d="M47 43 V31 M47 31 Q39 25 37 33 Q44 35 47 31 Q53 23 59 29 Q55 36 47 31" fill="#39834c"/><path d="M31 43 H57 L54 49 H34Z" fill="#8c5a35"/><path d="M35 40 V46 M53 40 V46" stroke="#694329" stroke-width="2"/><path d="M30 39 H58" stroke="#d7a65a" stroke-width="3"/></svg></span>',
+      gotojail:'<span class="space-model model-corner model-police" aria-hidden="true"><svg viewBox="0 0 80 64"><ellipse cx="40" cy="57" rx="31" ry="5" fill="#000" opacity=".18"/><polygon points="6,47 39,29 73,46 41,63" fill="#b9a17a"/><path d="M14 39 L22 28 H53 L66 37 V49 H14Z" fill="#e8eee9" stroke="#53636a" stroke-width="1.6"/><path d="M22 29 H51 L58 38 H17Z" fill="#3f7f9a" stroke="#315c70" stroke-width="1.3"/><path d="M25 31 H37 V37 H20Z M40 31 H50 L55 37 H40Z" fill="#9dd9e8"/><path d="M14 40 H66 V49 H14Z" fill="#244b68"/><circle cx="25" cy="49" r="6" fill="#35434a" stroke="#e6e1d2" stroke-width="2"/><circle cx="55" cy="49" r="6" fill="#35434a" stroke="#e6e1d2" stroke-width="2"/><rect x="32" y="24" width="13" height="4" rx="2" fill="#e44c43"/><path d="M34 23 V19 M42 23 V19" stroke="#f2d34c" stroke-width="2"/></svg></span>'
+    };
+    return models[space.type] || "";
+  }
   if (space.type === "station") {
     return '<span class="space-model model-ferry" aria-hidden="true">' +
       '<svg viewBox="0 0 80 64" focusable="false">' +
@@ -898,12 +907,13 @@ function renderActions() {
 
   const canPayJail = Number(mine?.jailTurns || 0) > 0 && !dice;
   const canContinueTurn = !!dice && isMyTurn && !pending && !auction && !roomState.debt && canAdvanceTurn(roomState) && playing;
+  scheduleAutomaticTurnAdvance(canContinueTurn);
   if (openingPhase) {
     $("rollButton").textContent = myOpeningRoll ? "⏳ Đợi đối thủ tung..." : "🎲 Tung xí ngầu chọn lượt";
     $("rollButton").disabled = busy || !playing || !!myOpeningRoll;
   } else if (canContinueTurn) {
-    $("rollButton").textContent = roomState.extraRoll === true && !mine?.jailTurns ? "➡️ Tiếp tục · Tung thêm" : "➡️ Tiếp tục";
-    $("rollButton").disabled = busy;
+    $("rollButton").textContent = roomState.extraRoll === true && !mine?.jailTurns ? "⏳ Chuẩn bị tung thêm…" : "⏳ Đang chuyển lượt…";
+    $("rollButton").disabled = true;
   } else {
     $("rollButton").textContent = canPayJail ? "🎲 Thử tung đôi (" + mine.jailTurns + "/" + JAIL_MAX_ATTEMPTS + ")" : roomState.extraRoll && isMyTurn ? "🎲 Tung thêm (được đôi)" : "🎲 Tung xúc xắc";
     $("rollButton").disabled = busy || !playing || !isMyTurn || !!pending || !!auction || !!dice || roomState.status === "finished";
@@ -947,11 +957,18 @@ const DICE_MS = 1200;
 const HOP_MS = 190;
 
 function tokensHtml(index) {
+  const event = currentTurnEvent(roomState);
+  const showEvent = !!event && Date.now() < eventDisplayUntil;
   return getPlayerEntries(roomState)
     .filter(([uid, p]) => (displayPos[uid] ?? Number(p.position)) === index)
     .map(([uid, p], i) => {
       const tokenId = playerTokenId(p, i);
-      return `<i class="token${movingUid === uid ? " moving" : ""}" title="${escapeHtml(p.name)}" style="--tc:${safeColor(p.color)}"><b class="token-glyph" data-token="${tokenId}">${tokenMarkup(tokenId)}</b></i>`;
+      const delta = Number(event?.deltas?.[uid] || 0);
+      const affected = showEvent && (uid === event?.uid || Object.prototype.hasOwnProperty.call(event?.deltas || {}, uid));
+      const bubble = affected
+        ? `<span class="player-event-bubble ${delta > 0 ? "gain" : delta < 0 ? "loss" : "neutral"}" data-event-uid="${escapeHtml(uid)}"><b>${delta > 0 ? "+" : delta < 0 ? "−" : ""}${delta ? moneyShort(Math.abs(delta)) : "Sự kiện"}</b><small>${escapeHtml(eventReason(event, uid, delta) || "Sự kiện")}</small></span>`
+        : "";
+      return `<i class="token${movingUid === uid ? " moving" : ""}" title="${escapeHtml(p.name)}" style="--tc:${safeColor(p.color)}"><b class="token-glyph" data-token="${tokenId}">${tokenMarkup(tokenId)}</b>${bubble}</i>`;
     })
     .join("");
 }
@@ -962,7 +979,10 @@ function renderTokens() {
   });
 }
 function resetEffects() {
-  clearTimeout(holdTimer); holdTimer = null; eventHoldUntil = 0; epSeenId = 0; epMinimized = false;
+  clearTimeout(holdTimer); holdTimer = null; eventHoldUntil = 0;
+  clearTimeout(eventDisplayTimer); eventDisplayTimer = null; eventDisplayUntil = 0;
+  clearTimeout(autoAdvanceTimer); autoAdvanceTimer = null; autoAdvanceKey = "";
+  epSeenId = 0; epMinimized = false;
   cameraRestored = false;
   camera?.overview(0);
   clearInterval(diceTimer);
@@ -1134,9 +1154,8 @@ function runEffects(previous, next) {
   const eventChanged = !!next.event?.id && Number(next.event.id) !== Number(previous.event?.id || 0);
   if (openingRolled) animateDice(next.openingLastRoll.dice);
   else if (rolled) animateDice(next.lastRoll);
-  // Mọi sự kiện mới (mua/bán/xây/cầm cố...) đều có khoảng hiển thị ngắn,
-  // kể cả khi không phát sinh animation di chuyển hay tung xúc xắc.
-  let holdMs = Math.max(rolled ? DICE_MS : 0, eventChanged && !rolled ? 4200 : 0);
+  // Tách thời gian animation khỏi thời gian đọc sự kiện.
+  let holdMs = rolled ? DICE_MS : 0;
   // Qua lượt (hoặc tung thêm do được đôi): camera từ từ trở về toàn cảnh.
   if (Number(next.turnNumber) !== Number(previous.turnNumber) && !rolled) camera?.overview();
   for (const [uid, now] of getPlayerEntries(next)) {
@@ -1161,6 +1180,16 @@ function runEffects(previous, next) {
     eventHoldUntil = Date.now() + holdMs + 150;
     clearTimeout(holdTimer);
     holdTimer = setTimeout(() => { holdTimer = null; if (roomState) { renderActions(); renderEventPanel(); } }, holdMs + 170);
+  }
+  if (eventChanged) {
+    const displayMs = 6500;
+    eventDisplayUntil = Date.now() + holdMs + displayMs;
+    clearTimeout(eventDisplayTimer);
+    eventDisplayTimer = setTimeout(() => {
+      eventDisplayTimer = null;
+      eventDisplayUntil = 0;
+      if (roomState) { renderTokens(); renderEventPanel(); renderActions(); }
+    }, holdMs + displayMs + 100);
   }
   for (const key of Object.keys(next.propertyOwners || {})) {
     if (previous.propertyOwners?.[key]) continue;
@@ -1216,12 +1245,17 @@ function restoreCameraAfterReload() {
 let epMinimized = false;
 let epSeenId = 0;
 let eventHoldUntil = 0;
+let eventDisplayUntil = 0;
 let holdTimer = null;
+let eventDisplayTimer = null;
+let autoAdvanceTimer = null;
+let autoAdvanceKey = "";
 function renderEventPanel() {
   const panel = $("eventPanel");
   if (!panel || !roomState || !currentUser) return;
   const e = currentTurnEvent(roomState);
   const holding = Date.now() < eventHoldUntil;
+  const eventVisible = Date.now() < eventDisplayUntil;
   const moving = holding && (diceAnimating || movingUid !== null || Object.keys(moveTimers).length > 0);
   const uid = currentUser.uid;
   const players = roomState.players || {};
@@ -1230,7 +1264,7 @@ function renderEventPanel() {
   const pendingForMe = roomState.pending?.uid === uid;
   const auctionInProgress = !!roomState.auction && !!players[uid];
   const debtForMe = roomState.debt?.uid === uid;
-  const shouldShow = pendingForMe || auctionInProgress || debtForMe || (eventAffectsMe && holding);
+  const shouldShow = pendingForMe || auctionInProgress || debtForMe || (eventAffectsMe && eventVisible);
   if (e && e.id !== epSeenId) { epSeenId = e.id; epMinimized = false; }
   panel.classList.toggle("is-hidden", !shouldShow);
   panel.classList.toggle("idle", false);
@@ -1243,9 +1277,8 @@ function renderEventPanel() {
   const money$ = $("epMoney"), bal = $("epBalances"), confirmRow = $("epConfirmRow");
   money$.innerHTML = ""; bal.innerHTML = ""; confirmRow.innerHTML = "";
   if (moving) {
-    $("actionMessage").textContent = "🎲 Quân cờ đang di chuyển…";
+    $("actionMessage").textContent = "🎲 " + nameOf(e?.uid) + " đang di chuyển…";
     $("pendingActions").innerHTML = "";
-    return;
   }
   // Tiền cộng/trừ, lý do, người trả và người nhận.
   if (e?.deltas) {
@@ -1275,10 +1308,10 @@ function renderEventPanel() {
     confirmRow.append(b);
     return b;
   };
-  if (roomState.debt?.uid === uid && playing) {
+  if (!moving && roomState.debt?.uid === uid && playing) {
     addButton("secondary-button", "📋 Mở Sổ đất", () => { $("propsModal").hidden = false; });
     if (canDeclareBankruptcy(roomState, uid)) addButton("danger-button", "🏳️ Phá sản", () => declareBankruptcy(), { id: "bankruptButton" });
-  } else if (playing && e && roomState.turnUid !== uid && resolved) {
+  } else if (!moving && playing && e && roomState.turnUid !== uid && resolved) {
     const note = document.createElement("div");
     note.className = "ep-wait";
     note.textContent = computerGame ? "Máy đang chơi…" : "Đang chờ " + nameOf(roomState.turnUid) + " tiếp tục lượt…";
@@ -1874,7 +1907,37 @@ async function passAuction() {
   if (computerGame && !computerBusy) scheduleComputerTurn();
 }
 
+function scheduleAutomaticTurnAdvance(eligible) {
+  if (!eligible) {
+    clearTimeout(autoAdvanceTimer);
+    autoAdvanceTimer = null;
+    autoAdvanceKey = "";
+    return;
+  }
+  if (busy || !roomState || !currentUser || (computerGame && roomState.turnUid === COMPUTER_UID)) return;
+  const key = [currentRoomCode, roomState.turnNumber, roomState.turnUid, JSON.stringify(roomState.lastRoll)].join(":");
+  if (autoAdvanceKey === key && autoAdvanceTimer) return;
+  clearTimeout(autoAdvanceTimer);
+  autoAdvanceKey = key;
+  const delay = Math.max(5200, eventDisplayUntil - Date.now());
+  autoAdvanceTimer = setTimeout(() => {
+    autoAdvanceTimer = null;
+    const stillEligible = roomState && currentUser && !busy &&
+      roomState.status === "playing" && roomState.turnUid === currentUser.uid &&
+      !!roomState.lastRoll && !roomState.pending && !roomState.auction && !roomState.debt &&
+      canAdvanceTurn(roomState);
+    if (stillEligible && autoAdvanceKey === key) {
+      autoAdvanceKey = "";
+      endTurn();
+    }
+  }, delay + 250);
+}
+
 async function endTurn() {
+  if (busy) return;
+  clearTimeout(autoAdvanceTimer);
+  autoAdvanceTimer = null;
+  autoAdvanceKey = "";
   setBusy(true);
   try {
     const uid = currentUser.uid;
@@ -1913,6 +1976,9 @@ function startComputerGame() {
   epSeenId = 0;
   epMinimized = false;
   eventHoldUntil = 0;
+  eventDisplayUntil = 0;
+  clearTimeout(eventDisplayTimer); eventDisplayTimer = null;
+  clearTimeout(autoAdvanceTimer); autoAdvanceTimer = null; autoAdvanceKey = "";
   const humanUid = getPlayerId();
   currentUser = {uid:humanUid};
   computerGame = true;
@@ -2068,13 +2134,7 @@ $("createRoomButton").addEventListener("click", createRoom);
 $("joinRoomButton").addEventListener("click", joinRoom);
 $("playComputerButton").addEventListener("click", startComputerGame);
 $("rollButton").addEventListener("click", () => {
-  const canContinue = !!roomState?.lastRoll &&
-    roomState.status === "playing" &&
-    roomState.turnUid === currentUser?.uid &&
-    !roomState.pending && !roomState.auction && !roomState.debt &&
-    canAdvanceTurn(roomState);
-  if (canContinue) endTurn();
-  else rollDice();
+  rollDice();
 });
 camera = createCamera({
   stage: $("stage"), wrap: document.querySelector("#gameView .board-wrap"), board: $("board"), reduceMotion,
