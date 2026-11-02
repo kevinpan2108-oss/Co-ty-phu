@@ -6,9 +6,10 @@ import {
   calculateDiceMove, propertyGroupIndices, ownsCompleteGroup, getHouseCost, getBuildingLabel,
   buildEligibility, sellHouseEligibility, mortgageEligibility, mortgageValue, redemptionCost,
   calcRent as calculateAssetRent, hasLiquidationOptions, finalDiceSpin,
-  doublesOutcome, jailRollOutcome, jailStatus, isAuctionable, cashSnapshot, appendEventLog, JAIL_MAX_ATTEMPTS
+  doublesOutcome, jailRollOutcome, jailStatus, isAuctionable, cashSnapshot, cashDeltas, appendEventLog, JAIL_MAX_ATTEMPTS
 } from "./economy.js?v=2";
 import { cubeTransform } from "./dice-visuals.js?v=1";
+import { createCamera, CAMERA } from "./camera.js?v=1";
 import { getDatabase, ref, set, get, onValue, runTransaction } from "https://www.gstatic.com/firebasejs/13.1.0/firebase-database.js";
 
 // Public Firebase Web App configuration for this game.
@@ -90,6 +91,8 @@ let currentRoomCode = null;
 let roomState = null;
 let unsubscribeRoom = null;
 let busy = false;
+let camera = null;
+let cameraRestored = false;
 const COMPUTER_UID = "computer-opponent";
 let computerGame = false;
 let computerBusy = false;
@@ -298,7 +301,7 @@ function calcRent(space, owners, ownerUid, diceTotal) {
   else if (space.type === "property" && ownsWholeProvince(owners, space.group, ownerUid)) { rent *= 2; wholeProvince = true; }
   return {rent, wholeProvince};
 }
-function showCellInfo(index, seconds = 7) {
+function showCellInfo(index) {
   const space = SPACE_DATA[index];
   const box = $("cellInfo");
   if (!space || !box) return;
@@ -323,13 +326,12 @@ function showCellInfo(index, seconds = 7) {
   if (Number(roomState?.mortgages?.[getSpaceId(index)] || 0) > 0) chips.push("Khoản cầm cố " + money(roomState.mortgages[getSpaceId(index)]));
   const count = space.type === "property" ? propertyGroupIndices(SPACE_DATA, space.group).length : 0;
   const bonus = count >= 2 ? `Sở hữu đủ ${count} ô của ${space.group}: tiền thuê gấp đôi khi chưa xây nhà. Xây đều để tăng tiền thuê.` : "";
-  box.innerHTML = `<div class="cell-info-head">${space.group ? `<i style="background:${safeColor(space.color)}"></i><span>${escapeHtml(space.group)}</span>` : ""}<strong>${escapeHtml(space.icon || "")} ${escapeHtml(space.name)}</strong></div>
+  box.innerHTML = `<button class="cell-info-close" type="button" aria-label="Đóng thông tin ô">×</button><div class="cell-info-head">${space.group ? `<i style="background:${safeColor(space.color)}"></i><span>${escapeHtml(space.group)}</span>` : ""}<strong>${escapeHtml(space.icon || "")} ${escapeHtml(space.name)}</strong></div>
     ${space.info ? `<p>${escapeHtml(space.info)}</p>` : ""}
     ${chips.length ? `<div class="cell-info-chips">${chips.map((c) => `<span>${escapeHtml(c)}</span>`).join("")}</div>` : ""}
     ${bonus ? `<p class="cell-info-bonus">${escapeHtml(bonus)}</p>` : ""}`;
+  // Giữ thông tin đến khi người chơi tự đóng (nút ×) hoặc chạm sang ô khác.
   box.classList.add("show");
-  clearTimeout(cellInfoTimer);
-  cellInfoTimer = setTimeout(() => box.classList.remove("show"), seconds * 1000);
 }
 function describeSpace(index) {
   const space = SPACE_DATA[index];
@@ -441,6 +443,9 @@ async function requireConnection() {
 function showGameView() {
   $("lobbyView").classList.add("hidden");
   $("gameView").classList.remove("hidden");
+  cameraRestored = false;
+  camera?.invalidate();
+  camera?.overview(0);
   // The lobby button can remain focused after its section is hidden on mobile.
   // Blur it and reset scroll so the game controls are not clipped above the viewport.
   if (document.activeElement && typeof document.activeElement.blur === "function") {
@@ -861,9 +866,6 @@ function dieHtml(v) {
   return `<span class="die" data-v="${n}">${"<i></i>".repeat(9)}</span>`;
 }
 function diceHtml(d) { return dieHtml(d?.[0]) + dieHtml(d?.[1]); }
-let autoEndKey = null;
-let autoEndTimer = null;
-const AUTO_END_MS = 2000;
 let movingUid = null;
 let diceAnimating = false;
 let diceTimer = null;
@@ -888,7 +890,9 @@ function renderTokens() {
   });
 }
 function resetEffects() {
-  autoEndKey = null; clearTimeout(autoEndTimer);
+  clearTimeout(holdTimer); holdTimer = null; eventHoldUntil = 0; epSeenId = 0; epMinimized = false;
+  cameraRestored = false;
+  camera?.overview(0);
   clearInterval(diceTimer);
   clearTimeout(diceFinishTimer);
   diceTimer = null;
@@ -904,9 +908,11 @@ function resetEffects() {
   if (stage) stage.className = "dice-stage";
 }
 // Quân cờ nhảy từng ô tới đích. Đi quá xa (vào tù) thì dịch chuyển thẳng.
-function animateMove(uid, from, to, delay, expectedSteps = null) {
+function animateMove(uid, from, to, delay, expectedSteps = null, cam = null) {
   const distance = Number.isInteger(expectedSteps) ? expectedSteps : (to - from + 40) % 40;
   if (reduceMotion || distance < 1 || distance > 12 || (from + distance) % 40 !== to) return 0;
+  // Có lượt di chuyển mới hơn cho cùng quân cờ: bỏ hành trình dang dở, lượt mới nhất luôn thắng.
+  clearTimeout(moveTimers[uid]);
   displayPos[uid] = from;
   let step = 0;
   const tick = () => {
@@ -920,9 +926,11 @@ function animateMove(uid, from, to, delay, expectedSteps = null) {
       delete moveTimers[uid];
       movingUid = null;
       renderTokens();
+      cam?.land(to);
       return;
     }
     renderTokens();
+    cam?.step(displayPos[uid]);
     moveTimers[uid] = setTimeout(tick, HOP_MS);
   };
   moveTimers[uid] = setTimeout(tick, delay);
@@ -1050,6 +1058,9 @@ function runEffects(previous, next) {
   const rolled = !previous.lastRoll && next.lastRoll;
   if (openingRolled) animateDice(next.openingLastRoll.dice);
   else if (rolled) animateDice(next.lastRoll);
+  let holdMs = rolled ? DICE_MS : 0;
+  // Qua lượt (hoặc tung thêm do được đôi): camera từ từ trở về toàn cảnh.
+  if (Number(next.turnNumber) !== Number(previous.turnNumber) && !rolled) camera?.overview();
   for (const [uid, now] of getPlayerEntries(next)) {
     const before = previous.players?.[uid];
     if (!before) continue;
@@ -1059,9 +1070,19 @@ function runEffects(previous, next) {
       const exactSteps = move?.uid === uid &&
         Number(move.from) === Number(before.position) &&
         Number(move.to) === Number(now.position) ? Number(move.steps) : null;
-      delay = animateMove(uid, Number(before.position), Number(now.position), delay, exactSteps) || delay;
+      const route = planCameraRoute(Number(before.position), Number(now.position), exactSteps, delay);
+      const startDelay = delay + (route.follow ? CAMERA.zoomInMs : 0);
+      const end = animateMove(uid, Number(before.position), Number(now.position), startDelay, exactSteps, route.follow ? route.hooks : null);
+      if (end) delay = end;
+      else if (route.teleport) { delay += route.teleport(delay); }
+      holdMs = Math.max(holdMs, delay + (end || route.follow ? CAMERA.focusMs : 0));
     }
     if (Number(before.cash) !== Number(now.cash)) floatDelta(uid, Number(now.cash) - Number(before.cash), delay);
+  }
+  if (holdMs > 0) {
+    eventHoldUntil = Date.now() + holdMs + 150;
+    clearTimeout(holdTimer);
+    holdTimer = setTimeout(() => { holdTimer = null; if (roomState) { renderActions(); renderEventPanel(); } }, holdMs + 170);
   }
   for (const key of Object.keys(next.propertyOwners || {})) {
     if (previous.propertyOwners?.[key]) continue;
@@ -1073,6 +1094,139 @@ function runEffects(previous, next) {
     try { navigator.vibrate?.(80); } catch { /* không hỗ trợ rung */ }
   }
 }
+// ===== Camera theo quân cờ (chỉ ở trình duyệt, không ghi gì lên Firebase) =====
+function planCameraRoute(from, to, steps, diceDelay) {
+  if (!camera || !camera.state.enabled) return { follow: false };
+  const distance = Number.isInteger(steps) ? steps : (to - from + 40) % 40;
+  const hops = !reduceMotion && distance >= 1 && distance <= 12 && (from + distance) % 40 === to;
+  const seq = camera.beginSequence();
+  if (!hops) {
+    // Dịch chuyển thẳng (vào tù): bỏ qua hành trình, focus thẳng vào ô đích.
+    return { follow: false, teleport: (delay) => { camera.later(() => camera.focus(to, { seq }), delay); return CAMERA.focusMs; } };
+  }
+  camera.later(() => camera.follow(from, { seq, ms: CAMERA.zoomInMs }), diceDelay);
+  return {
+    follow: true,
+    hooks: {
+      step: (cell) => camera.follow(cell, { seq, ms: HOP_MS + 60, ease: "cubic-bezier(.3,.1,.6,.9)" }),
+      land: (cell) => camera.focus(cell, { seq })
+    }
+  };
+}
+// Tải lại trang / vào lại phòng giữa lúc đang có sự kiện: đưa camera tới ô đang xử lý (không phát lại hành trình).
+function restoreCameraAfterReload() {
+  if (cameraRestored || !camera || !roomState) return;
+  cameraRestored = true;
+  const e = currentTurnEvent();
+  if (!camera.state.enabled || !e || !Number.isInteger(e.index) || roomState.status !== "playing" || !roomState.lastRoll) return;
+  const seq = camera.beginSequence();
+  camera.later(() => camera.focus(e.index, { ms: 700, seq }), 350);
+}
+
+// ===== Bảng sự kiện =====
+let epMinimized = false;
+let epSeenId = 0;
+let eventHoldUntil = 0;
+let holdTimer = null;
+function currentTurnEvent() {
+  const e = roomState?.event;
+  return e && Number(e.turn) === Number(roomState.turnNumber) ? e : null;
+}
+function eventLogList(room = roomState) {
+  const log = room?.log;
+  if (!log) return [];
+  return (Array.isArray(log) ? log : Object.keys(log).sort((a, b) => a - b).map((k) => log[k])).filter(Boolean);
+}
+function eventReason(e, uid, delta) {
+  const actor = uid === e.uid;
+  switch (e.kind) {
+    case "buy": return "mua tài sản";
+    case "auction": return delta < 0 ? "thắng đấu giá" : "đấu giá";
+    case "tax": return "nộp thuế";
+    case "chance": return "thẻ Cơ hội";
+    case "fortune": return "thẻ Khí vận";
+    case "jail": return "phí ra tù";
+    case "start": return "Xuất phát";
+    case "property": case "station": case "utility":
+      return actor ? (delta < 0 ? "trả tiền thuê" : "nhận tiền") : "nhận tiền thuê";
+    default: return "";
+  }
+}
+function renderEventPanel() {
+  const panel = $("eventPanel");
+  if (!panel || !roomState || !currentUser) return;
+  const e = currentTurnEvent();
+  const holding = Date.now() < eventHoldUntil;
+  const uid = currentUser.uid;
+  const players = roomState.players || {};
+  const nameOf = (id) => players[id]?.name || "Người chơi";
+  if (e && e.id !== epSeenId) { epSeenId = e.id; epMinimized = false; }
+  panel.classList.toggle("idle", !e || holding);
+  panel.classList.toggle("min", epMinimized);
+  $("epMinButton").setAttribute("aria-expanded", String(!epMinimized));
+  $("epMinButton").textContent = epMinimized ? "▴" : "▾";
+  const space = e && Number.isInteger(e.index) ? SPACE_DATA[e.index] : null;
+  $("epIcon").textContent = space?.icon || "🎲";
+  $("epTitle").textContent = holding && e ? nameOf(e.uid) + " đang di chuyển…" : space ? space.name : "Lượt chơi";
+  const money$ = $("epMoney"), bal = $("epBalances"), confirmRow = $("epConfirmRow");
+  money$.innerHTML = ""; bal.innerHTML = ""; confirmRow.innerHTML = "";
+  if (holding) {
+    $("actionMessage").textContent = "🎲 Quân cờ đang di chuyển…";
+    $("pendingActions").innerHTML = "";
+    return;
+  }
+  // Tiền cộng/trừ, lý do, người trả và người nhận.
+  if (e?.deltas) {
+    const rows = Object.entries(e.deltas).filter(([, d]) => Number(d) !== 0);
+    money$.innerHTML = rows.map(([id, d]) => {
+      const cls = d > 0 ? "gain" : "loss";
+      const why = eventReason(e, id, d);
+      return `<li class="${cls === "loss" ? "loss" : ""}"><span>${escapeHtml(nameOf(id))}${why ? ` <small>· ${escapeHtml(why)}</small>` : ""}</span><b class="${cls}">${d > 0 ? "+" : "−"}${money(Math.abs(d))}</b></li>`;
+    }).join("");
+    const payer = rows.find(([, d]) => d < 0), receiver = rows.find(([, d]) => d > 0);
+    if (payer && receiver && (e.kind === "property" || e.kind === "station" || e.kind === "utility" || e.kind === "chance" || e.kind === "fortune") && payer[0] !== receiver[0]) {
+      const amount = Math.min(Math.abs(payer[1]), receiver[1]);
+      money$.insertAdjacentHTML("beforeend", `<li class="ep-flow-row"><span class="ep-flow">💸 ${escapeHtml(nameOf(payer[0]))} trả cho ${escapeHtml(nameOf(receiver[0]))} ${money(amount)}</span></li>`);
+    }
+  }
+  if (e) {
+    bal.innerHTML = Object.entries(players).map(([id, p]) => `<span style="--pc:${safeColor(p.color)}">${escapeHtml(p.name)}: ${money(p.cash)}</span>`).join("");
+  }
+  // Nút xác nhận: chỉ người đang đến lượt, và chỉ khi sự kiện đã xử lý xong (không còn mua/đấu giá/nợ).
+  const mine = players[uid];
+  const playing = roomState.status === "playing" && getPlayerEntries(roomState).length === 2;
+  const resolved = !roomState.pending && !roomState.auction && !roomState.debt;
+  const addButton = (cls, text, handler, attrs = {}) => {
+    const b = document.createElement("button");
+    b.className = cls; b.type = "button"; b.textContent = text;
+    Object.entries(attrs).forEach(([k, v]) => b.setAttribute(k, v));
+    b.addEventListener("click", handler);
+    confirmRow.append(b);
+    return b;
+  };
+  if (roomState.debt?.uid === uid && playing) {
+    addButton("secondary-button", "📋 Mở Sổ đất", () => { $("propsModal").hidden = false; });
+    if (canDeclareBankruptcy(roomState, uid)) addButton("danger-button", "🏳️ Phá sản", () => declareBankruptcy(), { id: "bankruptButton" });
+  } else if (playing && roomState.turnUid === uid && roomState.lastRoll && resolved && canAdvanceTurn(roomState)) {
+    const again = roomState.extraRoll === true && !mine?.jailTurns;
+    const b = addButton("confirm-button", again ? "✔ Đã xem · Tung thêm" : "✔ Đã xem · Kết thúc lượt", () => endTurn(), { id: "confirmEventButton" });
+    b.disabled = busy;
+  } else if (playing && e && roomState.turnUid !== uid && resolved) {
+    const note = document.createElement("div");
+    note.className = "ep-wait";
+    note.textContent = computerGame ? "Máy đang chơi…" : "Đang chờ " + nameOf(roomState.turnUid) + " xác nhận…";
+    confirmRow.append(note);
+  }
+}
+function renderHistory() {
+  const players = roomState?.players || {};
+  const list = eventLogList().slice().reverse();
+  $("historyList").innerHTML = list.length ? list.map((e) => {
+    const space = Number.isInteger(e.index) ? SPACE_DATA[e.index] : null;
+    const d = Object.entries(e.deltas || {}).map(([id, v]) => `<span class="hl-d ${v > 0 ? "gain" : "loss"}">${escapeHtml(players[id]?.name || "")} ${v > 0 ? "+" : "−"}${money(Math.abs(v))}</span>`).join("");
+    return `<li><small>Lượt ${Number(e.turn) || ""} · ${escapeHtml(players[e.uid]?.name || "")}${space ? " · " + escapeHtml(space.name) : ""}</small>${escapeHtml(e.text || "")}<div>${d}</div></li>`;
+  }).join("") : '<li>Chưa có sự kiện nào.</li>';
+}
 function renderRoom() {
   if (!roomState || !currentUser) return;
   $("roomCodeLabel").textContent = computerGame ? "VỚI MÁY" : currentRoomCode;
@@ -1083,7 +1237,8 @@ function renderRoom() {
   renderBoard();
   renderProperties();
   renderActions();
-  scheduleAutoEnd();
+  renderEventPanel();
+  restoreCameraAfterReload();
 }
 
 async function rollOpeningDice() {
@@ -1671,22 +1826,6 @@ async function endTurn() {
   finally { setBusy(false); }
   if (computerGame && !computerBusy) scheduleComputerTurn();
 }
-function scheduleAutoEnd() {
-  const ok = roomState && currentUser && roomState.status === "playing" && !roomState.debt &&
-    canAdvanceTurn(roomState) && roomState.turnUid === currentUser.uid &&
-    roomState.lastRoll && !roomState.pending && !roomState.auction && !computerBusy && currentUser.uid !== COMPUTER_UID;
-  if (!ok) return;
-  const key = currentRoomCode + ":" + roomState.turnNumber;
-  if (autoEndKey === key) return;
-  autoEndKey = key;
-  clearTimeout(autoEndTimer);
-  const fire = () => {
-    if (!roomState || roomState.debt || roomState.turnUid !== currentUser?.uid || !roomState.lastRoll || roomState.pending || roomState.auction) return;
-    if (busy) { autoEndTimer = setTimeout(fire, 400); return; }
-    endTurn();
-  };
-  autoEndTimer = setTimeout(fire, AUTO_END_MS);
-}
 function startComputerGame() {
   if (busy) return;
   const humanUid = getPlayerId();
@@ -1844,6 +1983,18 @@ $("createRoomButton").addEventListener("click", createRoom);
 $("joinRoomButton").addEventListener("click", joinRoom);
 $("playComputerButton").addEventListener("click", startComputerGame);
 $("rollButton").addEventListener("click", rollDice);
+camera = createCamera({
+  stage: $("stage"), wrap: document.querySelector("#gameView .board-wrap"), board: $("board"), reduceMotion,
+  onChange: (mode) => { $("camOverviewButton").hidden = mode === "overview"; }
+});
+$("camOverviewButton").addEventListener("click", () => camera.manualOverview());
+window.addEventListener("resize", () => camera.invalidate());
+window.addEventListener("orientationchange", () => camera.invalidate());
+$("epMinButton").addEventListener("click", () => { epMinimized = !epMinimized; renderEventPanel(); });
+$("epHistoryButton").addEventListener("click", () => { renderHistory(); $("historyModal").hidden = false; });
+$("historyClose").addEventListener("click", () => { $("historyModal").hidden = true; });
+$("historyModal").addEventListener("click", (event) => { if (event.target === $("historyModal")) $("historyModal").hidden = true; });
+$("cellInfo").addEventListener("click", (event) => { if (event.target.closest(".cell-info-close")) $("cellInfo").classList.remove("show"); });
 $("propsButton").addEventListener("click", () => { $("propsModal").hidden = false; });
 $("propertyList").addEventListener("click", handleDeedAction);
 $("propsClose").addEventListener("click", () => { $("propsModal").hidden = true; });
