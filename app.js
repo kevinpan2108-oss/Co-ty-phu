@@ -9,7 +9,7 @@ import {
   doublesOutcome, jailRollOutcome, jailStatus, isAuctionable, cashSnapshot, cashDeltas, appendEventLog, JAIL_MAX_ATTEMPTS
 } from "./economy.js?v=2";
 import { cubeTransform } from "./dice-visuals.js?v=1";
-import { createCamera, CAMERA } from "./camera.js?v=event-center1";
+import { createCamera, CAMERA } from "./camera.js?v=event-auto-overview1";
 import { currentTurnEvent, eventLogList, eventReason } from "./events.js?v=1";
 import { getDatabase, ref, set, get, onValue, runTransaction } from "https://www.gstatic.com/firebasejs/13.1.0/firebase-database.js";
 
@@ -643,6 +643,59 @@ function getBoardCoords(index) {
   if (index === 30) return [0,10];
   return [index-30,10];
 }
+function specialSpaceModelMarkup(space) {
+  if (space.type === "station") {
+    return '<span class="space-model model-ferry" aria-hidden="true">' +
+      '<svg viewBox="0 0 80 64" focusable="false">' +
+      '<path d="M5 51 Q14 47 22 51 T39 51 T56 51 T75 51" fill="none" stroke="#4fa6c4" stroke-width="2.5" stroke-linecap="round"/>' +
+      '<path d="M7 56 Q16 52 25 56 T43 56 T61 56 T77 56" fill="none" stroke="#78c7d4" stroke-width="2" stroke-linecap="round"/>' +
+      '<polygon points="6,43 31,30 72,45 46,59" fill="#b78b4b" stroke="#76562e" stroke-width="1.7"/>' +
+      '<polygon points="6,43 31,30 31,35 7,48" fill="#e0bd78"/>' +
+      '<polygon points="31,30 72,45 46,59 46,54" fill="#906a3b"/>' +
+      '<path d="M13 27 L62 27 L54 43 L25 43 L9 34Z" fill="#e15b4e" stroke="#82352f" stroke-width="1.8" stroke-linejoin="round"/>' +
+      '<path d="M13 27 L62 27 L55 32 L18 32Z" fill="#ff8270"/>' +
+      '<path d="M25 18 L51 18 L55 29 L23 29Z" fill="#f7f1dc" stroke="#4d6775" stroke-width="1.5"/>' +
+      '<polygon points="25,18 39,10 59,18 51,22" fill="#d84b43" stroke="#82352f" stroke-width="1.5"/>' +
+      '<polygon points="51,18 59,18 59,26 55,29" fill="#d7eaf0" stroke="#4d6775" stroke-width="1.2"/>' +
+      '<path d="M29 21 H35 V27 H29Z M39 21 H46 V27 H39Z" fill="#69b9d0" stroke="#426c7b" stroke-width="1"/>' +
+      '<path d="M37 10 V4 M37 4 L46 7 L37 9Z" fill="#ffd34e" stroke="#8d6925" stroke-width="1"/>' +
+      '<path d="M18 35 L52 35" stroke="#fff1d0" stroke-width="1.5" stroke-linecap="round"/>' +
+      '</svg></span>';
+  }
+  if (space.type === "utility" && /nước/i.test(space.name)) {
+    return '<span class="space-model model-water" aria-hidden="true">' +
+      '<svg viewBox="0 0 80 64" focusable="false">' +
+      '<polygon points="5,48 33,33 75,48 45,63" fill="#b7c9bb" stroke="#617b70" stroke-width="1.5"/>' +
+      '<polygon points="10,37 31,25 51,36 29,48" fill="#d8eee9" stroke="#527f86" stroke-width="1.5"/>' +
+      '<polygon points="29,48 51,36 51,52 29,63" fill="#76aeb4" stroke="#527f86" stroke-width="1.4"/>' +
+      '<polygon points="10,37 29,48 29,63 10,51" fill="#a9d2ce" stroke="#527f86" stroke-width="1.4"/>' +
+      '<ellipse cx="57" cy="23" rx="12" ry="5" fill="#d9f2f1" stroke="#337f94" stroke-width="1.5"/>' +
+      '<path d="M45 23 V39 Q57 46 69 39 V23" fill="#6bc1d0" stroke="#337f94" stroke-width="1.5"/>' +
+      '<ellipse cx="57" cy="39" rx="12" ry="5" fill="#4ca6bb" stroke="#337f94" stroke-width="1.5"/>' +
+      '<path d="M49 22 Q57 18 65 22" fill="none" stroke="#fff" stroke-width="1.5"/>' +
+      '<path d="M17 33 L17 27 L26 22 L26 39" fill="none" stroke="#f5f1d8" stroke-width="2.4"/>' +
+      '<path d="M12 52 Q18 48 24 52 T36 52" fill="none" stroke="#fff" stroke-width="1.5" opacity=".9"/>' +
+      '</svg></span>';
+  }
+  if (space.type === "utility") {
+    return '<span class="space-model model-power" aria-hidden="true">' +
+      '<svg viewBox="0 0 80 64" focusable="false">' +
+      '<polygon points="4,48 34,31 76,47 45,64" fill="#c5b78a" stroke="#756849" stroke-width="1.5"/>' +
+      '<polygon points="11,32 34,19 56,31 32,45" fill="#e8d7a2" stroke="#806d42" stroke-width="1.5"/>' +
+      '<polygon points="32,45 56,31 56,49 32,63" fill="#b98e50" stroke="#806d42" stroke-width="1.5"/>' +
+      '<polygon points="11,32 32,45 32,63 11,50" fill="#d1ad6d" stroke="#806d42" stroke-width="1.5"/>' +
+      '<path d="M17 25 L20 10 L25 10 L27 27" fill="#bd5d43" stroke="#793a31" stroke-width="1.5"/>' +
+      '<path d="M20 10 L25 10 L27 15 L19 15Z" fill="#e98761"/>' +
+      '<path d="M38 22 L41 9 L45 9 L48 27" fill="#d16a4d" stroke="#793a31" stroke-width="1.4"/>' +
+      '<path d="M41 9 L45 9 L48 14 L40 14Z" fill="#f09a6b"/>' +
+      '<path d="M17 36 L26 41 L26 49 L17 44Z M36 45 L45 40 L45 49 L36 54Z" fill="#f6db75" stroke="#806d42" stroke-width="1"/>' +
+      '<path d="M61 14 L69 32 M69 14 L61 32 M58 20 H72 M60 27 H70 M65 12 V37 M56 37 L65 34 L74 37" fill="none" stroke="#476b76" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>' +
+      '<path d="M56 18 H74" stroke="#e9a63a" stroke-width="2"/>' +
+      '</svg></span>';
+  }
+  return "";
+}
+
 function renderBoard() {
   const board = $("board");
   board.querySelectorAll(".space").forEach((el) => el.remove());
@@ -676,6 +729,7 @@ function renderBoard() {
       ${owner ? `<span class="space-owner-mark" title="Tài sản của ${escapeHtml(owner.name)}" aria-hidden="true"></span>` : ""}
       ${mortgaged ? '<span class="space-mortgage-mark" title="Đang cầm cố">C</span>' : ""}
       ${buildingMark ? `<span class="space-buildings" aria-label="${houseCount === 5 ? "Khách sạn" : houseCount + " căn nhà"}">${buildingMark}</span>` : ""}
+      ${specialSpaceModelMarkup(space)}
       <span class="space-text" style="--name-scale:${nameScale.toFixed(2)}"><span class="space-name">${escapeHtml(name)}</span>${price && !space.corner ? `<span class="space-price">${price}</span>` : ""}</span>
       <span class="space-players">${tokensHtml(index)}</span>
     `;
@@ -945,6 +999,9 @@ function animateMove(uid, from, to, delay, expectedSteps = null, cam = null) {
       movingUid = null;
       renderTokens();
       cam?.land(to);
+      // Quân đã tới ô đích: hiện lại ngay thông tin sự kiện và các nút thao tác,
+      // không chờ hết bộ đếm hiệu ứng toàn màn hình.
+      if (roomState && currentUser) { renderActions(); renderEventPanel(); }
       return;
     }
     renderTokens();
@@ -1074,9 +1131,12 @@ function runEffects(previous, next) {
   const openingRolled = next.openingLastRoll &&
     JSON.stringify(previous.openingLastRoll || null) !== JSON.stringify(next.openingLastRoll);
   const rolled = !previous.lastRoll && next.lastRoll;
+  const eventChanged = !!next.event?.id && Number(next.event.id) !== Number(previous.event?.id || 0);
   if (openingRolled) animateDice(next.openingLastRoll.dice);
   else if (rolled) animateDice(next.lastRoll);
-  let holdMs = rolled ? DICE_MS : 0;
+  // Mọi sự kiện mới (mua/bán/xây/cầm cố...) đều có khoảng hiển thị ngắn,
+  // kể cả khi không phát sinh animation di chuyển hay tung xúc xắc.
+  let holdMs = Math.max(rolled ? DICE_MS : 0, eventChanged && !rolled ? 4200 : 0);
   // Qua lượt (hoặc tung thêm do được đôi): camera từ từ trở về toàn cảnh.
   if (Number(next.turnNumber) !== Number(previous.turnNumber) && !rolled) camera?.overview();
   for (const [uid, now] of getPlayerEntries(next)) {
@@ -1118,27 +1178,38 @@ function planCameraRoute(from, to, steps, diceDelay) {
   const distance = Number.isInteger(steps) ? steps : (to - from + 40) % 40;
   const hops = !reduceMotion && distance >= 1 && distance <= 12 && (from + distance) % 40 === to;
   const seq = camera.beginSequence();
+  const returnToOverview = (after = CAMERA.focusMs + 1150) => {
+    camera.later(() => {
+      if (camera.isCurrent(seq)) camera.overview(850);
+    }, after);
+  };
   if (!hops) {
-    // Dịch chuyển thẳng (vào tù): bỏ qua hành trình, focus thẳng vào ô đích.
-    return { follow: false, teleport: (delay) => { camera.later(() => camera.focus(to, { seq }), delay); return CAMERA.focusMs; } };
+    // Di chuyển thẳng/đặc biệt: focus vào đích ngắn rồi tự zoom ra toàn cảnh.
+    return { follow: false, teleport: (delay) => {
+      camera.later(() => {
+        camera.focus(to, { seq });
+        returnToOverview();
+      }, delay);
+      return CAMERA.focusMs + 1150;
+    } };
   }
   camera.later(() => camera.follow(from, { seq, ms: CAMERA.zoomInMs }), diceDelay);
   return {
     follow: true,
     hooks: {
       step: (cell) => camera.follow(cell, { seq, ms: HOP_MS + 60, ease: "cubic-bezier(.3,.1,.6,.9)" }),
-      land: (cell) => camera.focus(cell, { seq })
+      land: (cell) => {
+        camera.focus(cell, { seq });
+        returnToOverview();
+      }
     }
   };
 }
-// Tải lại trang / vào lại phòng giữa lúc đang có sự kiện: đưa camera tới ô đang xử lý (không phát lại hành trình).
+// Tải lại trang/đăng nhập lại luôn bắt đầu ở toàn cảnh; chỉ một hành trình di chuyển mới kích hoạt focus.
 function restoreCameraAfterReload() {
   if (cameraRestored || !camera || !roomState) return;
   cameraRestored = true;
-  const e = currentTurnEvent(roomState);
-  if (!camera.state.enabled || !e || !Number.isInteger(e.index) || roomState.status !== "playing" || !roomState.lastRoll) return;
-  const seq = camera.beginSequence();
-  camera.later(() => camera.focus(e.index, { ms: 700, seq }), 350);
+  camera.overview(0);
 }
 
 // ===== Bảng sự kiện =====
@@ -1151,20 +1222,27 @@ function renderEventPanel() {
   if (!panel || !roomState || !currentUser) return;
   const e = currentTurnEvent(roomState);
   const holding = Date.now() < eventHoldUntil;
+  const moving = holding && (diceAnimating || movingUid !== null || Object.keys(moveTimers).length > 0);
   const uid = currentUser.uid;
   const players = roomState.players || {};
   const nameOf = (id) => players[id]?.name || "Người chơi";
+  const eventAffectsMe = !!e && (e.uid === uid || Object.prototype.hasOwnProperty.call(e.deltas || {}, uid));
+  const pendingForMe = roomState.pending?.uid === uid;
+  const auctionInProgress = !!roomState.auction && !!players[uid];
+  const debtForMe = roomState.debt?.uid === uid;
+  const shouldShow = pendingForMe || auctionInProgress || debtForMe || (eventAffectsMe && holding);
   if (e && e.id !== epSeenId) { epSeenId = e.id; epMinimized = false; }
-  panel.classList.toggle("idle", !e || holding);
+  panel.classList.toggle("is-hidden", !shouldShow);
+  panel.classList.toggle("idle", false);
   panel.classList.toggle("min", epMinimized);
   $("epMinButton").setAttribute("aria-expanded", String(!epMinimized));
   $("epMinButton").textContent = epMinimized ? "▴" : "▾";
   const space = e && Number.isInteger(e.index) ? SPACE_DATA[e.index] : null;
   $("epIcon").textContent = space?.icon || "🎲";
-  $("epTitle").textContent = holding && e ? nameOf(e.uid) + " đang di chuyển…" : space ? space.name : "Lượt chơi";
+  $("epTitle").textContent = moving && e ? nameOf(e.uid) + " đang di chuyển…" : space ? space.name : "Lượt chơi";
   const money$ = $("epMoney"), bal = $("epBalances"), confirmRow = $("epConfirmRow");
   money$.innerHTML = ""; bal.innerHTML = ""; confirmRow.innerHTML = "";
-  if (holding) {
+  if (moving) {
     $("actionMessage").textContent = "🎲 Quân cờ đang di chuyển…";
     $("pendingActions").innerHTML = "";
     return;

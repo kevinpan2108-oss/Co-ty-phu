@@ -183,6 +183,20 @@ let rules;
       return !stage?.classList.contains("show") && !result?.classList.contains("rolling");
     }, null, { timeout: 5000 });
   }));
+  // Theo dõi các trạng thái camera để xác nhận có follow → focus → overview trên cả hai thiết bị.
+  for (const page of [pa.page, pb.page]) {
+    await page.evaluate(() => {
+      const stage = document.querySelector("#stage");
+      window.__cameraHistory = [];
+      window.__cameraObserver = new MutationObserver(() => {
+        window.__cameraHistory.push({
+          mode: stage?.dataset.camera,
+          scale: Number(stage?.dataset.cameraScale || 1)
+        });
+      });
+      window.__cameraObserver.observe(stage, { attributes: true, attributeFilter: ["data-camera", "data-camera-scale"] });
+    });
+  }
   // Tung xúc xắc [1,2] → ô 3 (Đường Đồng Khởi, $60)
   await pa.page.evaluate(() => { const q = [0, 0.2]; Math.random = () => (q.length ? q.shift() : 0.5); });
   await pa.page.click("#rollButton");
@@ -229,46 +243,54 @@ let rules;
     width:el.getBoundingClientRect().width
   }));
   check("tên ô cờ dùng bố cục tự co và giới hạn hai dòng", tileFit.clamp === "2" && tileFit.wrap === "anywhere" && tileFit.width > 0, JSON.stringify(tileFit));
+  check("ô bến phà và hai công ty có mô hình isometric 3D",
+    await pa.page.locator("#board .space[data-index='5'] .model-ferry").count() === 1 &&
+    await pa.page.locator("#board .space[data-index='12'] .model-power").count() === 1 &&
+    await pa.page.locator("#board .space[data-index='28'] .model-water").count() === 1);
   // Không tự chuyển lượt: người chơi chủ động bấm nút Tiếp tục ở đáy màn hình.
   await pa.page.waitForFunction(() => document.querySelector("#rollButton")?.textContent.includes("Tiếp tục"), null, { timeout: 9000 });
-  await pa.page.waitForFunction(() => document.querySelector("#stage")?.dataset.camera === "focus", null, { timeout: 7000 });
-  const landingCamera = await pa.page.evaluate(() => {
-    const stage = document.querySelector("#stage");
-    const wrap = document.querySelector("#gameView .board-wrap");
-    const matrix = new DOMMatrix(getComputedStyle(wrap).transform);
-    return { mode: stage?.dataset.camera, scale: matrix.a, overviewVisible: !document.querySelector("#camOverviewButton")?.hidden };
-  });
-  check("camera tự focus vào ô đích sau khi token di chuyển", landingCamera.mode === "focus" && landingCamera.scale > 1.2 && landingCamera.overviewVisible, JSON.stringify(landingCamera));
-  const spectatorCamera = await pb.page.evaluate(() => {
-    const stage = document.querySelector("#stage");
-    const wrap = document.querySelector("#gameView .board-wrap");
-    const matrix = new DOMMatrix(getComputedStyle(wrap).transform);
-    return { mode: stage?.dataset.camera, scale: matrix.a, overviewVisible: !document.querySelector("#camOverviewButton")?.hidden };
-  });
-  check("camera trên thiết bị đối thủ cũng theo cùng token", spectatorCamera.mode === "focus" && spectatorCamera.scale > 1.2 && spectatorCamera.overviewVisible, JSON.stringify(spectatorCamera));
-  await pa.page.waitForTimeout(2500);
-  check("không tự động chuyển lượt khi người chơi chưa xác nhận", /An/.test(await text(pa.page, "#turnName")) && (await pb.page.locator("#rollButton").isDisabled()) && /Tiếp tục/.test(await text(pa.page, "#rollButton")) && (await pa.page.locator("#confirmEventButton").count()) === 0);
-  check("Bảng sự kiện nêu ô vừa đến, tiền trừ và số dư", /Chợ nổi Cái Bè|Làng nổi/.test(await text(pa.page, "#epTitle")) && /600\.000₫/.test(await text(pa.page, "#epMoney")) && /14\.400\.000₫/.test(await text(pa.page, "#epBalances")));
+  const cameraHistoryA = await pa.page.evaluate(() => window.__cameraHistory || []);
+  const cameraHistoryB = await pb.page.evaluate(() => window.__cameraHistory || []);
+  const sawFocusA = cameraHistoryA.some(x => x.mode === "focus" && x.scale > 1.2);
+  const sawOverviewA = cameraHistoryA.some(x => x.mode === "overview" && x.scale <= 1.01);
+  const sawFocusB = cameraHistoryB.some(x => x.mode === "focus" && x.scale > 1.2);
+  const sawOverviewB = cameraHistoryB.some(x => x.mode === "overview" && x.scale <= 1.01);
+  check("camera có follow/focus rồi tự zoom ra toàn cảnh ở máy A", sawFocusA && sawOverviewA, JSON.stringify(cameraHistoryA));
+  check("camera đồng bộ follow/focus/overview ở máy B", sawFocusB && sawOverviewB, JSON.stringify(cameraHistoryB));
+  check("Event Panel hiển thị đúng cho người mua tài sản", await pa.page.locator("#eventPanel.is-hidden").count() === 0 &&
+    /Chợ nổi Cái Bè|Làng nổi/.test(await text(pa.page, "#epTitle")) &&
+    /600\.000₫/.test(await text(pa.page, "#epMoney")) &&
+    /14\.400\.000₫/.test(await text(pa.page, "#epBalances")));
+  check("Event Panel ẩn ở thiết bị không bị tác động", await pb.page.locator("#eventPanel.is-hidden").count() === 1);
   const panelLayout = await pa.page.evaluate(() => {
     const panel = document.querySelector("#eventPanel").getBoundingClientRect();
     const stage = document.querySelector("#stage").getBoundingClientRect();
     return {dx:Math.abs((panel.left + panel.width / 2) - (stage.left + stage.width / 2)),dy:Math.abs((panel.top + panel.height / 2) - (stage.top + stage.height / 2))};
   });
   check("Event Panel nằm giữa màn hình, không bị ghim ở góc", panelLayout.dx < 8 && panelLayout.dy < 8, JSON.stringify(panelLayout));
-  check("đối thủ cũng thấy bảng sự kiện nhưng không có nút kết thúc lượt riêng trong panel", /Chợ nổi Cái Bè|Làng nổi/.test(await text(pb.page, "#epTitle")) && (await pb.page.locator("#confirmEventButton").count()) === 0);
   await pa.page.click("#epHistoryButton");
   const historyText = await text(pa.page, "#historyList");
   check("lịch sử giữ lại sự kiện và giao dịch vừa xảy ra", /Chợ nổi Cái Bè|Làng nổi/.test(historyText) && historyText.includes("600.000₫"), historyText);
   await pa.page.click("#historyClose");
-  await confirmTurn(pa);
-  await pa.page.waitForFunction(() => document.querySelector("#stage")?.dataset.camera === "overview", null, { timeout: 5000 });
+  await pa.page.waitForFunction(() => document.querySelector("#stage")?.dataset.camera === "overview", null, { timeout: 7000 });
   const overviewState = await pa.page.evaluate(() => ({
     mode: document.querySelector("#stage")?.dataset.camera,
     transform: getComputedStyle(document.querySelector("#gameView .board-wrap")).transform
   }));
-  check("camera trở về toàn cảnh sau khi xác nhận lượt", overviewState.mode === "overview", JSON.stringify(overviewState));
-  await pb.page.waitForFunction(() => document.querySelector("#rollButton")?.disabled === false, null, { timeout: 5000 }).catch(() => {});
-  check("sau khi A xác nhận: quyền chuyển sang B", !(await pb.page.locator("#rollButton").isDisabled()) && (await pa.page.locator("#rollButton").isDisabled()) && /Bình/.test(await text(pa.page, "#turnName")));
+  check("camera tự zoom ra toàn cảnh sau khi kết thúc focus", overviewState.mode === "overview", JSON.stringify(overviewState));
+  await pa.page.waitForFunction(() => document.querySelector("#eventPanel")?.classList.contains("is-hidden"), null, { timeout: 5000 });
+  check("Event Panel tự tắt khi sự kiện đã được xử lý", await pa.page.locator("#eventPanel.is-hidden").count() === 1);
+  check("không tự động chuyển lượt khi người chơi chưa xác nhận", /An/.test(await text(pa.page, "#turnName")) &&
+    (await pb.page.locator("#rollButton").isDisabled()) && /Tiếp tục/.test(await text(pa.page, "#rollButton")) &&
+    (await pa.page.locator("#confirmEventButton").count()) === 0);
+  await confirmTurn(pa);
+  await Promise.all([
+    pb.page.waitForFunction(() => document.querySelector("#rollButton")?.disabled === false && /Bình/.test(document.querySelector("#turnName")?.textContent || ""), null, { timeout: 7000 }),
+    pa.page.waitForFunction(() => document.querySelector("#rollButton")?.disabled === true && /Bình/.test(document.querySelector("#turnName")?.textContent || ""), null, { timeout: 7000 })
+  ]);
+  check("sau khi A xác nhận: quyền chuyển sang B", !(await pb.page.locator("#rollButton").isDisabled()) &&
+    (await pa.page.locator("#rollButton").isDisabled()) && /Bình/.test(await text(pa.page, "#turnName")),
+    JSON.stringify({aTurn:await text(pa.page,"#turnName"),aDisabled:await pa.page.locator("#rollButton").isDisabled(),bTurn:await text(pb.page,"#turnName"),bDisabled:await pb.page.locator("#rollButton").isDisabled()}));
 
   // B thử ghi trái phép khi không có lượt (rules phải chặn)
   const denied = await pa.page.evaluate(async () => { try { const m = await import("https://www.gstatic.com/firebasejs/13.1.0/firebase-database.js"); return "no-error"; } catch (e) { return String(e); } });
