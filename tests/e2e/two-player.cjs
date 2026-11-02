@@ -236,6 +236,13 @@ let rules;
     return { mode: stage?.dataset.camera, scale: matrix.a, overviewVisible: !document.querySelector("#camOverviewButton")?.hidden };
   });
   check("camera tự focus vào ô đích sau khi token di chuyển", landingCamera.mode === "focus" && landingCamera.scale > 1.2 && landingCamera.overviewVisible, JSON.stringify(landingCamera));
+  const spectatorCamera = await pb.page.evaluate(() => {
+    const stage = document.querySelector("#stage");
+    const wrap = document.querySelector("#gameView .board-wrap");
+    const matrix = new DOMMatrix(getComputedStyle(wrap).transform);
+    return { mode: stage?.dataset.camera, scale: matrix.a, overviewVisible: !document.querySelector("#camOverviewButton")?.hidden };
+  });
+  check("camera trên thiết bị đối thủ cũng theo cùng token", spectatorCamera.mode === "focus" && spectatorCamera.scale > 1.2 && spectatorCamera.overviewVisible, JSON.stringify(spectatorCamera));
   await pa.page.waitForTimeout(2500);
   check("không tự động chuyển lượt khi người chơi chưa xác nhận", /An/.test(await text(pa.page, "#turnName")) && (await pb.page.locator("#rollButton").isDisabled()) && (await pa.page.locator("#confirmEventButton").count()) === 1);
   check("Bảng sự kiện nêu ô vừa đến, tiền trừ và số dư", /Chợ nổi Cái Bè|Làng nổi/.test(await text(pa.page, "#epTitle")) && /600\.000₫/.test(await text(pa.page, "#epMoney")) && /14\.400\.000₫/.test(await text(pa.page, "#epBalances")));
