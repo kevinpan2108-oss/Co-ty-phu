@@ -56,5 +56,6 @@ test("portrait and landscape mobile layouts keep their own responsive board and 
   assert.match(css, /@media\(max-width:900px\) and \(orientation:portrait\)/);
   assert.match(css, /@media\(max-width:900px\) and \(orientation:landscape\)/);
   assert.match(css, /env\(safe-area-inset-bottom\)/);
-  assert.match(e2eSource, /inspectMobileOrientation\(w, h, "portrait"/);\n  assert.match(e2eSource, /inspectMobileOrientation\(h, w, "landscape"/);
+  assert.match(e2eSource, /inspectMobileOrientation\(w, h, "portrait"/);
+  assert.match(e2eSource, /inspectMobileOrientation\(h, w, "landscape"/);
 });
