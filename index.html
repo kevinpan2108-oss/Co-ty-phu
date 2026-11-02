@@ -11,6 +11,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;800&family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="./style.css?v=marmalade-board-20261102" />
   <link rel="stylesheet" href="./hud-redesign.css?v=marmalade-hud-20261102" />
+  <link rel="stylesheet" href="./interaction-redesign.css?v=marmalade-flow-20261102" />
 </head>
 <body>
   <div class="ambient ambient-one"></div>
@@ -277,24 +278,37 @@
         </div>
         <div id="diceStage" class="dice-stage" aria-hidden="true"></div>
         <div id="cellInfo" class="cell-info" role="status" aria-live="polite"></div>
-        <aside id="eventPanel" class="event-panel idle" aria-live="polite" aria-label="Bảng sự kiện">
-          <header class="ep-head">
-            <span id="epIcon" class="ep-icon" aria-hidden="true">🎲</span>
-            <strong id="epTitle" class="ep-title">Lượt chơi</strong>
-            <button id="epHistoryButton" class="ep-icon-btn" type="button" aria-label="Lịch sử sự kiện" title="Lịch sử sự kiện">📜</button>
-            <button id="epMinButton" class="ep-icon-btn" type="button" aria-label="Thu gọn bảng sự kiện" aria-expanded="true" title="Thu gọn / mở rộng">▾</button>
+        <section id="interactionCard" class="interaction-card" aria-live="polite" aria-label="Thông tin giao dịch" hidden>
+          <div class="deal-ribbon" id="dealRibbon">FOR SALE</div>
+          <header class="deal-header">
+            <span id="epIcon" class="deal-icon" aria-hidden="true">🎲</span>
+            <div class="deal-heading">
+              <small id="dealEyebrow">TÀI SẢN</small>
+              <strong id="epTitle" class="deal-title">Lượt chơi</strong>
+              <span id="dealSubtitle" class="deal-subtitle"></span>
+            </div>
+            <span id="dealGroup" class="deal-group"></span>
           </header>
-          <div class="ep-body">
-            <div id="actionMessage" class="action-message ep-text">Tạo phòng hoặc tham gia để bắt đầu.</div>
-            <ul id="epMoney" class="ep-money"></ul>
-            <div id="epBalances" class="ep-balances"></div>
-            <div id="pendingActions" class="pending-actions"></div>
-            <div id="epConfirmRow" class="ep-confirm-row"></div>
+          <div id="dealPropertySheet" class="deed-sheet" hidden>
+            <div id="dealColorStrip" class="deed-color-strip"></div>
+            <div class="deed-price-grid">
+              <div><small>GIÁ MUA</small><strong id="dealPrice">—</strong></div>
+              <div><small>THẾ CHẤP</small><strong id="dealMortgage">—</strong></div>
+            </div>
+            <div class="deed-rent-heading">BẢNG TIỀN THUÊ</div>
+            <div id="dealRentList" class="deed-rent-list"></div>
+            <div id="dealBuildCost" class="deed-build-cost"></div>
           </div>
-        </aside>
+          <div id="actionMessage" class="action-message">Tung xúc xắc để bắt đầu.</div>
+          <ul id="epMoney" class="deal-money"></ul>
+          <div id="epBalances" class="deal-balances"></div>
+          <div id="pendingActions" class="pending-actions"></div>
+          <div id="epConfirmRow" class="ep-confirm-row"></div>
+        </section>
         <div class="hud-bottom">
           <div class="hud-menu">
             <button id="propsButton" class="hud-button" type="button" aria-label="Sổ đất"><span>📋</span><small>Sổ đất</small></button>
+            <button id="epHistoryButton" class="hud-button history-button" type="button" aria-label="Lịch sử ván chơi"><span>📜</span><small>Lịch sử</small></button>
             <button id="camOverviewButton" class="hud-button cam-button" type="button" aria-label="Về toàn cảnh bàn cờ" hidden><span>🔭</span><small>Toàn cảnh</small></button>
             <button id="copyRoomButton" class="hud-button" type="button" aria-label="Sao chép mã phòng"><span>🔗</span><small>Mã phòng</small></button>
             <button id="leaveRoomButton" class="hud-button leave-button" type="button" aria-label="Rời phòng"><span>🚪</span><small>Rời</small></button>
@@ -333,6 +347,6 @@
     <footer class="footer"><span>© 2026 Cờ Tỷ Phú Online</span><span>Làm để chơi với bạn bè</span></footer>
   </main>
 
-  <script type="module" src="./app.js?v=marmalade-hud-20261102"></script>
+  <script type="module" src="./app.js?v=marmalade-flow-20261102"></script>
 </body>
 </html>
