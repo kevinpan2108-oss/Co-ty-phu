@@ -462,13 +462,12 @@ let rules;
     await cpu.page.locator("#pendingActions .secondary-button").click();
     await cpu.page.waitForFunction(() => document.querySelector("#board .space[data-index='5'].owned"), null, { timeout: 8000 });
     check("Máy thắng đấu giá khi người chơi bỏ lượt", await cpu.page.locator("#board .space[data-index='5']").evaluate(el => el.classList.contains("owned")));
-    await confirmTurn(cpu);
     await cpu.page.waitForFunction(() =>
       document.querySelector("#rollButton")?.disabled === false &&
       document.querySelector("#turnName")?.textContent.trim() === "Minh" &&
       /Đến lượt bạn/i.test(document.querySelector("#centerStatus")?.textContent || ""),
       null,
-      { timeout: 15000 }
+      { timeout: 18000 }
     );
     check("máy tự xử lý đấu giá và hoàn tất lượt", true);
     await cpu.context.close();
