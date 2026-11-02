@@ -643,68 +643,6 @@ function getBoardCoords(index) {
   if (index === 30) return [0,10];
   return [index-30,10];
 }
-function specialSpaceModelMarkup(space) {
-  if (space.corner) {
-    const models = {
-      start:'<span class="space-model model-corner model-start" aria-hidden="true"><svg viewBox="0 0 80 64"><ellipse cx="40" cy="57" rx="31" ry="5" fill="#000" opacity=".18"/><polygon points="7,47 39,29 73,46 41,62" fill="#b9a17a" stroke="#806849" stroke-width="1.5"/><path d="M17 45 L41 32 L64 43" fill="none" stroke="#fff0c8" stroke-width="2.5"/><path d="M23 39 V17 H28 V39 M54 43 V12 H59 V43" fill="#e2b54d" stroke="#7b5428" stroke-width="1.5"/><path d="M28 18 L48 24 L28 30Z" fill="#e64c3c" stroke="#85372e" stroke-width="1.2"/><path d="M59 13 L72 18 L59 23Z" fill="#f3cf49"/><path d="M35 42 l6 -4 l6 4 l-6 4z M47 49 l6 -4 l6 4 l-6 4z" fill="#fff" opacity=".85"/></svg></span>',
-      jail:'<span class="space-model model-corner model-jail" aria-hidden="true"><svg viewBox="0 0 80 64"><ellipse cx="40" cy="58" rx="30" ry="4" fill="#000" opacity=".18"/><polygon points="8,47 40,29 72,46 40,63" fill="#a9a18f"/><path d="M17 44 V23 L40 10 L63 23 V45 L40 58Z" fill="#d8c9a8" stroke="#655a4c" stroke-width="1.5"/><path d="M17 23 L40 36 L63 23 L40 10Z" fill="#8c7770" stroke="#655a4c" stroke-width="1.4"/><path d="M25 31 V48 M32 35 V52 M40 38 V56 M48 35 V52 M55 31 V48" stroke="#4d5961" stroke-width="3"/><path d="M22 30 L58 30 M22 48 L58 48" stroke="#4d5961" stroke-width="2"/><rect x="35" y="42" width="10" height="12" rx="2" fill="#9a6c3e"/></svg></span>',
-      free:'<span class="space-model model-corner model-free" aria-hidden="true"><svg viewBox="0 0 80 64"><ellipse cx="40" cy="57" rx="31" ry="5" fill="#000" opacity=".18"/><polygon points="6,47 39,28 74,46 41,63" fill="#79b8a0" stroke="#477d69" stroke-width="1.5"/><path d="M15 47 Q38 33 65 47" fill="none" stroke="#d8f1cf" stroke-width="3"/><path d="M25 41 V20 M25 20 Q13 13 12 23 Q20 23 25 20 Q29 8 39 13 Q35 21 25 20" fill="#39834c"/><path d="M47 43 V31 M47 31 Q39 25 37 33 Q44 35 47 31 Q53 23 59 29 Q55 36 47 31" fill="#39834c"/><path d="M31 43 H57 L54 49 H34Z" fill="#8c5a35"/><path d="M35 40 V46 M53 40 V46" stroke="#694329" stroke-width="2"/><path d="M30 39 H58" stroke="#d7a65a" stroke-width="3"/></svg></span>',
-      gotojail:'<span class="space-model model-corner model-police" aria-hidden="true"><svg viewBox="0 0 80 64"><ellipse cx="40" cy="57" rx="31" ry="5" fill="#000" opacity=".18"/><polygon points="6,47 39,29 73,46 41,63" fill="#b9a17a"/><path d="M14 39 L22 28 H53 L66 37 V49 H14Z" fill="#e8eee9" stroke="#53636a" stroke-width="1.6"/><path d="M22 29 H51 L58 38 H17Z" fill="#3f7f9a" stroke="#315c70" stroke-width="1.3"/><path d="M25 31 H37 V37 H20Z M40 31 H50 L55 37 H40Z" fill="#9dd9e8"/><path d="M14 40 H66 V49 H14Z" fill="#244b68"/><circle cx="25" cy="49" r="6" fill="#35434a" stroke="#e6e1d2" stroke-width="2"/><circle cx="55" cy="49" r="6" fill="#35434a" stroke="#e6e1d2" stroke-width="2"/><rect x="32" y="24" width="13" height="4" rx="2" fill="#e44c43"/><path d="M34 23 V19 M42 23 V19" stroke="#f2d34c" stroke-width="2"/></svg></span>'
-    };
-    return models[space.type] || "";
-  }
-  if (space.type === "station") {
-    return '<span class="space-model model-ferry" aria-hidden="true">' +
-      '<svg viewBox="0 0 80 64" focusable="false">' +
-      '<path d="M5 51 Q14 47 22 51 T39 51 T56 51 T75 51" fill="none" stroke="#4fa6c4" stroke-width="2.5" stroke-linecap="round"/>' +
-      '<path d="M7 56 Q16 52 25 56 T43 56 T61 56 T77 56" fill="none" stroke="#78c7d4" stroke-width="2" stroke-linecap="round"/>' +
-      '<polygon points="6,43 31,30 72,45 46,59" fill="#b78b4b" stroke="#76562e" stroke-width="1.7"/>' +
-      '<polygon points="6,43 31,30 31,35 7,48" fill="#e0bd78"/>' +
-      '<polygon points="31,30 72,45 46,59 46,54" fill="#906a3b"/>' +
-      '<path d="M13 27 L62 27 L54 43 L25 43 L9 34Z" fill="#e15b4e" stroke="#82352f" stroke-width="1.8" stroke-linejoin="round"/>' +
-      '<path d="M13 27 L62 27 L55 32 L18 32Z" fill="#ff8270"/>' +
-      '<path d="M25 18 L51 18 L55 29 L23 29Z" fill="#f7f1dc" stroke="#4d6775" stroke-width="1.5"/>' +
-      '<polygon points="25,18 39,10 59,18 51,22" fill="#d84b43" stroke="#82352f" stroke-width="1.5"/>' +
-      '<polygon points="51,18 59,18 59,26 55,29" fill="#d7eaf0" stroke="#4d6775" stroke-width="1.2"/>' +
-      '<path d="M29 21 H35 V27 H29Z M39 21 H46 V27 H39Z" fill="#69b9d0" stroke="#426c7b" stroke-width="1"/>' +
-      '<path d="M37 10 V4 M37 4 L46 7 L37 9Z" fill="#ffd34e" stroke="#8d6925" stroke-width="1"/>' +
-      '<path d="M18 35 L52 35" stroke="#fff1d0" stroke-width="1.5" stroke-linecap="round"/>' +
-      '</svg></span>';
-  }
-  if (space.type === "utility" && /nước/i.test(space.name)) {
-    return '<span class="space-model model-water" aria-hidden="true">' +
-      '<svg viewBox="0 0 80 64" focusable="false">' +
-      '<polygon points="5,48 33,33 75,48 45,63" fill="#b7c9bb" stroke="#617b70" stroke-width="1.5"/>' +
-      '<polygon points="10,37 31,25 51,36 29,48" fill="#d8eee9" stroke="#527f86" stroke-width="1.5"/>' +
-      '<polygon points="29,48 51,36 51,52 29,63" fill="#76aeb4" stroke="#527f86" stroke-width="1.4"/>' +
-      '<polygon points="10,37 29,48 29,63 10,51" fill="#a9d2ce" stroke="#527f86" stroke-width="1.4"/>' +
-      '<ellipse cx="57" cy="23" rx="12" ry="5" fill="#d9f2f1" stroke="#337f94" stroke-width="1.5"/>' +
-      '<path d="M45 23 V39 Q57 46 69 39 V23" fill="#6bc1d0" stroke="#337f94" stroke-width="1.5"/>' +
-      '<ellipse cx="57" cy="39" rx="12" ry="5" fill="#4ca6bb" stroke="#337f94" stroke-width="1.5"/>' +
-      '<path d="M49 22 Q57 18 65 22" fill="none" stroke="#fff" stroke-width="1.5"/>' +
-      '<path d="M17 33 L17 27 L26 22 L26 39" fill="none" stroke="#f5f1d8" stroke-width="2.4"/>' +
-      '<path d="M12 52 Q18 48 24 52 T36 52" fill="none" stroke="#fff" stroke-width="1.5" opacity=".9"/>' +
-      '</svg></span>';
-  }
-  if (space.type === "utility") {
-    return '<span class="space-model model-power" aria-hidden="true">' +
-      '<svg viewBox="0 0 80 64" focusable="false">' +
-      '<polygon points="4,48 34,31 76,47 45,64" fill="#c5b78a" stroke="#756849" stroke-width="1.5"/>' +
-      '<polygon points="11,32 34,19 56,31 32,45" fill="#e8d7a2" stroke="#806d42" stroke-width="1.5"/>' +
-      '<polygon points="32,45 56,31 56,49 32,63" fill="#b98e50" stroke="#806d42" stroke-width="1.5"/>' +
-      '<polygon points="11,32 32,45 32,63 11,50" fill="#d1ad6d" stroke="#806d42" stroke-width="1.5"/>' +
-      '<path d="M17 25 L20 10 L25 10 L27 27" fill="#bd5d43" stroke="#793a31" stroke-width="1.5"/>' +
-      '<path d="M20 10 L25 10 L27 15 L19 15Z" fill="#e98761"/>' +
-      '<path d="M38 22 L41 9 L45 9 L48 27" fill="#d16a4d" stroke="#793a31" stroke-width="1.4"/>' +
-      '<path d="M41 9 L45 9 L48 14 L40 14Z" fill="#f09a6b"/>' +
-      '<path d="M17 36 L26 41 L26 49 L17 44Z M36 45 L45 40 L45 49 L36 54Z" fill="#f6db75" stroke="#806d42" stroke-width="1"/>' +
-      '<path d="M61 14 L69 32 M69 14 L61 32 M58 20 H72 M60 27 H70 M65 12 V37 M56 37 L65 34 L74 37" fill="none" stroke="#476b76" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>' +
-      '<path d="M56 18 H74" stroke="#e9a63a" stroke-width="2"/>' +
-      '</svg></span>';
-  }
-  return "";
-}
-
 function renderBoard() {
   const board = $("board");
   board.querySelectorAll(".space").forEach((el) => el.remove());
@@ -737,9 +675,7 @@ function renderBoard() {
       <span class="space-color" style="background:${colorBar}"></span>
       ${owner ? `<span class="space-owner-mark" title="Tài sản của ${escapeHtml(owner.name)}" aria-hidden="true"></span>` : ""}
       ${mortgaged ? '<span class="space-mortgage-mark" title="Đang cầm cố">C</span>' : ""}
-      ${buildingMark ? `<span class="space-buildings" aria-label="${houseCount === 5 ? "Khách sạn" : houseCount + " căn nhà"}">${buildingMark}</span>` : ""}
-      ${specialSpaceModelMarkup(space)}
-      <span class="space-text" style="--name-scale:${nameScale.toFixed(2)}"><span class="space-name">${escapeHtml(name)}</span>${price && !space.corner ? `<span class="space-price">${price}</span>` : ""}</span>
+      ${buildingMark ? `<span class="space-buildings" aria-label="${houseCount === 5 ? "Khách sạn" : houseCount + " căn nhà"}">${buildingMark}</span>` : ""} <span class="space-text" style="--name-scale:${nameScale.toFixed(2)}"><span class="space-name">${escapeHtml(name)}</span>${price && !space.corner ? `<span class="space-price">${price}</span>` : ""}</span>
       <span class="space-players">${tokensHtml(index)}</span>
     `;
     board.insertBefore(div, center);
@@ -954,6 +890,7 @@ let diceTimer = null;
 let diceFinishTimer = null;
 let diceAnimationId = 0;
 const DICE_MS = 1200;
+const EVENT_DISPLAY_MS = 4500;
 const HOP_MS = 190;
 
 function tokensHtml(index) {
@@ -1182,7 +1119,7 @@ function runEffects(previous, next) {
     holdTimer = setTimeout(() => { holdTimer = null; if (roomState) { renderActions(); renderEventPanel(); } }, holdMs + 170);
   }
   if (eventChanged) {
-    const displayMs = 6500;
+    const displayMs = EVENT_DISPLAY_MS;
     eventDisplayUntil = Date.now() + holdMs + displayMs;
     clearTimeout(eventDisplayTimer);
     eventDisplayTimer = setTimeout(() => {
