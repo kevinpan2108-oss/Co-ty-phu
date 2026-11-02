@@ -874,3 +874,44 @@ body:has(#gameView:not(.hidden)){overflow:hidden}
   #gameView .space-model{width:min(98%,40px);height:clamp(22px,4.8vw,30px);margin-top:6px}
   #gameView .model-ferry,#gameView .model-water,#gameView .model-power{width:min(100%,43px);height:clamp(23px,5vw,32px)}
 }
+
+
+/* Larger event details and player-linked money notifications. */
+#gameView .event-panel{width:min(66cqw,600px);max-height:min(76cqh,620px);border-radius:20px}
+#gameView .ep-head{padding:8px 10px 8px 14px;gap:9px}
+#gameView .ep-head .ep-icon{font-size:clamp(17px,4.4cqh,22px)}
+#gameView .ep-title{font-size:clamp(16px,4.4cqh,21px)}
+#gameView .ep-body{padding:15px 18px 17px;gap:11px}
+#gameView .event-panel .action-message{font-size:clamp(14px,3.6cqh,17px);line-height:1.55}
+#gameView .ep-money li{font-size:clamp(12px,3cqh,14px);padding:6px 10px}
+#gameView .ep-balances span{font-size:clamp(11px,2.8cqh,13px)}
+#gameView .space .space-name{font-size:clamp(6px,1.65cqw,12px);line-height:1.04;letter-spacing:-.015em}
+#gameView .space .space-price{font-size:clamp(6.5px,1.85cqw,13px);padding:0 3px;line-height:1.05}
+#gameView .space.corner .space-name{font-size:clamp(6px,1.55cqw,11px);line-height:1.05}
+#gameView .space-model{width:min(100%,48px);height:clamp(27px,3.1vw,38px);margin:5px 0 1px;filter:drop-shadow(0 3px 2px rgba(25,47,53,.28))}
+#gameView .model-ferry,#gameView .model-water,#gameView .model-power{width:min(100%,50px);height:clamp(28px,3.3vw,40px)}
+#gameView .space.corner .space-model{width:min(100%,56px);height:clamp(30px,3.7vw,44px);margin:0 0 2px}
+#gameView .space:has(.player-event-bubble){overflow:visible;z-index:32}
+#gameView .space-players{z-index:33;gap:5px}
+#gameView .token{position:relative;display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto}
+#gameView .player-event-bubble{position:absolute;left:50%;bottom:calc(100% + 7px);z-index:50;display:flex;flex-direction:column;align-items:center;gap:1px;min-width:58px;max-width:118px;padding:4px 7px;border:2px solid #253c52;border-radius:9px;background:#fffdf3;color:#20344a;box-shadow:0 3px 0 rgba(0,0,0,.2);transform:translateX(-50%);white-space:nowrap;pointer-events:none;animation:event-bubble-in .22s ease-out both}
+#gameView .player-event-bubble:after{content:"";position:absolute;left:50%;top:100%;width:8px;height:8px;background:inherit;border-right:2px solid #253c52;border-bottom:2px solid #253c52;transform:translate(-50%,-4px) rotate(45deg)}
+#gameView .player-event-bubble b{font-size:clamp(9px,1.8cqw,12px);font-weight:900;line-height:1.05}
+#gameView .player-event-bubble small{font-size:clamp(6px,1.1cqw,8px);font-weight:800;line-height:1.05;max-width:105px;overflow:hidden;text-overflow:ellipsis}
+#gameView .player-event-bubble.gain{border-color:#25814b;background:#e9ffed;color:#176536}
+#gameView .player-event-bubble.gain:after{border-color:#25814b}
+#gameView .player-event-bubble.loss{border-color:#c74743;background:#fff0ed;color:#a52e2a}
+#gameView .player-event-bubble.loss:after{border-color:#c74743}
+#gameView .player-event-bubble.neutral{border-color:#476a8a;background:#eef7ff;color:#244d70}
+@keyframes event-bubble-in{from{opacity:0;transform:translate(-50%,5px) scale(.88)}to{opacity:1;transform:translate(-50%,0) scale(1)}}
+@media(max-width:800px){
+  #gameView .event-panel{width:min(78cqw,540px);max-height:min(78cqh,560px)}
+  #gameView .space .space-name{font-size:clamp(6px,1.7cqw,11px)}
+  #gameView .space .space-price{font-size:clamp(6.5px,1.9cqw,12px)}
+  #gameView .space-model{height:clamp(25px,4.8vw,35px)}
+  #gameView .space.corner .space-model{height:clamp(28px,5vw,38px)}
+}
+@media(max-height:500px) and (orientation:landscape){
+  #gameView .event-panel{width:min(68cqw,560px);max-height:78cqh}
+  #gameView .ep-body{padding:9px 12px;gap:7px}
+}

@@ -61,13 +61,14 @@ export const runTransaction=async(r,fn)=>{
 };`
 };
 
-// Người chơi dùng nút Tiếp tục ở đáy màn hình sau khi sự kiện đã xử lý xong.
+// Lượt tự chuyển sau khi thông báo sự kiện đã hiển thị đủ lâu.
 async function confirmTurn(p) {
-  await p.page.waitForFunction(() => {
-    const button = document.querySelector("#rollButton");
-    return button && !button.disabled && button.textContent.includes("Tiếp tục");
-  }, null, { timeout: 9000 });
-  await p.page.click("#rollButton");
+  const before = await p.page.locator("#centerStatus").innerText();
+  if (/Đợi đối thủ/i.test(before)) return;
+  await p.page.waitForFunction((previous) => {
+    const current = document.querySelector("#centerStatus")?.textContent || "";
+    return current !== previous && (/Đợi đối thủ|Đến lượt bạn/i.test(current));
+  }, before, { timeout: 18000 });
 }
 async function newPlayer(browser, uid, opts = {}) {
   const context = await browser.newContext({ viewport: opts.viewport || { width: 1280, height: 900 }, deviceScaleFactor: 1, isMobile: !!opts.mobile, hasTouch: !!opts.mobile });
@@ -247,8 +248,8 @@ let rules;
     await pa.page.locator("#board .space[data-index='5'] .model-ferry").count() === 1 &&
     await pa.page.locator("#board .space[data-index='12'] .model-power").count() === 1 &&
     await pa.page.locator("#board .space[data-index='28'] .model-water").count() === 1);
-  // Không tự chuyển lượt: người chơi chủ động bấm nút Tiếp tục ở đáy màn hình.
-  await pa.page.waitForFunction(() => document.querySelector("#rollButton")?.textContent.includes("Tiếp tục"), null, { timeout: 9000 });
+  // Không tự chuyển lượt: người chơi chủ động bấm nút Đang chuyển lượt ở đáy màn hình.
+  await pa.page.waitForFunction(() => document.querySelector("#rollButton")?.textContent.includes("Đang chuyển lượt"), null, { timeout: 9000 });
   const cameraHistoryA = await pa.page.evaluate(() => window.__cameraHistory || []);
   const cameraHistoryB = await pb.page.evaluate(() => window.__cameraHistory || []);
   const sawFocusA = cameraHistoryA.some(x => x.mode === "focus" && x.scale > 1.2);
@@ -262,6 +263,8 @@ let rules;
     /600\.000₫/.test(await text(pa.page, "#epMoney")) &&
     /14\.400\.000₫/.test(await text(pa.page, "#epBalances")));
   check("Event Panel ẩn ở thiết bị không bị tác động", await pb.page.locator("#eventPanel.is-hidden").count() === 1);
+  check("thông báo tiền nằm cạnh avatar của người bị tác động", await pa.page.locator("#board .player-event-bubble").count() >= 1);
+  check("cả bốn ô góc đều có mô hình isometric", await pa.page.locator("#board .space.corner .space-model").count() === 4);
   const panelLayout = await pa.page.evaluate(() => {
     const panel = document.querySelector("#eventPanel").getBoundingClientRect();
     const stage = document.querySelector("#stage").getBoundingClientRect();
@@ -278,17 +281,14 @@ let rules;
     transform: getComputedStyle(document.querySelector("#gameView .board-wrap")).transform
   }));
   check("camera tự zoom ra toàn cảnh sau khi kết thúc focus", overviewState.mode === "overview", JSON.stringify(overviewState));
-  await pa.page.waitForFunction(() => document.querySelector("#eventPanel")?.classList.contains("is-hidden"), null, { timeout: 5000 });
+  await pa.page.waitForFunction(() => document.querySelector("#eventPanel")?.classList.contains("is-hidden"), null, { timeout: 10000 });
   check("Event Panel tự tắt khi sự kiện đã được xử lý", await pa.page.locator("#eventPanel.is-hidden").count() === 1);
-  check("không tự động chuyển lượt khi người chơi chưa xác nhận", /An/.test(await text(pa.page, "#turnName")) &&
-    (await pb.page.locator("#rollButton").isDisabled()) && /Tiếp tục/.test(await text(pa.page, "#rollButton")) &&
-    (await pa.page.locator("#confirmEventButton").count()) === 0);
   await confirmTurn(pa);
   await Promise.all([
     pb.page.waitForFunction(() => document.querySelector("#rollButton")?.disabled === false && /Bình/.test(document.querySelector("#turnName")?.textContent || ""), null, { timeout: 7000 }),
     pa.page.waitForFunction(() => document.querySelector("#rollButton")?.disabled === true && /Bình/.test(document.querySelector("#turnName")?.textContent || ""), null, { timeout: 7000 })
   ]);
-  check("sau khi A xác nhận: quyền chuyển sang B", !(await pb.page.locator("#rollButton").isDisabled()) &&
+  check("sau khi A tự động kết thúc lượt: quyền chuyển sang B", !(await pb.page.locator("#rollButton").isDisabled()) &&
     (await pa.page.locator("#rollButton").isDisabled()) && /Bình/.test(await text(pa.page, "#turnName")),
     JSON.stringify({aTurn:await text(pa.page,"#turnName"),aDisabled:await pa.page.locator("#rollButton").isDisabled(),bTurn:await text(pb.page,"#turnName"),bDisabled:await pb.page.locator("#rollButton").isDisabled()}));
 
@@ -318,7 +318,7 @@ let rules;
   check("tiền đấu giá 200.000₫ được trừ đúng", (await text(pb.page, "#playersPanel")).includes("14.800.000₫"));
   await confirmTurn(pb);
   await pa.page.waitForFunction(() => document.querySelector("#rollButton")?.disabled === false, null, { timeout: 5000 }).catch(() => {});
-  check("sau đấu giá, B xác nhận và lượt trả cho A", !(await pa.page.locator("#rollButton").isDisabled()));
+  check("sau đấu giá, B tự động kết thúc lượt và lượt trả cho A", !(await pa.page.locator("#rollButton").isDisabled()));
 
   // A đến công ty điện, cả hai cùng bỏ giá → ô không có chủ và lượt vẫn tự kết thúc.
   await pa.page.evaluate(() => { const q = [0.4, 0.9]; Math.random = () => (q.length ? q.shift() : 0.5); });
@@ -334,7 +334,7 @@ let rules;
   check("cả hai bỏ đấu giá thì ô không có chủ", !(await pa.page.locator("#board .space[data-index='12']").evaluate(el => el.classList.contains("owned"))));
   await confirmTurn(pa);
   await pb.page.waitForFunction(() => document.querySelector("#rollButton")?.disabled === false, null, { timeout: 5000 }).catch(() => {});
-  check("khi không ai trả giá, A xác nhận và ván chuyển lượt", !(await pb.page.locator("#rollButton").isDisabled()));
+  check("khi không ai trả giá, A tự động kết thúc lượt và ván chuyển lượt", !(await pb.page.locator("#rollButton").isDisabled()));
 
   // ===== 2b. Xây nhà/khách sạn và xử lý nợ bằng cầm cố =====
   {
@@ -462,13 +462,12 @@ let rules;
     await cpu.page.locator("#pendingActions .secondary-button").click();
     await cpu.page.waitForFunction(() => document.querySelector("#board .space[data-index='5'].owned"), null, { timeout: 8000 });
     check("Máy thắng đấu giá khi người chơi bỏ lượt", await cpu.page.locator("#board .space[data-index='5']").evaluate(el => el.classList.contains("owned")));
-    await confirmTurn(cpu);
     await cpu.page.waitForFunction(() =>
       document.querySelector("#rollButton")?.disabled === false &&
       document.querySelector("#turnName")?.textContent.trim() === "Minh" &&
       /Đến lượt bạn/i.test(document.querySelector("#centerStatus")?.textContent || ""),
       null,
-      { timeout: 15000 }
+      { timeout: 18000 }
     );
     check("máy tự xử lý đấu giá và hoàn tất lượt", true);
     await cpu.context.close();
