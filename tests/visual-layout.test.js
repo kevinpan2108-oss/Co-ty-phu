@@ -29,6 +29,7 @@ test("player HUD is a vertical rail and the Mekong city scene is visible", () =>
 });
 
 test("visual redesign does not change the game script or add per-tile models", () => {
-  assert.match(html, /app\.js\?v=marmalade-tile-labels2/);\n  assert.match(html, /style\.css\?v=marmalade-tile-labels2/);
+  assert.match(html, /app\.js\?v=marmalade-tile-labels2/);
+  assert.match(html, /style\.css\?v=marmalade-tile-labels2/);
   assert.doesNotMatch(html, /space-model/);
 });
