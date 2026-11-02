@@ -9,7 +9,7 @@ import {
   doublesOutcome, jailRollOutcome, jailStatus, isAuctionable, cashSnapshot, cashDeltas, appendEventLog, JAIL_MAX_ATTEMPTS
 } from "./economy.js?v=2";
 import { cubeTransform } from "./dice-visuals.js?v=1";
-import { createCamera, CAMERA } from "./camera.js?v=1";
+import { createCamera, CAMERA } from "./camera.js?v=event-center1";
 import { currentTurnEvent, eventLogList, eventReason } from "./events.js?v=1";
 import { getDatabase, ref, set, get, onValue, runTransaction } from "https://www.gstatic.com/firebasejs/13.1.0/firebase-database.js";
 
