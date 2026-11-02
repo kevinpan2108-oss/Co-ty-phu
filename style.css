@@ -946,3 +946,344 @@ body:has(#gameView:not(.hidden)){overflow:hidden}
   #gameView .player-avatar{width:clamp(26px,6.5cqh,34px);height:clamp(26px,6.5cqh,34px)}
 }
 @media(prefers-reduced-motion:reduce){#gameView .event-panel{transition:none}}
+
+
+/* =====================================================================
+   Marmalade-inspired tabletop layout, adapted to the Mekong Delta theme.
+   Presentation only: no board indexes, game rules, or Firebase state change.
+   ===================================================================== */
+#gameView .stage{
+  background:
+    radial-gradient(ellipse at 14% 18%,rgba(105,174,112,.22),transparent 34%),
+    radial-gradient(ellipse at 74% 82%,rgba(29,126,129,.2),transparent 38%),
+    linear-gradient(145deg,#b8d9c2 0%,#8fc1ad 45%,#5b9e99 100%);
+}
+#gameView .stage::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  opacity:.55;
+  background:
+    radial-gradient(ellipse at 7% 72%,rgba(235,223,174,.62) 0 5%,transparent 5.5%),
+    radial-gradient(ellipse at 96% 18%,rgba(220,235,190,.7) 0 7%,transparent 7.5%),
+    repeating-linear-gradient(165deg,transparent 0 46px,rgba(255,255,255,.08) 47px 48px,transparent 49px 96px);
+}
+#gameView .board-wrap{
+  position:absolute;
+  inset:0;
+  margin:0;
+  padding:0;
+  display:block;
+  min-width:0;
+  transform-origin:0 0;
+  backface-visibility:hidden;
+}
+#gameView .board{
+  --S:min(88cqh,45cqw,760px);
+  --rx:8deg;
+  --rz:0deg;
+  position:absolute;
+  left:41.5%;
+  top:50%;
+  width:var(--S);
+  height:var(--S);
+  margin:calc(var(--S) / -2) 0 0 calc(var(--S) / -2);
+  font-size:calc(var(--S) / 12);
+  padding:.105em;
+  gap:.035em;
+  grid-template-columns:minmax(0,1.5fr) repeat(9,minmax(0,1fr)) minmax(0,1.5fr);
+  grid-template-rows:minmax(0,1.5fr) repeat(9,minmax(0,1fr)) minmax(0,1.5fr);
+  transform-style:preserve-3d;
+  transform:perspective(1500px) rotateX(var(--rx)) rotateZ(var(--rz));
+  transform-origin:50% 50%;
+  background:linear-gradient(145deg,#d8b47b 0%,#aa784b 52%,#69462f 100%);
+  border:.075em solid #5c3b2a;
+  border-radius:.34em;
+  outline:1px solid rgba(255,239,201,.55);
+  box-shadow:
+    0 3px 0 #805536,
+    0 7px 0 #5e3c2c,
+    0 12px 0 #3e2c25,
+    0 24px 42px rgba(15,40,36,.38),
+    inset 0 2px 0 rgba(255,244,215,.45);
+  container-type:normal;
+}
+#gameView .board::before,
+#gameView .board::after{
+  content:"";
+  position:absolute;
+  inset:-.075em;
+  z-index:-1;
+  border:.06em solid rgba(65,43,30,.7);
+  border-radius:.36em;
+  background:linear-gradient(145deg,#aa794c,#68452f);
+  transform:translateZ(-.16em);
+  pointer-events:none;
+}
+#gameView .board::after{
+  background:linear-gradient(145deg,#80583a,#422d25);
+  transform:translateZ(-.32em);
+  box-shadow:0 0 2em .5em rgba(20,44,39,.22);
+}
+#gameView .board-center{
+  border:.045em solid rgba(255,235,190,.35);
+  border-radius:.22em;
+  background:
+    linear-gradient(145deg,rgba(12,48,45,.2),rgba(8,39,39,.42)),
+    radial-gradient(ellipse at 52% 42%,#4d8769 0%,#24624f 58%,#164b43 100%);
+  overflow:hidden;
+  box-shadow:inset 0 0 0 .12em rgba(255,235,190,.12),inset 0 .4em 1em rgba(0,0,0,.18);
+  transform-style:flat;
+}
+#gameView .board-center .scene{
+  display:block!important;
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  opacity:.94!important;
+  filter:saturate(.93) contrast(1.04);
+}
+#gameView .board-center::before{
+  display:block;
+  content:"";
+  position:absolute;
+  inset:0;
+  width:auto;
+  height:auto;
+  border:0;
+  border-radius:0;
+  transform:none;
+  background:linear-gradient(180deg,rgba(8,37,34,.05),rgba(8,37,34,.18));
+  z-index:1;
+  pointer-events:none;
+}
+#gameView .board-center::after{
+  display:none;
+}
+#gameView .center-title{
+  position:relative;
+  z-index:2;
+  font-size:clamp(22px,3.3cqw,40px);
+  color:#fff7df;
+  letter-spacing:.015em;
+  text-shadow:0 2px 0 rgba(20,48,38,.6),0 7px 17px rgba(0,0,0,.38);
+}
+#gameView .center-subtitle{
+  position:relative;
+  z-index:2;
+  margin-top:.28em;
+  color:#fff0c9;
+  font-size:clamp(8px,1.05cqw,12px);
+  letter-spacing:.13em;
+  text-shadow:0 2px 6px rgba(0,0,0,.55);
+}
+#gameView .center-status{
+  z-index:3;
+  bottom:5%;
+  max-width:88%;
+  white-space:normal;
+  text-align:center;
+  margin:0;
+  padding:.22em .75em;
+  border:1px solid rgba(255,234,190,.6);
+  background:rgba(10,44,41,.86);
+  color:#ffebbd;
+  box-shadow:0 3px 10px rgba(0,0,0,.25);
+  font-size:clamp(7px,.95cqw,11px);
+  letter-spacing:.015em;
+}
+/* Tile surfaces retain the familiar Monopoly colour band and readable prices. */
+#gameView .space{
+  overflow:hidden;
+  border:1px solid rgba(99,77,49,.3);
+  border-radius:.08em;
+  background:linear-gradient(145deg,#fffdf5 0%,#f4ebd7 72%,#e6d8bb 100%);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.9),0 .035em .07em rgba(53,44,31,.2);
+}
+#gameView .space .space-color{box-shadow:inset 0 -1px 0 rgba(0,0,0,.15)}
+#gameView .space .space-text{
+  position:absolute;
+  left:50%;
+  top:50%;
+  width:100%;
+  height:66.666%;
+  max-width:none;
+  min-width:0;
+  flex:none;
+  gap:.06em;
+  transform:translate(-50%,-50%);
+  text-align:center;
+  align-items:center;
+  justify-content:center;
+  overflow:hidden;
+  padding:0 .025em;
+}
+#gameView .space.side-top .space-text{transform:translate(-50%,-50%) rotate(180deg)}
+#gameView .space.side-bottom .space-text{transform:translate(-50%,-50%)}
+#gameView .space.side-left .space-text,
+#gameView .space.side-right .space-text{
+  width:66.666%;
+  height:150%;
+  transform:translate(-50%,-50%) rotate(-90deg);
+}
+#gameView .space.side-right .space-text{transform:translate(-50%,-50%) rotate(90deg)}
+#gameView .space .space-name{
+  display:-webkit-box!important;
+  -webkit-box-orient:vertical;
+  -webkit-line-clamp:2;
+  width:100%;
+  max-width:100%;
+  min-width:0;
+  margin:0;
+  padding:0 .02em;
+  color:#263d39;
+  font-size:.235em;
+  line-height:1.02;
+  letter-spacing:-.025em;
+  font-weight:900;
+  text-transform:uppercase;
+  text-wrap:balance;
+  overflow:hidden;
+  overflow-wrap:anywhere;
+}
+#gameView .space .space-price{
+  margin:0;
+  padding:0 .12em;
+  color:#9c4928;
+  background:rgba(255,243,217,.72);
+  border-radius:99px;
+  font-size:.285em;
+  line-height:1.08;
+  font-weight:1000;
+  white-space:nowrap;
+}
+#gameView .space.corner{
+  background:linear-gradient(145deg,#fff4d7 0%,#f3d58d 100%);
+  box-shadow:inset 0 0 0 .035em rgba(132,88,34,.34),0 .04em .08em rgba(53,44,31,.2);
+}
+#gameView .space.corner .space-text{
+  width:100%;
+  height:auto;
+  transform:translate(-50%,-50%);
+}
+#gameView .space.corner .space-name{
+  font-size:.22em;
+  line-height:1.02;
+  color:#644319;
+}
+#gameView .space.owned{
+  box-shadow:inset 0 0 0 .07em var(--owner),inset 0 -5px 0 color-mix(in srgb,var(--owner) 40%,transparent),0 .035em .07em rgba(53,44,31,.2);
+}
+#gameView .space .space-buildings{
+  top:.04em;
+  left:50%;
+  transform:translateX(-50%);
+  font-size:.22em;
+  letter-spacing:-.08em;
+  text-shadow:0 1px 2px rgba(255,255,255,.95);
+}
+#gameView .space-owner-mark{top:.08em;right:.08em}
+#gameView .space-mortgage-mark{top:.04em;left:.04em}
+#gameView .space-players{
+  z-index:6;
+  top:auto;
+  bottom:.05em;
+  left:50%;
+  right:auto;
+  transform:translateX(-50%);
+  gap:0;
+}
+#gameView .token{margin:0 -.1em}
+#gameView .token b{font-size:.72em!important}
+/* Player cards form a vertical information rail, matching the reference layout. */
+#gameView .hud-top{
+  left:auto;
+  right:10px;
+  top:50%;
+  width:min(18cqw,184px);
+  padding:0;
+  transform:translateY(-50%);
+  pointer-events:none;
+}
+#gameView .players-panel{
+  display:flex;
+  flex-direction:column;
+  align-items:stretch;
+  justify-content:center;
+  gap:clamp(7px,1.7cqh,13px);
+}
+#gameView .player-card,
+#gameView .player-card:last-child{
+  width:100%;
+  min-height:clamp(48px,14cqh,66px);
+  padding:5px 8px;
+  flex-direction:row;
+  text-align:left;
+  gap:7px;
+  border:2px solid #1d2b53;
+  border-radius:13px;
+  box-shadow:0 3px 0 rgba(29,43,83,.34),0 7px 16px rgba(0,0,0,.16);
+}
+#gameView .player-card:last-child .player-head{flex-direction:row}
+#gameView .player-card.active{
+  outline:3px solid #ffd23f;
+  outline-offset:1px;
+}
+#gameView .player-avatar{
+  width:clamp(30px,7.5cqh,42px);
+  height:clamp(30px,7.5cqh,42px);
+  border-width:2px;
+  font-size:clamp(17px,4.8cqh,25px);
+}
+#gameView .player-info{min-width:0}
+#gameView .player-name{font-size:clamp(10px,2.8cqh,13px)}
+#gameView .player-cash{font-size:clamp(13px,3.9cqh,19px)}
+#gameView .you-label{font-size:7px;padding:1px 4px}
+#gameView .room-pill{left:41.5%;top:5px;gap:2px}
+#gameView .room-pill .section-kicker{padding:1px 8px;font-size:9px;border-width:1px}
+#gameView .turn-card{padding:2px 8px;gap:4px;font-size:9px;border-width:1px}
+#gameView .turn-card small{font-size:8px}
+#gameView .turn-card strong{font-size:10px}
+#gameView .game-notice{left:41.5%;top:calc(7px + 11cqh);max-width:34cqw}
+#gameView .action-message{left:41.5%;max-width:min(38cqw,390px)}
+#gameView .dice-stage{left:41.5%;top:47%}
+#gameView .pending-actions{left:41.5%}
+#gameView .event-panel{left:41.5%;width:min(44cqw,390px);max-height:min(58cqh,430px)}
+#gameView .event-panel.idle{width:min(34cqw,310px)}
+#gameView .cell-info{left:41.5%;width:min(48cqw,420px)}
+#gameView .hud-bottom{padding:7px 10px}
+#gameView .hud-menu{gap:6px}
+#gameView .hud-button{width:clamp(40px,10cqh,48px);height:clamp(40px,10cqh,48px);border-width:2px}
+#gameView .roll-button{min-width:clamp(126px,25cqw,190px);min-height:clamp(42px,12cqh,54px);font-size:clamp(13px,3.8cqh,17px)}
+@media(max-height:520px) and (orientation:landscape){
+  #gameView .board{--S:min(84cqh,43cqw,720px)}
+  #gameView .hud-top{right:7px;width:min(17cqw,158px)}
+  #gameView .players-panel{gap:6px}
+  #gameView .player-card,#gameView .player-card:last-child{min-height:44px;padding:3px 6px;gap:5px}
+  #gameView .player-avatar{width:28px;height:28px;font-size:16px}
+  #gameView .player-name{font-size:10px}
+  #gameView .player-cash{font-size:13px}
+  #gameView .event-panel{width:min(43cqw,350px);max-height:56cqh}
+  #gameView .ep-body{padding:6px 8px;gap:5px}
+  #gameView .event-panel .action-message{font-size:11px;line-height:1.3}
+}
+@media(max-width:700px) and (orientation:landscape){
+  #gameView .board{--S:min(82cqh,43cqw,680px)}
+  #gameView .hud-top{right:5px;width:min(18cqw,145px)}
+  #gameView .player-card,#gameView .player-card:last-child{min-height:42px;padding:3px 5px;gap:4px}
+  #gameView .player-avatar{width:26px;height:26px;font-size:15px}
+  #gameView .player-name{font-size:9px}
+  #gameView .player-cash{font-size:12px}
+  #gameView .room-pill{top:3px}
+  #gameView .room-pill .section-kicker{font-size:8px}
+  #gameView .turn-card{display:none}
+  #gameView .hud-button{width:38px;height:38px}
+  #gameView .hud-button small{font-size:7px}
+  #gameView .roll-button{min-width:118px;min-height:40px;font-size:12px}
+  #gameView .event-panel{width:min(42cqw,320px);max-height:54cqh}
+}
+@media(prefers-reduced-motion:reduce){
+  #gameView .space:not(.corner):hover{transform:none}
+}
