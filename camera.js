@@ -77,7 +77,8 @@ export function createCamera({ stage, wrap, board, onChange, reduceMotion = fals
     stage.dataset.cameraScale = cam.scale.toFixed(2);
   };
   // Đọc đúng tứ giác sau phối cảnh. getBoundingClientRect() chỉ trả hình chữ nhật
-  // bao ngoài nên bốn góc của nó không phải bốn góc thật khi bàn cờ bị nghiêng.
+  // bao ngoài nên không thể dùng tâm AABB làm tâm ô trên một mặt phẳng đang nghiêng.
+  const geometryMarkers = new WeakMap();
   const readQuad = (element) => {
     try {
       const quads = element.getBoxQuads?.({ box: "border" });
@@ -85,57 +86,42 @@ export function createCamera({ stage, wrap, board, onChange, reduceMotion = fals
         const q = quads[0];
         return [q.p1, q.p2, q.p3, q.p4].map((p) => ({ x: p.x, y: p.y }));
       }
-    } catch { /* trình duyệt không hỗ trợ getBoxQuads: dùng fallback bên dưới */ }
-    const r = element.getBoundingClientRect();
-    return [
-      { x: r.left, y: r.top },
-      { x: r.right, y: r.top },
-      { x: r.right, y: r.bottom },
-      { x: r.left, y: r.bottom }
-    ];
-  };
-  const cornerMarkers = [];
-  const ensureCornerMarkers = () => {
-    if (cornerMarkers.length) return;
-    for (let i = 0; i < 4; i += 1) {
-      const marker = document.createElement("i");
-      marker.className = "camera-geometry-marker";
-      marker.setAttribute("aria-hidden", "true");
-      Object.assign(marker.style, {
-        position: "absolute", width: "0", height: "0", padding: "0", margin: "0",
-        border: "0", pointerEvents: "none", visibility: "hidden", zIndex: "-1"
+    } catch { /* trình duyệt không hỗ trợ getBoxQuads: đo bằng điểm neo DOM */ }
+
+    let markers = geometryMarkers.get(element);
+    if (!markers) {
+      markers = Array.from({ length: 4 }, () => {
+        const marker = document.createElement("i");
+        marker.className = "camera-geometry-marker";
+        marker.setAttribute("aria-hidden", "true");
+        Object.assign(marker.style, {
+          position: "absolute", width: "0", height: "0", padding: "0", margin: "0",
+          border: "0", pointerEvents: "none", visibility: "hidden", zIndex: "-1"
+        });
+        element.append(marker);
+        return marker;
       });
-      board.append(marker);
-      cornerMarkers.push(marker);
+      geometryMarkers.set(element, markers);
     }
-  };
-  const readBoardQuad = () => {
-    try {
-      const quads = board.getBoxQuads?.({ box: "border" });
-      if (quads?.length) {
-        const q = quads[0];
-        return [q.p1, q.p2, q.p3, q.p4].map((p) => ({ x: p.x, y: p.y }));
-      }
-    } catch { /* dùng bốn điểm neo thực trong fallback */ }
-    ensureCornerMarkers();
-    const style = getComputedStyle(board);
+
+    const style = getComputedStyle(element);
     const bl = parseFloat(style.borderLeftWidth) || 0;
     const br = parseFloat(style.borderRightWidth) || 0;
     const bt = parseFloat(style.borderTopWidth) || 0;
     const bb = parseFloat(style.borderBottomWidth) || 0;
-    const right = board.clientWidth + br;
-    const bottom = board.clientHeight + bb;
+    const right = element.clientWidth + br;
+    const bottom = element.clientHeight + bb;
     const positions = [
       { left: -bl, top: -bt },
       { left: right, top: -bt },
       { left: right, top: bottom },
       { left: -bl, top: bottom }
     ];
-    cornerMarkers.forEach((marker, i) => {
+    markers.forEach((marker, i) => {
       marker.style.left = positions[i].left + "px";
       marker.style.top = positions[i].top + "px";
     });
-    return cornerMarkers.map((marker) => {
+    return markers.map((marker) => {
       const r = marker.getBoundingClientRect();
       return { x: r.left, y: r.top };
     });
@@ -150,7 +136,7 @@ export function createCamera({ stage, wrap, board, onChange, reduceMotion = fals
       const center = quadCenter(readQuad(cell));
       state.cells.set(Number(cell.dataset.index), toBase(center, matrix, cam));
     });
-    const projectedCorners = readBoardQuad().map((point) => toBase(point, matrix, cam));
+    const projectedCorners = readQuad(board).map((point) => toBase(point, matrix, cam));
     state.bounds = boundsFromPoints(projectedCorners);
   };
   const cellBase = (index) => {

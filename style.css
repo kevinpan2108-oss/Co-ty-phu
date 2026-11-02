@@ -1340,9 +1340,9 @@ body:has(#gameView:not(.hidden)){overflow:hidden}
 /* Lớp chiều sâu cho phố ven sông và bến ghe trung tâm (SVG nhẹ, không thêm mesh 3D). */
 #gameView .mekong-city .city-street{filter:drop-shadow(0 1px 1px rgba(25,49,39,.25))}
 #gameView .mekong-city .city-market{transform-origin:300px 150px}
-#gameView .mekong-city .city-quay{opacity:.98}
+#gameView .city-quay{opacity:.98}
 #gameView .mekong-city .city-lanterns{filter:drop-shadow(0 0 3px rgba(255,218,125,.6))}
-#gameView .mekong-city .city-boat{opacity:.96}
+#gameView .city-boat{opacity:.96}
 #gameView .board-center .scene{filter:saturate(1.02) contrast(1.06) drop-shadow(0 1px 0 rgba(8,37,34,.12))}
 #gameView .hud-top{z-index:32}
 #gameView .hud-bottom{padding:
