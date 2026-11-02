@@ -82,7 +82,8 @@ export function createCamera({ stage, wrap, board, onChange, reduceMotion = fals
     return state.cells.get(Number(index)) || null;
   };
   // Vị trí quân cờ trong khung nhìn: lệch về bên trái để bảng sự kiện (bên phải) không che ô đang focus.
-  const anchorFor = (v, withPanel) => ({ x: v.w * (withPanel ? 0.38 : 0.5), y: v.h * 0.5 });
+  // Event Panel nay o giua; giu quan co lech ve ben trai de khong bi bang su kien che mat.
+  const anchorFor = (v, withPanel) => ({ x: v.w * (withPanel ? 0.2 : 0.5), y: v.h * 0.5 });
   const cameraFor = (index, scale, withPanel) => {
     const focus = cellBase(index);
     if (!focus) return null;
