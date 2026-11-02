@@ -263,6 +263,8 @@ let rules;
     store.rooms[code].players[store.rooms[code].creatorUid].position === 3,
     JSON.stringify(exactMove));
   check("A thấy nút MUA NGAY; B không thấy", /MUA NGAY/.test(await text(pa.page, "#pendingActions")) && (await pb.page.locator("#pendingActions button").count()) === 0);
+  check("chứng từ đất hiện giá mua và tiền thuê", (await text(pa.page, "#dealTitle")).includes("Cái Bè") && (await text(pa.page, "#dealPrice")).includes("600.000₫") && (await text(pa.page, "#dealRent")).includes("40.000₫"));
+  check("nút giao dịch hiển thị MUA NGAY và ĐẤU GIÁ", /MUA NGAY/.test(await text(pa.page, "#pendingActions")) && /ĐẤU GIÁ/.test(await text(pa.page, "#pendingActions")));
   const buyBoxes = await pa.page.locator("#pendingActions button").evaluateAll((els) => els.map((el) => { const r = el.getBoundingClientRect(); return [Math.round(r.width), Math.round(r.height)]; }));
   check("hai lựa chọn mua/đấu giá nằm gọn trong thẻ, không che bàn cờ", buyBoxes.length === 2 && buyBoxes.every(([w,h]) => w <= 155 && h <= 48), JSON.stringify(buyBoxes));
   check("không còn nút Kết thúc lượt", (await pa.page.locator("#endTurnButton").count()) === 0);
@@ -318,11 +320,12 @@ let rules;
       right: panel.right,
       width: panel.width,
       stageMid: stage.left + stage.width / 2,
+      boardRight: document.querySelector("#board").getBoundingClientRect().right,
       mode: document.querySelector("#stage")?.dataset.camera
     };
   });
   check("Thẻ giao dịch nằm ở vùng thông tin bên phải, tách khỏi bàn cờ",
-    panelLayout.mode === "focus" && panelLayout.left > panelLayout.stageMid &&
+    panelLayout.mode === "focus" && panelLayout.left > panelLayout.boardRight &&
     panelLayout.right <= 1280 && panelLayout.width <= 360,
     JSON.stringify(panelLayout));
   check("đối thủ cũng thấy biên nhận giao dịch nhưng không có nút kết thúc lượt riêng", /Chợ nổi Cái Bè|Làng nổi/.test(await text(pb.page, "#dealTitle")) && (await pb.page.locator("#confirmEventButton").count()) === 0);
