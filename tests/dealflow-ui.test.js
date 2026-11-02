@@ -24,6 +24,16 @@ test("contextual deal card exposes purchase, auction, receipt and debt details",
   assert.match(app, /CẦN XỬ LÝ KHOẢN NỢ/);
 });
 
+test("property deed exposes graduated rent, mortgage and building-cost details", () => {
+  assert.match(html, /id="dealRentSchedule"/);
+  assert.match(html, /id="dealBuildCost"/);
+  assert.match(app, /HOUSE_RENT_MULTIPLIERS\.forEach/);
+  assert.match(app, /GIÁ TRỊ THẾ CHẤP/);
+  assert.match(app, /Bán lại 50%/);
+  assert.match(css, /\\.deal-rent-schedule/);
+  assert.match(css, /\\.deal-rent-row\\.active/);
+});
+
 test("deal history is moved to its own toolbar control", () => {
   assert.match(html, /id="dealHistoryButton"/);
   assert.match(app, /dealHistoryButton.*renderHistory/s);
