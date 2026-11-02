@@ -30,8 +30,8 @@ test("property deed exposes graduated rent, mortgage and building-cost details",
   assert.match(app, /HOUSE_RENT_MULTIPLIERS\.forEach/);
   assert.match(app, /GIÁ TRỊ THẾ CHẤP/);
   assert.match(app, /Bán lại 50%/);
-  assert.match(css, /\\.deal-rent-schedule/);
-  assert.match(css, /\\.deal-rent-row\\.active/);
+  assert.match(css, /\.deal-rent-schedule/);
+  assert.match(css, /\.deal-rent-row\.active/);
 });
 
 test("deal history is moved to its own toolbar control", () => {
