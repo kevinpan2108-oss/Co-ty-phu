@@ -184,6 +184,27 @@ let rules;
     }, null, { timeout: 5000 });
   }));
   // Tung xúc xắc [1,2] → ô 3 (Đường Đồng Khởi, $60)
+  // Theo dõi các target camera trong toàn bộ hành trình ở cả hai trình duyệt.
+  for (const page of [pa.page, pb.page]) {
+    await page.evaluate(() => {
+      const stage = document.querySelector("#stage");
+      const wrap = document.querySelector("#gameView .board-wrap");
+      window.__cameraTrace = [];
+      const record = () => window.__cameraTrace.push({
+        mode: stage?.dataset.camera || "overview",
+        x: Number(stage?.dataset.cameraX || 0),
+        y: Number(stage?.dataset.cameraY || 0),
+        scale: Number(stage?.dataset.cameraScale || 1)
+      });
+      const observer = new MutationObserver(record);
+      observer.observe(stage, {
+        attributes: true,
+        attributeFilter: ["data-camera", "data-cameraScale", "data-cameraX", "data-cameraY"]
+      });
+      observer.observe(wrap, { attributes: true, attributeFilter: ["style"] });
+      window.__cameraTraceObserver = observer;
+    });
+  }
   await pa.page.evaluate(() => { const q = [0, 0.2]; Math.random = () => (q.length ? q.shift() : 0.5); });
   await pa.page.click("#rollButton");
   const sawRolling = await pb.page.waitForSelector("#diceResult.rolling", { timeout: 2000 }).then(() => true).catch(() => false);
@@ -246,15 +267,32 @@ let rules;
     return { mode: stage?.dataset.camera, scale: matrix.a, overviewVisible: !document.querySelector("#camOverviewButton")?.hidden };
   });
   check("camera trên thiết bị đối thủ cũng theo cùng token", spectatorCamera.mode === "focus" && spectatorCamera.scale > 1.2 && spectatorCamera.overviewVisible, JSON.stringify(spectatorCamera));
+  const cameraTraceA = await pa.page.evaluate(() => window.__cameraTrace || []);
+  const cameraTraceB = await pb.page.evaluate(() => window.__cameraTrace || []);
+  const uniqueFollowTargets = (trace) => new Set(
+    trace.filter((item) => item.mode === "follow")
+      .map((item) => Math.round(item.x) + "," + Math.round(item.y))
+  ).size;
+  check("camera lia theo ít nhất ba vị trí của token ở máy A", uniqueFollowTargets(cameraTraceA) >= 3, JSON.stringify(cameraTraceA));
+  check("camera lia theo ít nhất ba vị trí của token ở máy B", uniqueFollowTargets(cameraTraceB) >= 3, JSON.stringify(cameraTraceB));
   await pa.page.waitForTimeout(2500);
   check("không tự động chuyển lượt khi người chơi chưa xác nhận", /An/.test(await text(pa.page, "#turnName")) && (await pb.page.locator("#rollButton").isDisabled()) && /Tiếp tục/.test(await text(pa.page, "#rollButton")) && (await pa.page.locator("#confirmEventButton").count()) === 0);
   check("Bảng sự kiện nêu ô vừa đến, tiền trừ và số dư", /Chợ nổi Cái Bè|Làng nổi/.test(await text(pa.page, "#epTitle")) && /600\.000₫/.test(await text(pa.page, "#epMoney")) && /14\.400\.000₫/.test(await text(pa.page, "#epBalances")));
   const panelLayout = await pa.page.evaluate(() => {
     const panel = document.querySelector("#eventPanel").getBoundingClientRect();
     const stage = document.querySelector("#stage").getBoundingClientRect();
-    return {dx:Math.abs((panel.left + panel.width / 2) - (stage.left + stage.width / 2)),dy:Math.abs((panel.top + panel.height / 2) - (stage.top + stage.height / 2))};
+    return {
+      left: panel.left,
+      right: panel.right,
+      width: panel.width,
+      stageMid: stage.left + stage.width / 2,
+      mode: document.querySelector("#stage")?.dataset.camera
+    };
   });
-  check("Event Panel nằm giữa màn hình, không bị ghim ở góc", panelLayout.dx < 8 && panelLayout.dy < 8, JSON.stringify(panelLayout));
+  check("Event Panel né vùng camera đang theo token và nằm ở cạnh phải",
+    panelLayout.mode === "focus" && panelLayout.left > panelLayout.stageMid &&
+    panelLayout.right <= 1280 && panelLayout.width <= 380,
+    JSON.stringify(panelLayout));
   check("đối thủ cũng thấy bảng sự kiện nhưng không có nút kết thúc lượt riêng trong panel", /Chợ nổi Cái Bè|Làng nổi/.test(await text(pb.page, "#epTitle")) && (await pb.page.locator("#confirmEventButton").count()) === 0);
   await pa.page.click("#epHistoryButton");
   const historyText = await text(pa.page, "#historyList");
