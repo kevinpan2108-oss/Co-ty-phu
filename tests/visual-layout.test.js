@@ -25,6 +25,7 @@ test("player HUD is a vertical rail and the Mekong city scene is visible", () =>
   assert.match(css, /#gameView \.players-panel\{\s*display:flex;\s*flex-direction:column/);
   assert.match(css, /#gameView \.board-center \.scene\{\s*display:block!important/);
   assert.match(html, /class="mekong-city"/);
+  assert.match(html, /<div class="hud-top">\s*<div id="playersPanel" class="players-panel"><\/div>\s*<\/div>\s*<div class="room-pill">/);
 });
 
 test("visual redesign does not change the game script or add per-tile models", () => {
