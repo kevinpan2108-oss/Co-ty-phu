@@ -8,7 +8,6 @@ export const CAMERA = Object.freeze({
   zoomInMs: 560,
   stepMs: 150,
   focusMs: 430,
-  focusHoldMs: 1050,
   zoomOutMs: 780,
   anchorX: 0.39,
   anchorY: 0.50
