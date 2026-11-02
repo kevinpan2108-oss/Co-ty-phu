@@ -460,7 +460,7 @@ function openRoom(code) {
   holdTimer = null;
   cameraRestored = false;
   epSeenId = 0;
-  epMinimized = false;
+  
   eventHoldUntil = 0;
   computerGame = false;
   computerBusy = false;
@@ -606,7 +606,7 @@ function leaveRoom(message) {
   holdTimer = null;
   cameraRestored = false;
   epSeenId = 0;
-  epMinimized = false;
+  
   eventHoldUntil = 0;
   if (computerTimer) clearTimeout(computerTimer);
   computerTimer = null;
@@ -811,12 +811,12 @@ function renderActions() {
     const space = SPACE_DATA[pending.index];
     const buy = document.createElement("button");
     buy.className = "primary-button";
-    buy.textContent = "Mua " + money(space.price);
+    buy.textContent = "MUA NGAY";
     buy.disabled = busy || mine.cash < space.price;
     buy.addEventListener("click", buyProperty);
     const pass = document.createElement("button");
     pass.className = "secondary-button";
-    pass.textContent = "Bỏ qua";
+    pass.textContent = "ĐẤU GIÁ";
     pass.disabled = busy;
     pass.addEventListener("click", passProperty);
     buttons.append(buy, pass);
@@ -911,7 +911,7 @@ function renderTokens() {
   });
 }
 function resetEffects() {
-  clearTimeout(holdTimer); holdTimer = null; eventHoldUntil = 0; epSeenId = 0; epMinimized = false;
+  clearTimeout(holdTimer); holdTimer = null; eventHoldUntil = 0; epSeenId = 0; 
   cameraRestored = false;
   camera?.overview(0);
   clearInterval(diceTimer);
@@ -1103,7 +1103,7 @@ function runEffects(previous, next) {
   if (holdMs > 0) {
     eventHoldUntil = Date.now() + holdMs + 150;
     clearTimeout(holdTimer);
-    holdTimer = setTimeout(() => { holdTimer = null; if (roomState) { renderActions(); renderEventPanel(); } }, holdMs + 170);
+    holdTimer = setTimeout(() => { holdTimer = null; if (roomState) { renderActions(); renderDealCard(); } }, holdMs + 170);
   }
   for (const key of Object.keys(next.propertyOwners || {})) {
     if (previous.propertyOwners?.[key]) continue;
@@ -1159,71 +1159,158 @@ function restoreCameraAfterReload() {
   camera.later(() => camera.focus(e.index, { ms: 700, seq }), 350);
 }
 
-// ===== Bảng sự kiện =====
-let epMinimized = false;
+// ===== Thẻ giao dịch theo ngữ cảnh =====
+let 
 let epSeenId = 0;
+let dealDismissedId = null;
 let eventHoldUntil = 0;
 let holdTimer = null;
-function renderEventPanel() {
-  const panel = $("eventPanel");
-  if (!panel || !roomState || !currentUser) return;
-  const e = currentTurnEvent(roomState);
-  const holding = Date.now() < eventHoldUntil;
+function renderDealCard() {
+  const card = $("dealCard");
+  if (!card || !roomState || !currentUser) return;
+
   const uid = currentUser.uid;
   const players = roomState.players || {};
+  const pending = roomState.pending;
+  const auction = roomState.auction;
+  const debt = roomState.debt;
+  const e = currentTurnEvent(roomState);
+  const holding = Date.now() < eventHoldUntil;
   const nameOf = (id) => players[id]?.name || "Người chơi";
-  if (e && e.id !== epSeenId) { epSeenId = e.id; epMinimized = false; }
-  panel.classList.toggle("idle", !e || holding);
-  panel.classList.toggle("min", epMinimized);
-  $("epMinButton").setAttribute("aria-expanded", String(!epMinimized));
-  $("epMinButton").textContent = epMinimized ? "▴" : "▾";
-  const space = e && Number.isInteger(e.index) ? SPACE_DATA[e.index] : null;
-  $("epIcon").textContent = space?.icon || "🎲";
-  $("epTitle").textContent = holding && e ? nameOf(e.uid) + " đang di chuyển…" : space ? space.name : "Lượt chơi";
-  const money$ = $("epMoney"), bal = $("epBalances"), confirmRow = $("epConfirmRow");
-  money$.innerHTML = ""; bal.innerHTML = ""; confirmRow.innerHTML = "";
-  if (holding) {
-    $("actionMessage").textContent = "🎲 Quân cờ đang di chuyển…";
-    $("pendingActions").innerHTML = "";
+
+  if (e && e.id !== epSeenId) {
+    epSeenId = e.id;
+    dealDismissedId = null;
+  }
+  if (!e && !pending && !auction && !debt) dealDismissedId = null;
+
+  const mandatory = !!pending || !!auction || !!debt;
+  const dismissed = !mandatory && e && dealDismissedId === e.id;
+  if (holding || (!mandatory && !e) || dismissed) {
+    card.hidden = true;
     return;
   }
-  // Tiền cộng/trừ, lý do, người trả và người nhận.
+
+  const index = Number.isInteger(pending?.index) ? pending.index :
+    Number.isInteger(auction?.index) ? auction.index :
+    Number.isInteger(e?.index) ? e.index : null;
+  const space = Number.isInteger(index) ? SPACE_DATA[index] : null;
+  const ownerUid = Number.isInteger(index) ? roomState.propertyOwners?.[getSpaceId(index)] : null;
+  const owner = ownerUid ? players[ownerUid] : null;
+  const houses = Number.isInteger(index) ? Number(roomState.houses?.[getSpaceId(index)] || 0) : 0;
+  const mortgage = Number.isInteger(index) ? Number(roomState.mortgages?.[getSpaceId(index)] || 0) : 0;
+  const isAuction = !!auction;
+  const isPending = !!pending;
+  const isDebt = !!debt;
+
+  card.hidden = false;
+  card.dataset.kind = isPending ? "purchase" : isAuction ? "auction" : isDebt ? "debt" : (e?.kind || "receipt");
+  $("dealCloseButton").hidden = mandatory || !e;
+  $("dealIcon").textContent = space?.icon || (isDebt ? "⚖️" : "💳");
+  $("dealPropertyHead").style.setProperty("--deal-color", safeColor(space?.color || (space?.type === "station" ? "#537889" : space?.type === "utility" ? "#bba878" : "#8b9b80")));
+
+  if (isPending) {
+    $("dealKicker").textContent = "BẤT ĐỘNG SẢN ĐANG MỞ BÁN";
+    $("dealTitle").textContent = space?.name || "Tài sản";
+    $("dealGroup").textContent = space?.group || (space?.type === "station" ? "BẾN PHÀ / GIAO THÔNG" : space?.type === "utility" ? "CÔNG TY DỊCH VỤ" : "CHỨNG TỪ SỞ HỮU");
+    $("dealPriceLabel").textContent = "GIÁ MUA";
+    $("dealPrice").textContent = space?.price ? money(space.price) : "—";
+  } else if (isAuction) {
+    $("dealKicker").textContent = "PHIÊN ĐẤU GIÁ ĐANG DIỄN RA";
+    $("dealTitle").textContent = space?.name || "Tài sản đấu giá";
+    $("dealGroup").textContent = auction.highestUid ? "ĐANG CÓ NGƯỜI DẪN GIÁ" : "CHƯA CÓ LƯỢT TRẢ GIÁ";
+    $("dealPriceLabel").textContent = auction.highestUid ? "GIÁ CAO NHẤT" : "GIÁ MỞ ĐẦU";
+    $("dealPrice").textContent = money(auction.currentBid || AUCTION_INCREMENT);
+  } else if (isDebt) {
+    $("dealKicker").textContent = debt.uid === uid ? "CẦN XỬ LÝ KHOẢN NỢ" : "ĐỐI THỦ ĐANG XỬ LÝ NỢ";
+    $("dealTitle").textContent = "Khoản thanh toán còn thiếu";
+    $("dealGroup").textContent = debt.reason || "Nghĩa vụ tài chính";
+    $("dealPriceLabel").textContent = "SỐ TIỀN CÒN NỢ";
+    $("dealPrice").textContent = money(debt.amount);
+  } else {
+    const labelMap = {
+      buy:"GIAO DỊCH THÀNH CÔNG", auction:"KẾT QUẢ ĐẤU GIÁ",
+      property:"THANH TOÁN TIỀN THUÊ", station:"THANH TOÁN TIỀN THUÊ",
+      utility:"THANH TOÁN TIỀN THUÊ", tax:"THUẾ & PHÍ",
+      chance:"THẺ CƠ HỘI", fortune:"THẺ KHÍ VẬN", jail:"NHÀ TÙ",
+      start:"TIỀN THƯỞNG XUẤT PHÁT", build:"NÂNG CẤP TÀI SẢN",
+      sellHouse:"BÁN CÔNG TRÌNH", mortgage:"CẦM CỐ TÀI SẢN",
+      redeem:"GIẢI CHẤP TÀI SẢN", bankruptcy:"KẾT THÚC VÁN ĐẤU"
+    };
+    $("dealKicker").textContent = labelMap[e?.kind] || "BIÊN NHẬN GIAO DỊCH";
+    $("dealTitle").textContent = space?.name || (e?.kind === "chance" ? "Thẻ Cơ hội" : e?.kind === "fortune" ? "Thẻ Khí vận" : "Kết quả lượt chơi");
+    $("dealGroup").textContent = nameOf(e?.uid) + " · Lượt " + (Number(e?.turn) || Number(roomState.turnNumber) || 1);
+    const actorDelta = Number(e?.deltas?.[e?.uid] || 0);
+    $("dealPriceLabel").textContent = e?.kind === "buy" ? "GIÁ ĐÃ MUA" :
+      e?.kind === "property" || e?.kind === "station" || e?.kind === "utility" ? (actorDelta < 0 ? "TIỀN THUÊ ĐÃ TRẢ" : "TIỀN THUÊ ĐÃ NHẬN") :
+      e?.kind === "tax" ? "KHOẢN ĐÃ NỘP" :
+      actorDelta ? "THAY ĐỔI SỐ DƯ" : "TRẠNG THÁI";
+    const buyAmount = Object.values(e?.deltas || {}).reduce((sum, value) => sum + Math.abs(Math.min(0, Number(value) || 0)), 0);
+    $("dealPrice").textContent = actorDelta ? money(Math.abs(actorDelta)) :
+      e?.kind === "buy" && buyAmount ? money(buyAmount) : "✓";
+  }
+
+  const rent = space && (space.type === "property" || space.type === "station" || space.type === "utility")
+    ? (owner && ownerUid !== uid ? rentForRoom(roomState, index, Number(roomState.lastRoll?.reduce((a,b)=>a+Number(b||0),0) || 7))?.rent :
+      space.type === "property" ? space.rent : space.type === "station" ? 40 : "Theo xúc xắc")
+    : null;
+  $("dealRent").textContent = rent === null || rent === undefined ? "—" :
+    typeof rent === "number" ? money(rent) : rent;
+
+  const facts = [];
+  if (space?.group) facts.push(["NHÓM MÀU", space.group]);
+  if (space?.houseCost) facts.push(["CHI PHÍ XÂY NHÀ", money(space.houseCost)]);
+  if (space?.type === "station") facts.push(["TIỀN THUÊ", "Tăng theo số bến sở hữu"]);
+  if (space?.type === "utility") facts.push(["CÁCH TÍNH THUÊ", "Theo điểm xúc xắc"]);
+  if (owner) facts.push(["CHỦ SỞ HỮU", owner.name]);
+  if (houses > 0) facts.push(["CÔNG TRÌNH", houses === 5 ? "Khách sạn" : houses + " căn nhà"]);
+  if (mortgage > 0) facts.push(["TÌNH TRẠNG", "Đang cầm cố"]);
+  if (isAuction && auction.highestUid) facts.push(["NGƯỜI DẪN GIÁ", nameOf(auction.highestUid)]);
+  if (isDebt && debt.creditorUid) facts.push(["CHỦ NỢ", nameOf(debt.creditorUid)]);
+  $("dealFacts").innerHTML = facts.map(([label, value]) =>
+    "<span><small>" + escapeHtml(label) + "</small><b>" + escapeHtml(value) + "</b></span>").join("");
+
+  // The receipt lists actual cash movements; live balances remain in each player's rail card.
+  const moneyList = $("epMoney");
+  moneyList.innerHTML = "";
+  $("epBalances").textContent = Object.entries(players).map(([id, p]) =>
+    escapeHtml(p.name) + ": " + money(p.cash)).join(" · ");
   if (e?.deltas) {
-    const rows = Object.entries(e.deltas).filter(([, d]) => Number(d) !== 0);
-    money$.innerHTML = rows.map(([id, d]) => {
-      const cls = d > 0 ? "gain" : "loss";
-      const why = eventReason(e, id, d);
-      return `<li class="${cls === "loss" ? "loss" : ""}"><span>${escapeHtml(nameOf(id))}${why ? ` <small>· ${escapeHtml(why)}</small>` : ""}</span><b class="${cls}">${d > 0 ? "+" : "−"}${money(Math.abs(d))}</b></li>`;
+    moneyList.innerHTML = Object.entries(e.deltas).filter(([, delta]) => Number(delta) !== 0).map(([id, delta]) => {
+      const positive = Number(delta) > 0;
+      const reason = eventReason(e, id, delta);
+      return '<li class="' + (positive ? "gain" : "loss") + '"><span>' + escapeHtml(nameOf(id)) +
+        (reason ? "<small>" + escapeHtml(reason) + "</small>" : "") +
+        '</span><b>' + (positive ? "+" : "−") + money(Math.abs(delta)) + "</b></li>";
     }).join("");
-    const payer = rows.find(([, d]) => d < 0), receiver = rows.find(([, d]) => d > 0);
-    if (payer && receiver && (e.kind === "property" || e.kind === "station" || e.kind === "utility" || e.kind === "chance" || e.kind === "fortune") && payer[0] !== receiver[0]) {
-      const amount = Math.min(Math.abs(payer[1]), receiver[1]);
-      money$.insertAdjacentHTML("beforeend", `<li class="ep-flow-row"><span class="ep-flow">💸 ${escapeHtml(nameOf(payer[0]))} trả cho ${escapeHtml(nameOf(receiver[0]))} ${money(amount)}</span></li>`);
-    }
   }
-  if (e) {
-    bal.innerHTML = Object.entries(players).map(([id, p]) => `<span style="--pc:${safeColor(p.color)}">${escapeHtml(p.name)}: ${money(p.cash)}</span>`).join("");
-  }
-  // Không đặt nút kết thúc lượt trong Event Panel. Người đang chơi dùng nút lớn "Tiếp tục" ở đáy màn hình.
+
+  const confirmRow = $("epConfirmRow");
+  confirmRow.innerHTML = "";
   const playing = roomState.status === "playing" && getPlayerEntries(roomState).length === 2;
-  const resolved = !roomState.pending && !roomState.auction && !roomState.debt;
+  const resolved = !pending && !auction && !debt;
   const addButton = (cls, text, handler, attrs = {}) => {
-    const b = document.createElement("button");
-    b.className = cls; b.type = "button"; b.textContent = text;
-    Object.entries(attrs).forEach(([k, v]) => b.setAttribute(k, v));
-    b.addEventListener("click", handler);
-    confirmRow.append(b);
-    return b;
+    const button = document.createElement("button");
+    button.className = cls;
+    button.type = "button";
+    button.textContent = text;
+    Object.entries(attrs).forEach(([key, value]) => button.setAttribute(key, value));
+    button.addEventListener("click", handler);
+    confirmRow.append(button);
+    return button;
   };
-  if (roomState.debt?.uid === uid && playing) {
-    addButton("secondary-button", "📋 Mở Sổ đất", () => { $("propsModal").hidden = false; });
-    if (canDeclareBankruptcy(roomState, uid)) addButton("danger-button", "🏳️ Phá sản", () => declareBankruptcy(), { id: "bankruptButton" });
+
+  if (debt?.uid === uid && playing) {
+    addButton("secondary-button", "MỞ SỔ TÀI SẢN", () => { $("propsModal").hidden = false; });
+    if (canDeclareBankruptcy(roomState, uid)) addButton("danger-button", "TUYÊN BỐ PHÁ SẢN", () => declareBankruptcy(), { id: "bankruptButton" });
   } else if (playing && e && roomState.turnUid !== uid && resolved) {
     const note = document.createElement("div");
-    note.className = "ep-wait";
-    note.textContent = computerGame ? "Máy đang chơi…" : "Đang chờ " + nameOf(roomState.turnUid) + " tiếp tục lượt…";
+    note.className = "deal-wait";
+    note.textContent = computerGame ? "Đối thủ máy đang suy nghĩ…" : "Đang chờ " + nameOf(roomState.turnUid) + " xác nhận lượt…";
     confirmRow.append(note);
   }
+
+  $("actionMessage").textContent = $("actionMessage").textContent || roomState.message || "";
 }
 function renderHistory() {
   const players = roomState?.players || {};
@@ -1244,7 +1331,7 @@ function renderRoom() {
   renderBoard();
   renderProperties();
   renderActions();
-  renderEventPanel();
+  renderDealCard();
   restoreCameraAfterReload();
 }
 
@@ -1851,7 +1938,7 @@ function startComputerGame() {
   holdTimer = null;
   cameraRestored = false;
   epSeenId = 0;
-  epMinimized = false;
+  
   eventHoldUntil = 0;
   const humanUid = getPlayerId();
   currentUser = {uid:humanUid};
@@ -2023,8 +2110,9 @@ camera = createCamera({
 $("camOverviewButton").addEventListener("click", () => camera.manualOverview());
 window.addEventListener("resize", () => camera.invalidate());
 window.addEventListener("orientationchange", () => camera.invalidate());
-$("epMinButton").addEventListener("click", () => { epMinimized = !epMinimized; renderEventPanel(); });
-$("epHistoryButton").addEventListener("click", () => { renderHistory(); $("historyModal").hidden = false; });
+
+$("dealHistoryButton").addEventListener("click", () => { renderHistory(); $("historyModal").hidden = false; });
+$("dealCloseButton").addEventListener("click", () => { const event = currentTurnEvent(roomState); if (event) dealDismissedId = event.id; $("dealCard").hidden = true; });
 $("historyClose").addEventListener("click", () => { $("historyModal").hidden = true; });
 $("historyModal").addEventListener("click", (event) => { if (event.target === $("historyModal")) $("historyModal").hidden = true; });
 $("cellInfo").addEventListener("click", (event) => { if (event.target.closest(".cell-info-close")) $("cellInfo").classList.remove("show"); });
