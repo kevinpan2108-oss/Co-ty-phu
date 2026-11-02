@@ -957,7 +957,7 @@ const DICE_MS = 1200;
 const HOP_MS = 190;
 
 function tokensHtml(index) {
-  const event = currentTurnEvent(roomState);
+  const event = currentTurnEvent(roomState) || (Date.now() < eventDisplayUntil ? roomState?.event : null);
   const showEvent = !!event && Date.now() < eventDisplayUntil;
   return getPlayerEntries(roomState)
     .filter(([uid, p]) => (displayPos[uid] ?? Number(p.position)) === index)
@@ -1253,7 +1253,7 @@ let autoAdvanceKey = "";
 function renderEventPanel() {
   const panel = $("eventPanel");
   if (!panel || !roomState || !currentUser) return;
-  const e = currentTurnEvent(roomState);
+  const e = currentTurnEvent(roomState) || (Date.now() < eventDisplayUntil ? roomState.event : null);
   const holding = Date.now() < eventHoldUntil;
   const eventVisible = Date.now() < eventDisplayUntil;
   const moving = holding && (diceAnimating || movingUid !== null || Object.keys(moveTimers).length > 0);
