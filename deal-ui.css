@@ -650,3 +650,19 @@
   #gameView .deal-rent-row b { font-size:8px; }
   #gameView .deal-build-cost { margin:0 9px 7px; padding:6px 7px; font-size:8px; }
 }
+
+
+/* Longer property deeds can scroll internally without covering board controls. */
+#gameView .deal-card {
+  overflow-x:hidden;
+  overflow-y:auto;
+  overscroll-behavior:contain;
+  scrollbar-width:thin;
+  scrollbar-color:rgba(38,58,87,.35) transparent;
+}
+#gameView .deal-card::-webkit-scrollbar { width:5px; }
+#gameView .deal-card::-webkit-scrollbar-thumb {
+  border-radius:99px;
+  background:rgba(38,58,87,.3);
+}
+#gameView .deal-card::-webkit-scrollbar-track { background:transparent; }
