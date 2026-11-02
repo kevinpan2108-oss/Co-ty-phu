@@ -533,3 +533,26 @@
   #gameView .hud-button,
   #gameView .event-panel { transition: none; }
 }
+
+
+/* Keep purchase / auction buttons compact like Marmalade's contextual action cards. */
+#gameView .event-panel .pending-actions button{
+  flex:0 1 100px;
+  width:clamp(82px,10cqw,100px);
+  min-width:0!important;
+  max-width:100px;
+  height:34px;
+  min-height:32px;
+  max-height:36px;
+  padding:4px 6px;
+  font-size:11px;
+  line-height:1.1;
+}
+#gameView .ep-confirm-row button{
+  flex:1 1 90px;
+  width:auto;
+  max-width:none;
+  min-height:34px;
+  height:auto;
+  padding:6px 8px;
+}
