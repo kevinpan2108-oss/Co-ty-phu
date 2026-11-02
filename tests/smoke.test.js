@@ -4,6 +4,7 @@ import { readFile } from "node:fs/promises";
 
 const app = await readFile(new URL("../app.js", import.meta.url), "utf8");
 const html = await readFile(new URL("../index.html", import.meta.url), "utf8");
+const css = await readFile(new URL("../style.css", import.meta.url), "utf8");
 const rulesText = await readFile(new URL("../firebase-database.rules.json", import.meta.url), "utf8");
 const rules = JSON.parse(rulesText);
 
@@ -72,3 +73,21 @@ test("lobby exposes a local computer opponent mode", () => {
   assert.ok(app.includes("function updateCurrentRoom("));
 });
 
+
+
+test("3D landmark models are removed from board spaces", () => {
+  assert.ok(!app.includes("specialSpaceModelMarkup"));
+  assert.ok(!app.includes("space-model"));
+});
+
+test("event panel display duration is shortened without removing required actions", () => {
+  assert.match(app, /const EVENT_DISPLAY_MS = 4500/);
+  assert.match(app, /const displayMs = EVENT_DISPLAY_MS/);
+  assert.match(app, /pendingForMe \|\| auctionInProgress \|\| debtForMe/);
+});
+
+test("event panel and player HUD use compact layout sizing", () => {
+  assert.match(css, /#gameView \.event-panel\{[\s\S]*?width:min\(46cqw,430px\)/);
+  assert.match(css, /#gameView \.player-card\{[\s\S]*?width:min\(29cqw,220px\)/);
+  assert.match(css, /#gameView \.player-avatar\{[\s\S]*?width:clamp\(28px,7cqh,38px\)/);
+});
