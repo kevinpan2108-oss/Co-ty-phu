@@ -8,7 +8,7 @@
 - 22 bất động sản được chia thành 8 nhóm màu theo cấu trúc 2–3–3–3–3–3–3–2; không còn chia nhóm xây nhà theo 13 tỉnh.
 - Đã có đấu giá mọi tài sản chưa có chủ, luật tung đôi, 3 đôi liên tiếp vào tù, 3 cách ra tù, xây/bán nhà, cầm cố/giải chấp và phá sản.
 - Event Panel có lịch sử, hiển thị tiền cộng/trừ và số dư; camera theo token, focus ô đích và có nút quay lại toàn cảnh. Camera là trạng thái cục bộ từng thiết bị, không ghi vào Firebase.
-- CI mới nhất trên nhánh follow-up: **147/147 unit/smoke đạt** và **83/83 E2E đạt** (workflow run #181, 02/11/2026). E2E kiểm tra camera focus/overview, Event Panel/lịch sử và nhật ký mua, xây/bán nhà, cầm cố/giải chấp.
+- CI mới nhất trên nhánh follow-up: **147/147 unit/smoke đạt** và **84/84 E2E đạt** (workflow run #185, 02/11/2026). E2E kiểm tra camera focus/overview, Event Panel/lịch sử và nhật ký mua, xây/bán nhà, cầm cố/giải chấp.
 - Chưa xác nhận Firebase production trên hai điện thoại thật; E2E hiện dùng Firebase giả lập.
 
 
@@ -41,7 +41,7 @@ Không có tài khoản/mật khẩu, chat, thanh toán, quảng cáo hoặc gia
 - `npm run check`: đạt.
 - `npm test`: lần CI trước phần camera/Event Panel đạt **138/138**.
 - `npm run test:e2e`: lần CI trước đạt **74/74** ở GitHub Actions (hai trình duyệt Chromium + Firebase giả lập).
-- E2E bao gồm tạo/tham gia phòng, từ chối người thứ ba, đồng bộ xúc xắc và tài sản, camera focus ô đích/overview, Event Panel và lịch sử giao dịch, đấu giá, xây/bán nhà, cầm cố/giải chấp, chế độ chơi với máy, và viewport 390px/360px.
+- E2E bao gồm tạo/tham gia phòng, từ chối người thứ ba, đồng bộ xúc xắc và tài sản, camera focus ô đích/overview trên cả hai thiết bị, Event Panel và lịch sử giao dịch, đấu giá, xây/bán nhà, cầm cố/giải chấp, chế độ chơi với máy, và viewport 390px/360px.
 - Chưa phải kiểm thử Firebase Emulator hay hai điện thoại thật.
 - E2E đã phát hiện và sửa lỗi focus/scroll khi chuyển từ sảnh sang bàn cờ: nút xúc xắc từng bị nằm phía trên viewport trên Android 360px. `showGameView()` trong `app.js` làm mờ nút sảnh đang focus và đưa trang về đầu trước khi hiển thị game.
 
