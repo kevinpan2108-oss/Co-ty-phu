@@ -48,7 +48,7 @@ npm run test:e2e
 ```
 
 - Unit/smoke tests kiểm tra dữ liệu 40 ô, 13 tỉnh, tiền thuê, chiến lược máy, và mô phỏng Rules.
-- E2E mở hai trình duyệt Chromium độc lập để kiểm tra luồng online giả lập, hiệu ứng, giao diện 390px/360px và chế độ chơi với máy; bộ test cần kiểm tra camera focus và Event Panel.
+- E2E mở hai trình duyệt Chromium độc lập để kiểm tra luồng online giả lập, camera focus/overview, Event Panel/lịch sử, giao dịch tài sản, chế độ chơi với máy và giao diện 390px/360px.
 - Bộ mô phỏng Rules không thay thế Firebase Emulator / Rules Playground. Chưa thể thay thế bước thử trực tiếp trên hai thiết bị với Firebase thật.
 
 ## Nhánh và phát hành
