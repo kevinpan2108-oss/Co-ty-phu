@@ -1118,22 +1118,15 @@ function planCameraRoute(from, to, steps, diceDelay) {
   const distance = Number.isInteger(steps) ? steps : (to - from + 40) % 40;
   const hops = !reduceMotion && distance >= 1 && distance <= 12 && (from + distance) % 40 === to;
   const seq = camera.beginSequence();
-  const returnToOverview = () => {
-    camera.later(() => {
-      if (camera.isCurrent(seq)) camera.overview(CAMERA.zoomOutMs);
-    }, CAMERA.focusHoldMs);
-  };
 
   if (!hops) {
-    // Dịch chuyển đặc biệt: cắt tới ô đích, giữ cận cảnh rồi trả camera về toàn bàn.
+    // Dịch chuyển đặc biệt (ví dụ vào tù): focus ô đích và giữ khung hình
+    // cho tới khi người chơi xác nhận chuyển lượt.
     return {
       follow: false,
       teleport: (delay) => {
-        camera.later(() => {
-          camera.focus(to, { seq });
-          returnToOverview();
-        }, delay);
-        return CAMERA.focusMs + CAMERA.focusHoldMs;
+        camera.later(() => camera.focus(to, { seq }), delay);
+        return CAMERA.focusMs;
       }
     };
   }
@@ -1149,10 +1142,7 @@ function planCameraRoute(from, to, steps, diceDelay) {
         ms: CAMERA.stepMs,
         ease: "cubic-bezier(.22,.78,.25,1)"
       }),
-      land: (cell) => {
-        camera.focus(cell, { seq });
-        returnToOverview();
-      }
+      land: (cell) => camera.focus(cell, { seq })
     }
   };
 }
