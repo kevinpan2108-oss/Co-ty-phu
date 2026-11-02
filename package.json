@@ -1,0 +1,11 @@
+{
+  "name": "co-ty-phu-online",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "check": "node --check app.js",
+    "test": "node --test",
+    "test:e2e": "node tests/e2e/two-player.cjs"
+  }
+}
