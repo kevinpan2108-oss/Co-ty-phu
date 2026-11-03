@@ -1188,15 +1188,15 @@ function deedHtml(index, banner) {
   const space = SPACE_DATA[index];
   if (!space || !space.price) return "";
   const row = (k, v, hl) => `<div class="deed-row${hl ? " hl" : ""}"><span>${k}</span><b>${v}</b></div>`;
-  let rows = row("Giá mua", money(space.price), true) + row("Giá cầm cố", money(mortgageValue(space)));
+  let rows = row("Giá mua", money(space.price), true) + row("Cầm cố", money(mortgageValue(space)));
   if (space.type === "property") {
-    rows += row("Tiền thuê", money(space.rent)) + row("Thuê trọn nhóm màu", money(space.rent * 2));
-    HOUSE_RENT_MULTIPLIERS.forEach((m, i) => { rows += row(i < 4 ? `Thuê với ${i + 1} nhà` : "Thuê với khách sạn", money(space.rent * m)); });
-    rows += row("Giá xây mỗi nhà", money(getHouseCost(SPACE_DATA, index)));
+    rows += row("Thuê", money(space.rent)) + row("Cả nhóm màu", money(space.rent * 2));
+    HOUSE_RENT_MULTIPLIERS.forEach((m, i) => { rows += row(i < 4 ? `Với ${i + 1} nhà` : "Khách sạn", money(space.rent * m)); });
+    rows += row("Xây mỗi nhà", money(getHouseCost(SPACE_DATA, index)));
   } else if (space.type === "station") {
-    rows += [1, 2, 3, 4].map((n) => row(`Thuê khi có ${n} bến`, money(40 * 2 ** (n - 1)))).join("");
+    rows += [1, 2, 3, 4].map((n) => row(`Có ${n} bến`, money(40 * 2 ** (n - 1)))).join("");
   } else if (space.type === "utility") {
-    rows += row("Có 1 công ty", "4 × điểm xúc xắc") + row("Có cả 2 công ty", "10 × điểm xúc xắc");
+    rows += row("Có 1 công ty", "4× xúc xắc") + row("Có 2 công ty", "10× xúc xắc");
   }
   const bg = space.color || "#9b8067";
   return `${banner ? `<div class="deed-banner">${escapeHtml(banner)}</div>` : ""}<div class="deed">
