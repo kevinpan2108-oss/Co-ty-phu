@@ -983,3 +983,9 @@ body:has(#gameView:not(.hidden)){overflow:hidden}
 #gameView .die[data-v="1"] i:nth-child(5),#gameView .die[data-v="4"] i:nth-child(1){background:#1a1a1a}
 #gameView .cube .die[data-v="1"] i:nth-child(5){background:#1a1a1a}
 #gameView .dice-total{background:#fff;color:#222;border:0;box-shadow:0 2px 6px rgba(0,0,0,.35)}
+#gameView .event-panel:has(.ep-deed .deed) .ep-title,#gameView .event-panel:has(.ep-deed .deed) .ep-icon-btn{display:none}
+#gameView .event-panel:has(.ep-deed .deed) .ep-head{padding:0;min-height:0}
+#gameView .event-panel .deed-bubble{top:-30px;right:6px}
+#gameView .event-panel .deed-mascot{right:-34px;bottom:-14px}
+#gameView .ep-body{padding:10px 12px 12px}
+#gameView .event-panel .ep-balances{margin-right:34px}

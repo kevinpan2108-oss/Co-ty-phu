@@ -7,7 +7,7 @@ Web game tiếng Việt với bàn cờ lấy cảm hứng từ Đồng bằng s
 
 ## Nội dung và giao diện
 
-- Bàn cờ 40 ô với địa danh thuộc đủ 13 tỉnh/thành ĐBSCL trong bộ dữ liệu game.
+- Bàn cờ 40 ô với địa danh đủ 13 tỉnh/thành ĐBSCL, chia thành đúng 8 nhóm màu (2-3-3-3-3-3-3-2 ô) theo cấu trúc Monopoly; giá mua, tiền thuê, giá xây theo thang Monopoly.
 - 22 ô bất động sản, chia nhóm theo tỉnh; sở hữu toàn bộ ô của một tỉnh sẽ được nhân đôi tiền thuê.
 - Khung thông tin ô: tên địa danh, giới thiệu, giá mua, tiền thuê và thưởng sở hữu trọn tỉnh.
 - Phong cách miền Tây sông nước, cảnh hoàng hôn, khung bàn cờ và bảng màu riêng.
@@ -45,7 +45,7 @@ npx playwright install chromium
 npm run test:e2e
 ```
 
-- Unit/smoke tests kiểm tra dữ liệu 40 ô, 13 tỉnh, tiền thuê, chiến lược máy, và mô phỏng Rules.
+- Unit/smoke tests kiểm tra dữ liệu 40 ô, 8 nhóm màu, tiền thuê/xây nhà, tung đôi, tù, đấu giá, nợ/phá sản, camera và mô phỏng Rules.
 - E2E mở hai trình duyệt Chromium độc lập để kiểm tra luồng online giả lập, hiệu ứng, giao diện 390px/360px và chế độ chơi với máy.
 - Bộ mô phỏng Rules không thay thế Firebase Emulator / Rules Playground. Chưa thể thay thế bước thử trực tiếp trên hai thiết bị với Firebase thật.
 
@@ -62,3 +62,15 @@ npm run test:e2e
 - HTML, CSS, JavaScript ES Modules
 - Firebase Realtime Database (chế độ online)
 - GitHub Actions, Node.js tests và Playwright E2E
+
+
+## Luật chơi (bản hiện tại)
+- Bỏ qua quyền mua thì **mọi** tài sản chưa có chủ (đất, bến, công ty điện/nước) được đấu giá giữa hai người, bước giá 100.000₫.
+- Tung hai xúc xắc giống nhau (đôi) được tung thêm; đôi lần thứ ba liên tiếp vào tù ngay, không di chuyển.
+- Trong tù có ba lựa chọn: nộp 500.000₫, dùng thẻ miễn tù, hoặc thử tung đôi (tối đa 3 lần; lần thứ ba không ra đôi phải nộp phạt rồi đi). Ra tù bằng đôi thì không được tung thêm. Đứng ở ô "Thăm tù" khi chưa bị giam chỉ là ghé thăm.
+- Không còn tự động kết thúc lượt: người chơi đọc Bảng sự kiện rồi bấm **Đã xem** để qua lượt (hoặc tung thêm nếu được đôi).
+
+## Giao diện kiểu Monopoly mobile
+- Toàn cảnh bàn cờ nhìn thẳng từ trên xuống; chữ trên ô xoay theo từng cạnh. Thẻ người chơi dọc bên phải, thanh trạng thái tím phía dưới, thẻ địa danh "Đang bán" kèm nhân vật Bác Ba (nhân vật gốc của dự án).
+- **Camera theo quân cờ** (`camera.js`): tung xúc xắc giữ toàn cảnh → zoom + nghiêng và đi theo từng ô → focus nhẹ tại ô đích → giữ nguyên cho tới khi qua lượt → zoom ra toàn cảnh. Camera chỉ là CSS transform cục bộ, không ghi gì lên Firebase; nút 🔭 để về toàn cảnh bất cứ lúc nào; tắt khi hệ thống bật "giảm chuyển động".
+- **Bảng sự kiện** (`#eventPanel`): tên ô, nội dung, tiền cộng/trừ + lý do, người trả/nhận, số dư, lựa chọn mua/bỏ qua/đấu giá, nút Đã xem; lịch sử 20 sự kiện gần nhất (📜) đồng bộ qua `room.event` / `room.log`.

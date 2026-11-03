@@ -82,3 +82,15 @@ npm run test:e2e
 - Khi bỏ mua bến phà (station) hoặc công ty điện/nước (utility), mở đấu giá hai người: mỗi lượt tăng 100.000₫ hoặc bỏ lượt; ai cao nhất thắng, cả hai bỏ thì tài sản để trống. Máy Miền Tây cũng tự trả giá theo giới hạn ngân sách.
 - firebase-database.rules.json bổ sung kiểm tra cấu trúc auction; dữ liệu phòng cũ không có trường auction vẫn tương thích.
 - Query cache CSS/JS: auction1.
+
+
+## Cập nhật: nhánh feat/monopoly-rules-camera (luật Monopoly + camera + Event Panel + giao diện kiểu Marmalade)
+**Phải làm thủ công:** Publish lại `firebase-database.rules.json` trong Firebase Console (có trường mới: `doublesCount`, `extraRoll`, `eventSeq`, `event`, `log`, auction cho mọi tài sản). Phòng cũ vẫn tương thích (trường mới đều tùy chọn).
+- Dữ liệu: `SPACE_DATA` giữ nguyên 40 chỉ số ô, nhưng `group/color/rent/houseCost` được chia lại thành 8 nhóm (ô 1,3 | 6,8,9 | 11,13,14 | 16,18,19 | 21,23,24 | 26,27,29 | 31,32,34 | 37,39). Không cần migration phòng.
+- `economy.js`: thêm `doublesOutcome`, `jailRollOutcome`, `jailStatus`, `isAuctionable`, `cashSnapshot/cashDeltas`, `appendEventLog`. App: `rollDice`, `rollInJail`, `leaveJail`, `resolveLanding`, `sendToJail`, `recordEvent`.
+- Trạng thái phòng mới: `doublesCount` (0-2), `extraRoll`, `event` (sự kiện của lượt hiện tại), `log` (≤20), `eventSeq`. `endTurn()` do người chơi bấm **Đã xem**; máy tự bấm sau ~1,8 giây. Đã bỏ `scheduleAutoEnd`.
+- `camera.js`: `solveCamera` (thuần túy, có unit test), `createCamera`. Camera áp transform lên `.board-wrap` và đặt `--rx` (độ nghiêng) cho `.board`; đo toạ độ ô bằng `getBoundingClientRect` ở từng độ nghiêng rồi cache (`premeasure` khi vào ván, `invalidate` khi đổi cỡ). Mỗi hành trình có `seq` — hành trình mới nhất luôn thắng. Dữ liệu camera chỉ nằm trên `#stage[data-camera]`.
+- Giao diện: khối CSS cuối `style.css` ("Giao diện kiểu Monopoly mobile"). Ô cờ có `.sp-face` xoay theo cạnh. `?v=` hiện là `mm2`.
+- Lỗi phát hiện khi làm: người chơi thật trước đây không có nút Phá sản (chỉ máy gọi `declareBankruptcy`) — đã thêm vào Bảng sự kiện khi hết khả năng thanh lý.
+- Kiểm thử đã chạy: `npm run check`, `npm test`, `npm run test:e2e` (Playwright, Firebase giả + Rules mô phỏng). **Chưa** kiểm thử hai điện thoại thật với Firebase thật, chưa chạy Firebase Emulator; cần làm trước khi phát hành.
+- Chưa làm: rời phòng giữa ván vẫn chỉ thoát cục bộ (đối thủ không được báo); nhân vật/âm thanh ngoài phần đã mô tả.

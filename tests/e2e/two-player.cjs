@@ -236,6 +236,7 @@ let rules;
     store.rooms[code].players[store.rooms[code].creatorUid].position === 3,
     JSON.stringify(exactMove));
   check("A thấy nút Mua 600.000₫; B không thấy", /Mua 600\.000₫/.test(await text(pa.page, "#pendingActions")) && (await pb.page.locator("#pendingActions button").count()) === 0);
+  if (OUT) { await pa.page.waitForTimeout(700); await pa.page.screenshot({ path: `${OUT}/deed-focus.png` }); }
   const buyBoxes = await pa.page.locator("#pendingActions button").evaluateAll((els) => els.map((el) => { const r = el.getBoundingClientRect(); return [Math.round(r.width), Math.round(r.height)]; }));
   check("hộp Mua/Bỏ qua đã gọn, không che mặt bàn", buyBoxes.length === 2 && buyBoxes.every(([w,h]) => w <= 105 && h <= 38), JSON.stringify(buyBoxes));
   check("không còn nút Kết thúc lượt", (await pa.page.locator("#endTurnButton").count()) === 0);
@@ -497,6 +498,24 @@ let rules;
     check("hai di chuyển liên tiếp: camera kết thúc ở ô đích mới nhất, không kẹt", fin.mode === "focus" && fin.tokenIn && fin.moving === 0, JSON.stringify(fin));
     await pa.page.click("#camOverviewButton");
     await pa.page.waitForTimeout(1100);
+  }
+  // ===== Tải lại trang giữa lúc đang xử lý sự kiện: camera quay lại ô đang xử lý, không phát lại hành trình =====
+  {
+    const r = store.rooms[code]; const uid = r.creatorUid; const turn = Number(r.turnNumber || 1);
+    const at = Number(r.players[uid].position);
+    store.rooms[code] = { ...r, status: "playing", debt: null, pending: null, auction: null, turnUid: uid, lastRoll: [3, 4],
+      eventSeq: 2000, event: { id: 2000, uid, kind: "info", text: "Sự kiện chờ xác nhận sau khi tải lại", turn, index: at, cash: { [uid]: 1 }, at: Date.now() } };
+    await pa.page.setViewportSize({ width: 1280, height: 900 });
+    await pa.page.reload();
+    await pa.page.waitForSelector("#gameView:not(.hidden)", { timeout: 15000 });
+    const restored = await pa.page.waitForFunction(() => document.getElementById("stage").dataset.camera === "focus", null, { timeout: 8000, polling: 50 }).then(() => true).catch(() => false);
+    check("tải lại trang giữa sự kiện: camera focus lại ô đang xử lý", restored);
+    check("tải lại trang: không lặp hành trình cũ (không có quân đang nhảy)", (await pa.page.locator(".token.moving").count()) === 0);
+    await pa.page.click("#camOverviewButton");
+    await pa.page.waitForTimeout(900);
+    store.rooms[code] = { ...store.rooms[code], turnNumber: turn + 1, lastRoll: null };
+    await pa.page.waitForTimeout(600);
+    check("sau khi tải lại vẫn qua lượt bình thường, camera ở toàn cảnh", (await stageState(pa.page)).mode === "overview");
   }
   if (OUT) {
     await pa.page.screenshot({ path: `${OUT}/desktop-game.png` });
