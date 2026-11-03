@@ -980,8 +980,7 @@ body:has(#gameView:not(.hidden)){overflow:hidden}
 #gameView .dice-stage.show:before{display:none}
 #gameView .cube .die.face{background:#fff;border:0;border-radius:18%;box-shadow:inset 0 -4px 0 rgba(0,0,0,.08),inset 0 0 0 1px rgba(0,0,0,.08)}
 #gameView .cube .die i{background:transparent}
-#gameView .die[data-v="1"] i:nth-child(5),#gameView .die[data-v="4"] i:nth-child(1){background:#1a1a1a}
-#gameView .cube .die[data-v="1"] i:nth-child(5){background:#1a1a1a}
+#gameView .cube .die[data-v="1"] i:nth-child(5),#gameView .cube .die[data-v="2"] i:nth-child(1),#gameView .cube .die[data-v="2"] i:nth-child(9),#gameView .cube .die[data-v="3"] i:nth-child(1),#gameView .cube .die[data-v="3"] i:nth-child(5),#gameView .cube .die[data-v="3"] i:nth-child(9),#gameView .cube .die[data-v="4"] i:nth-child(1),#gameView .cube .die[data-v="4"] i:nth-child(3),#gameView .cube .die[data-v="4"] i:nth-child(7),#gameView .cube .die[data-v="4"] i:nth-child(9),#gameView .cube .die[data-v="5"] i:nth-child(1),#gameView .cube .die[data-v="5"] i:nth-child(3),#gameView .cube .die[data-v="5"] i:nth-child(5),#gameView .cube .die[data-v="5"] i:nth-child(7),#gameView .cube .die[data-v="5"] i:nth-child(9),#gameView .cube .die[data-v="6"] i:nth-child(1),#gameView .cube .die[data-v="6"] i:nth-child(3),#gameView .cube .die[data-v="6"] i:nth-child(4),#gameView .cube .die[data-v="6"] i:nth-child(6),#gameView .cube .die[data-v="6"] i:nth-child(7),#gameView .cube .die[data-v="6"] i:nth-child(9){background:#1a1a1a}
 #gameView .dice-total{background:#fff;color:#222;border:0;box-shadow:0 2px 6px rgba(0,0,0,.35)}
 #gameView .event-panel:has(.ep-deed .deed) .ep-title,#gameView .event-panel:has(.ep-deed .deed) .ep-icon-btn{display:none}
 #gameView .event-panel:has(.ep-deed .deed) .ep-head{padding:0;min-height:0}
@@ -1023,3 +1022,7 @@ body:has(#gameView:not(.hidden)){overflow:hidden}
 /* Thanh trạng thái tím rộng, bo tròn */
 #gameView .status-bar{width:min(64cqw,640px)}
 #gameView .status-bar .action-message{background:linear-gradient(180deg,#6b2fa8,#522088);border-radius:.55em;font-weight:600;font-size:clamp(11px,3.6cqh,16px)}
+
+/* Nút tung xúc xắc nhỏ gọn */
+#gameView .roll-button{min-width:clamp(72px,14cqw,110px);min-height:clamp(30px,8.5cqh,38px);font-size:clamp(11px,3.3cqh,14px);padding:0 12px;box-shadow:0 3px 0 #4a1670,0 4px 6px rgba(0,0,0,.3)}
+#gameView .hud-roll{bottom:calc(clamp(34px,11cqh,46px) + 10px)}
