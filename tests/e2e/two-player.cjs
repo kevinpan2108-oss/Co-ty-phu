@@ -182,6 +182,7 @@ let rules;
   }));
   // Tung xúc xắc [1,2] → ô 3 (Đường Đồng Khởi, $60)
   await pa.page.evaluate(() => { const q = [0, 0.2]; Math.random = () => (q.length ? q.shift() : 0.5); });
+  const cellOverviewBefore = await pb.page.evaluate(() => { const r = document.querySelector(".space[data-index='3']").getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; });
   await pa.page.click("#rollButton");
   const sawRolling = await pb.page.waitForSelector("#diceResult.rolling", { timeout: 2000 }).then(() => true).catch(() => false);
   check("hiệu ứng: xúc xắc lăn hiện ở máy của đối thủ", sawRolling, sawRolling ? "" : await pa.page.evaluate(() => document.getElementById("gameNotice")?.textContent || ""));
@@ -194,9 +195,37 @@ let rules;
     return { burst: getComputedStyle(stage, "::before").display, border: face ? getComputedStyle(face).borderTopWidth : null };
   });
   check("xúc xắc không còn tia trắng hoặc viền trắng", diceStyle.burst === "none" && diceStyle.border === "0px", JSON.stringify(diceStyle));
+  // ===== Camera theo quân cờ (máy đối thủ B chỉ quan sát; camera không ghi gì lên Firebase) =====
+  const stageState = (page) => page.evaluate(() => { const st = document.getElementById("stage"); return { mode: st.dataset.camera || "", scale: Number(st.dataset.cameraScale || 1), tf: document.querySelector("#gameView .board-wrap").style.transform }; });
+  check("giai đoạn 1: đang tung xúc xắc thì camera giữ toàn cảnh", (await stageState(pb.page)).mode !== "follow");
+  const sawFollow = await pb.page.waitForFunction(() => { const st = document.getElementById("stage"); return st.dataset.camera === "follow" && Number(st.dataset.cameraScale) > 1.3; }, null, { timeout: 6000, polling: 20 }).then(() => true).catch(() => false);
+  check("giai đoạn 2: camera zoom vào và đi theo quân cờ ở máy đối thủ", sawFollow);
+  const insideStage = (page) => page.evaluate(() => {
+    const st = document.getElementById("stage").getBoundingClientRect();
+    return [...document.querySelectorAll(".token b")].every((b) => { const r = b.getBoundingClientRect(); return r.left >= st.left && r.right <= st.right && r.top >= st.top && r.bottom <= st.bottom; });
+  });
+  check("quân cờ luôn nằm trong màn hình khi camera đang theo", await insideStage(pb.page));
   const sawHop = await pb.page.waitForFunction(() => document.querySelector(".token.moving"), null, { timeout: 4000, polling: 20 }).then(() => true).catch(() => false);
   if (OUT) { await pb.page.screenshot({ path: `${OUT}/dice-live.png` }); await pb.page.evaluate(() => { const s = document.getElementById("diceStage"); s.className = "dice-stage show"; s.innerHTML = '<div class="dice-row"><span class="die" data-v="4">' + "<i></i>".repeat(9) + '</span><span class="die" data-v="6">' + "<i></i>".repeat(9) + '</span><b class="dice-total">10</b></div>'; });     await pb.page.waitForTimeout(100); await pb.page.screenshot({ path: `${OUT}/desktop-dice.png`, clip: { x: 280, y: 220, width: 720, height: 480 } }); console.log("stage@shot", await pb.page.evaluate(() => { const s = document.getElementById("diceStage"); const d = s.querySelector(".die"); const r = d && d.getBoundingClientRect(); return s.className + " " + JSON.stringify(r && [r.x, r.y, r.width, r.height].map(Math.round)); })); }
   check("hiệu ứng: quân cờ nhảy từng ô", sawHop, sawHop ? "" : await pb.page.evaluate(() => JSON.stringify({tokens: document.querySelectorAll(".token").length, pass: document.querySelectorAll(".space.pass,.space.land").length, ds: document.getElementById("diceStage")?.className})));
+  const sawFocus = await pb.page.waitForFunction(() => document.getElementById("stage").dataset.camera === "focus", null, { timeout: 6000, polling: 20 }).then(() => true).catch(() => false);
+  check("giai đoạn 3: tới ô đích camera dừng lại và focus", sawFocus);
+  await pb.page.waitForTimeout(900);
+  const focusInfo = await pb.page.evaluate(() => {
+    const st = document.getElementById("stage");
+    const sr = st.getBoundingClientRect();
+    const token = [...document.querySelectorAll(".space[data-index='3'] .token b")][0];
+    const tr = token?.getBoundingClientRect();
+    const pr = document.getElementById("eventPanel").getBoundingClientRect();
+    const hit = tr && !(tr.right < pr.left || tr.left > pr.right || tr.bottom < pr.top || tr.top > pr.bottom);
+    const cell = document.querySelector(".space[data-index='3']").getBoundingClientRect();
+    const cellHit = !(cell.right < pr.left || cell.left > pr.right || cell.bottom < pr.top || cell.top > pr.bottom);
+    return { mode: st.dataset.camera, scale: Number(st.dataset.cameraScale), tokenIn: !!tr && tr.left >= sr.left && tr.right <= sr.right && tr.top >= sr.top && tr.bottom <= sr.bottom, tokenUnderPanel: !!hit, cellUnderPanel: cellHit };
+  });
+  check("tại ô đích zoom nhẹ (1.5–2.2×), không zoom quá gần", focusInfo.scale >= 1.5 && focusInfo.scale <= 2.2, JSON.stringify(focusInfo));
+  check("giai đoạn 4: bảng sự kiện không che quân cờ hoặc ô đang focus", focusInfo.tokenIn && !focusInfo.tokenUnderPanel && !focusInfo.cellUnderPanel, JSON.stringify(focusInfo));
+  // Camera chỉ là phép biến đổi hiển thị: toạ độ gốc của ô không đổi.
+  check("camera không làm lệch quân cờ/ô cờ trong Firebase (vị trí vẫn là ô 3)", store.rooms[code].players[store.rooms[code].creatorUid].position === 3 && !JSON.stringify(store.rooms[code]).includes("camera"));
   await pa.page.waitForTimeout(1800);
   const faces = (page) => page.$$eval("#diceResult .die", (els) => els.map((e) => e.dataset.v).join(","));
   const diceA = await faces(pa.page), diceB = await faces(pb.page);
@@ -225,14 +254,19 @@ let rules;
     wrap:getComputedStyle(el).overflowWrap,
     width:el.getBoundingClientRect().width
   }));
-  check("tên ô cờ dùng bố cục tự co và giới hạn hai dòng", tileFit.clamp === "2" && tileFit.wrap === "anywhere" && tileFit.width > 0, JSON.stringify(tileFit));
+  check("tên ô cờ dùng bố cục tự co và giới hạn ba dòng", tileFit.clamp === "3" && tileFit.wrap === "anywhere" && tileFit.width > 0, JSON.stringify(tileFit));
   // Không tự chuyển lượt: sau 2,5 giây (> AUTO_END_MS cũ = 2 giây) lượt vẫn ở A cho tới khi A bấm "Đã xem".
   await pa.page.waitForSelector("#confirmEventButton", { timeout: 9000 });
   await pa.page.waitForTimeout(2500);
   check("không tự động chuyển lượt khi người chơi chưa xác nhận", /An/.test(await text(pa.page, "#turnName")) && (await pb.page.locator("#rollButton").isDisabled()) && (await pa.page.locator("#confirmEventButton").count()) === 1);
-  check("Bảng sự kiện nêu ô vừa đến, tiền trừ và số dư", /Chợ nổi Cái Bè|Làng nổi/.test(await text(pa.page, "#epTitle")) && /600\.000₫/.test(await text(pa.page, "#epMoney")) && /14\.400\.000₫/.test(await text(pa.page, "#epBalances")));
-  check("đối thủ cũng thấy bảng sự kiện và nút xác nhận chỉ hiện cho người có lượt", /Chợ nổi Cái Bè|Làng nổi/.test(await text(pb.page, "#epTitle")) && (await pb.page.locator("#confirmEventButton").count()) === 0);
+  check("Bảng sự kiện nêu ô vừa đến, tiền trừ và số dư", /Chợ nổi Cái Bè|Làng nổi/i.test(await text(pa.page, "#epTitle")) && /600\.000₫/.test(await text(pa.page, "#epMoney")) && /14\.400\.000₫/.test(await text(pa.page, "#epBalances")));
+  check("đối thủ cũng thấy bảng sự kiện và nút xác nhận chỉ hiện cho người có lượt", /Chợ nổi Cái Bè|Làng nổi/i.test(await text(pb.page, "#epTitle")) && (await pb.page.locator("#confirmEventButton").count()) === 0);
   await confirmTurn(pa);
+  await pb.page.waitForFunction(() => document.getElementById("stage").dataset.camera === "overview", null, { timeout: 4000, polling: 50 }).catch(() => {});
+  await pb.page.waitForTimeout(1200);
+  const cellBaseAfter = await pb.page.evaluate(() => { const r = document.querySelector(".space[data-index='3']").getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; });
+  check("giai đoạn 5: sang lượt mới camera trở về toàn cảnh (cả hai máy)", (await stageState(pb.page)).mode === "overview" && (await stageState(pb.page)).tf === "" && (await stageState(pa.page)).mode === "overview");
+  check("toạ độ ô cờ ở toàn cảnh không đổi sau khi zoom/nghiêng rồi trở về (≤ 3px)", Math.abs(cellOverviewBefore[0] - cellBaseAfter[0]) <= 3 && Math.abs(cellOverviewBefore[1] - cellBaseAfter[1]) <= 3, JSON.stringify([cellOverviewBefore, cellBaseAfter]));
   await pb.page.waitForFunction(() => document.querySelector("#rollButton")?.disabled === false, null, { timeout: 5000 }).catch(() => {});
   check("sau khi A xác nhận: quyền chuyển sang B", !(await pb.page.locator("#rollButton").isDisabled()) && (await pa.page.locator("#rollButton").isDisabled()) && /Bình/.test(await text(pa.page, "#turnName")));
 
@@ -420,6 +454,49 @@ let rules;
     const inputFont = await m.page.evaluate(() => getComputedStyle(document.getElementById("playerName")).fontSize);
     if (OUT) { await m.page.screenshot({ path: `${OUT}/mobile-${w}.png` }); await m.page.evaluate(() => document.getElementById("lobbyView").classList.remove("hidden")); }
     await m.context.close();
+  }
+  // ===== Camera trên điện thoại ngang / dọc (stage xoay 90°) và nút Toàn cảnh =====
+  for (const [label, vw, vh] of [["ngang 844x390", 844, 390], ["dọc 390x844 (xoay)", 390, 844], ["dọc 360x740 (xoay)", 360, 740], ["ngang 667x375", 667, 375]]) {
+    await pa.page.setViewportSize({ width: vw, height: vh });
+    await pa.page.waitForTimeout(500);
+    const r = store.rooms[code];
+    const uid = r.creatorUid;
+    const from = Number(r.players[uid].position);
+    const to = (from + 5) % 40;
+    const turn = Number(r.turnNumber || 1);
+    store.rooms[code] = { ...r, status: "playing", debt: null, pending: null, auction: null, turnUid: uid, lastRoll: [2, 3],
+      lastMove: { uid, from, to, steps: 5, dice: [2, 3], turnNumber: turn }, eventSeq: 900, 
+      event: { id: 900 + vw, uid, kind: "info", text: "Kiểm tra camera " + label, turn, index: to, cash: { [uid]: 1 }, at: Date.now() },
+      players: { ...r.players, [uid]: { ...r.players[uid], position: to } } };
+    const followed = await pa.page.waitForFunction(() => document.getElementById("stage").dataset.camera === "follow", null, { timeout: 8000, polling: 20 }).then(() => true).catch(() => false);
+    const focused = await pa.page.waitForFunction(() => document.getElementById("stage").dataset.camera === "focus", null, { timeout: 8000, polling: 20 }).then(() => true).catch(() => false);
+    await pa.page.waitForTimeout(800);
+    const info = await pa.page.evaluate((to) => {
+      const sr = document.getElementById("stage").getBoundingClientRect();
+      const tok = document.querySelector(`.space[data-index="${to}"] .token b`)?.getBoundingClientRect();
+      const wrapRect = document.getElementById("board").getBoundingClientRect();
+      return { tokenIn: !!tok && tok.left >= sr.left && tok.right <= sr.right && tok.top >= sr.top && tok.bottom <= sr.bottom, boardStillVisible: wrapRect.right > sr.left + 40 && wrapRect.left < sr.right - 40 && wrapRect.bottom > sr.top + 40 && wrapRect.top < sr.bottom - 40, scale: Number(document.getElementById("stage").dataset.cameraScale), btn: !document.getElementById("camOverviewButton").hidden };
+    }, to);
+    check(`camera ${label}: theo quân cờ rồi focus, quân cờ trong khung, bàn cờ không biến mất`, followed && focused && info.tokenIn && info.boardStillVisible && info.btn, JSON.stringify(info));
+    if (OUT) await pa.page.screenshot({ path: `${OUT}/camera-${vw}x${vh}.png` });
+    await pa.page.click("#camOverviewButton");
+    await pa.page.waitForTimeout(900);
+    const back = await pa.page.evaluate(() => ({ mode: document.getElementById("stage").dataset.camera, tf: document.querySelector("#gameView .board-wrap").style.transform, btnHidden: document.getElementById("camOverviewButton").hidden }));
+    check(`nút Toàn cảnh (${label}) đưa camera về toàn cảnh bất cứ lúc nào`, back.mode === "overview" && back.tf === "" && back.btnHidden, JSON.stringify(back));
+  }
+  // Hai thay đổi trạng thái đến sát nhau: hành trình mới nhất thắng, camera không kẹt.
+  {
+    const r = store.rooms[code]; const uid = r.creatorUid; const turn = Number(r.turnNumber || 1);
+    const p0 = Number(r.players[uid].position);
+    const hop = (n, id) => { const cur = store.rooms[code]; const f = Number(cur.players[uid].position); const t = (f + n) % 40; store.rooms[code] = { ...cur, lastRoll: [1, n - 1], lastMove: { uid, from: f, to: t, steps: n, dice: [1, n - 1], turnNumber: turn }, eventSeq: id, event: { id, uid, kind: "info", text: "move " + id, turn, index: t, cash: { [uid]: 1 }, at: Date.now() }, players: { ...cur.players, [uid]: { ...cur.players[uid], position: t } } }; return t; };
+    await pa.page.setViewportSize({ width: 844, height: 390 }); await pa.page.waitForTimeout(400);
+    hop(3, 1001); const last = hop(4, 1002);
+    await pa.page.waitForFunction(() => document.getElementById("stage").dataset.camera === "focus", null, { timeout: 9000, polling: 50 }).catch(() => {});
+    await pa.page.waitForTimeout(1500);
+    const fin = await pa.page.evaluate((last) => { const sr = document.getElementById("stage").getBoundingClientRect(); const t = document.querySelector(`.space[data-index="${last}"] .token b`)?.getBoundingClientRect(); return { mode: document.getElementById("stage").dataset.camera, tokenIn: !!t && t.left >= sr.left && t.right <= sr.right && t.top >= sr.top && t.bottom <= sr.bottom, moving: document.querySelectorAll(".token.moving").length }; }, last);
+    check("hai di chuyển liên tiếp: camera kết thúc ở ô đích mới nhất, không kẹt", fin.mode === "focus" && fin.tokenIn && fin.moving === 0, JSON.stringify(fin));
+    await pa.page.click("#camOverviewButton");
+    await pa.page.waitForTimeout(1100);
   }
   if (OUT) {
     await pa.page.screenshot({ path: `${OUT}/desktop-game.png` });

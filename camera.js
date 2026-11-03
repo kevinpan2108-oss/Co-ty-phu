@@ -4,6 +4,8 @@
 export const CAMERA = Object.freeze({
   followScale: 1.45,   // zoom khi đi theo quân cờ
   focusScale: 1.8,     // zoom nhẹ tại ô đích (vẫn thấy ô xung quanh)
+  followTilt: 38,      // độ nghiêng bàn cờ (độ) khi đi theo quân cờ; toàn cảnh nhìn thẳng từ trên xuống (0°)
+  focusTilt: 44,
   maxScale: 2.2,
   zoomInMs: 650,
   focusMs: 520,
@@ -30,21 +32,13 @@ export function solveCamera({ focus, viewport, anchor, scale, bounds }) {
   return { tx, ty, scale: s };
 }
 
-// Quy đổi điểm trên màn hình về toạ độ gốc của bàn cờ (camera = identity).
-// `stageMatrix`: phép biến đổi của .stage (xoay 90° ở màn hình dọc); `cam`: camera đang hiển thị.
-export function screenToBase(point, stageMatrix, cam) {
-  const inv = stageMatrix.inverse();
-  const local = inv.transformPoint(new DOMPoint(point.x, point.y));
-  const s = cam.scale || 1;
-  return { x: (local.x - cam.tx) / s, y: (local.y - cam.ty) / s };
-}
 export function readCamera(el) {
   const m = new DOMMatrix(getComputedStyle(el).transform);
   return { tx: m.e, ty: m.f, scale: m.a || 1 };
 }
 
 export function createCamera({ stage, wrap, board, onChange, reduceMotion = false }) {
-  const state = { mode: "overview", seq: 0, enabled: !reduceMotion, cells: new Map(), bounds: null, manualUntilNextMove: false };
+  const state = { mode: "overview", seq: 0, enabled: !reduceMotion, measured: new Map(), manualUntilNextMove: false };
   let timers = [];
 
   const stageMatrix = () => new DOMMatrix(getComputedStyle(stage).transform);
@@ -61,56 +55,69 @@ export function createCamera({ stage, wrap, board, onChange, reduceMotion = fals
     wrap.style.transform = cam.scale === 1 && cam.tx === 0 && cam.ty === 0 ? "" : `translate(${cam.tx.toFixed(2)}px,${cam.ty.toFixed(2)}px) scale(${cam.scale.toFixed(4)})`;
     stage.dataset.cameraScale = cam.scale.toFixed(2);
   };
-  // Đo vị trí gốc của mọi ô một lần (đảo ngược camera hiện hành) rồi dùng lại cho tới khi đổi kích thước.
-  const measure = () => {
-    state.cells.clear();
-    const cam = readCamera(wrap);
-    const m = stageMatrix();
+  // Đo vị trí gốc (trong hệ toạ độ của .board-wrap, chưa zoom/dịch) của mọi ô ở một độ nghiêng nhất định.
+  // Tạm tắt transition + camera để đọc layout đồng bộ trong cùng một khung hình rồi khôi phục (không vẽ ra màn hình).
+  const measure = (tilt) => {
+    const key = String(tilt);
+    const saved = { wt: wrap.style.transition, wf: wrap.style.transform, bt: board.style.transition, rx: board.style.getPropertyValue("--rx") };
+    wrap.style.transition = "none"; wrap.style.transform = "none";
+    board.style.transition = "none"; board.style.setProperty("--rx", tilt + "deg");
+    const m = stageMatrix().inverse();
+    const toLocal = (x, y) => { const p = m.transformPoint(new DOMPoint(x, y)); return { x: p.x, y: p.y }; };
+    const cells = new Map();
     document.querySelectorAll("#board .space").forEach((cell) => {
       const r = cell.getBoundingClientRect();
-      state.cells.set(Number(cell.dataset.index), screenToBase({ x: r.left + r.width / 2, y: r.top + r.height / 2 }, m, cam));
+      cells.set(Number(cell.dataset.index), toLocal(r.left + r.width / 2, r.top + r.height / 2));
     });
     const b = board.getBoundingClientRect();
-    const tl = screenToBase({ x: b.left, y: b.top }, m, cam);
-    const br = screenToBase({ x: b.right, y: b.bottom }, m, cam);
-    const corners = [tl, br, screenToBase({ x: b.right, y: b.top }, m, cam), screenToBase({ x: b.left, y: b.bottom }, m, cam)];
-    const xs = corners.map((c) => c.x), ys = corners.map((c) => c.y);
-    state.bounds = { x: Math.min(...xs), y: Math.min(...ys), w: Math.max(...xs) - Math.min(...xs), h: Math.max(...ys) - Math.min(...ys) };
+    const pts = [toLocal(b.left, b.top), toLocal(b.right, b.top), toLocal(b.left, b.bottom), toLocal(b.right, b.bottom)];
+    const xs = pts.map((c) => c.x), ys = pts.map((c) => c.y);
+    const bounds = { x: Math.min(...xs), y: Math.min(...ys), w: Math.max(...xs) - Math.min(...xs), h: Math.max(...ys) - Math.min(...ys) };
+    void wrap.offsetWidth;
+    wrap.style.transition = saved.wt; wrap.style.transform = saved.wf;
+    board.style.transition = saved.bt; if (saved.rx) board.style.setProperty("--rx", saved.rx); else board.style.removeProperty("--rx");
+    state.measured.set(key, { cells, bounds });
+    return state.measured.get(key);
   };
-  const cellBase = (index) => {
-    if (!state.cells.size || !state.bounds) measure();
-    return state.cells.get(Number(index)) || null;
-  };
+  const measuredFor = (tilt) => state.measured.get(String(tilt)) || measure(tilt);
   // Vị trí quân cờ trong khung nhìn: lệch về bên trái để bảng sự kiện (bên phải) không che ô đang focus.
-  const anchorFor = (v, withPanel) => ({ x: v.w * (withPanel ? 0.38 : 0.5), y: v.h * 0.5 });
-  const cameraFor = (index, scale, withPanel) => {
-    const focus = cellBase(index);
+  const anchorFor = (v, withPanel) => ({ x: v.w * (withPanel ? 0.34 : 0.5), y: v.h * 0.52 });
+  const cameraFor = (index, scale, tilt, withPanel) => {
+    const m = measuredFor(tilt);
+    const focus = m.cells.get(Number(index));
     if (!focus) return null;
     const v = viewport();
-    return solveCamera({ focus, viewport: v, anchor: anchorFor(v, withPanel), scale, bounds: state.bounds });
+    return solveCamera({ focus, viewport: v, anchor: anchorFor(v, withPanel), scale, bounds: m.bounds });
+  };
+  const setTilt = (deg, ms, easing) => {
+    board.style.transition = ms > 0 ? `transform ${ms}ms ${easing}` : "none";
+    board.style.setProperty("--rx", deg + "deg");
   };
 
   return {
     state,
     get mode() { return state.mode; },
     setEnabled(value) { state.enabled = !!value && !reduceMotion; if (!state.enabled) this.overview(0); },
-    invalidate() { state.cells.clear(); state.bounds = null; },
+    invalidate() { state.measured.clear(); },
+    premeasure() { [0, CAMERA.followTilt, CAMERA.focusTilt].forEach(measure); },
     // Bắt đầu một hành trình mới: mọi hẹn giờ của hành trình cũ bị huỷ, hành trình mới nhất luôn thắng.
     beginSequence() { state.seq += 1; clearTimers(); state.manualUntilNextMove = false; return state.seq; },
     isCurrent(seq) { return seq === state.seq; },
     follow(index, { ms = CAMERA.zoomInMs, scale = CAMERA.followScale, ease = "cubic-bezier(.45,.05,.4,1)", seq = state.seq } = {}) {
       if (!state.enabled || state.manualUntilNextMove || seq !== state.seq) return false;
-      const cam = cameraFor(index, scale, true);
+      const cam = cameraFor(index, scale, CAMERA.followTilt, true);
       if (!cam) return false;
       setMode("follow");
+      setTilt(CAMERA.followTilt, ms, ease);
       apply(cam, ms, ease);
       return true;
     },
     focus(index, { ms = CAMERA.focusMs, seq = state.seq } = {}) {
       if (!state.enabled || state.manualUntilNextMove || seq !== state.seq) return false;
-      const cam = cameraFor(index, CAMERA.focusScale, true);
+      const cam = cameraFor(index, CAMERA.focusScale, CAMERA.focusTilt, true);
       if (!cam) return false;
       setMode("focus");
+      setTilt(CAMERA.focusTilt, ms, "cubic-bezier(.2,.8,.2,1)");
       apply(cam, ms, "cubic-bezier(.2,.8,.2,1)");
       return true;
     },
@@ -118,6 +125,7 @@ export function createCamera({ stage, wrap, board, onChange, reduceMotion = fals
       clearTimers();
       state.seq += 1;
       setMode("overview");
+      setTilt(0, ms, "cubic-bezier(.45,.05,.4,1)");
       apply({ tx: 0, ty: 0, scale: 1 }, ms, "cubic-bezier(.45,.05,.4,1)");
     },
     // Người chơi bấm "Toàn cảnh": giữ toàn cảnh cho tới khi có một lượt di chuyển mới.

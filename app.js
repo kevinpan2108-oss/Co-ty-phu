@@ -3,7 +3,7 @@ import { animalFor, shortName, TOKEN_OPTIONS, tokenMarkup, tokenLabel } from "./
 import { shouldComputerBuy } from "./computer-player.js?v=1";
 import { CHANCE_CARDS, FORTUNE_CARDS, drawCard } from "./cards.js?v=1";
 import {
-  calculateDiceMove, propertyGroupIndices, ownsCompleteGroup, getHouseCost, getBuildingLabel,
+  HOUSE_RENT_MULTIPLIERS, calculateDiceMove, propertyGroupIndices, ownsCompleteGroup, getHouseCost, getBuildingLabel,
   buildEligibility, sellHouseEligibility, mortgageEligibility, mortgageValue, redemptionCost,
   calcRent as calculateAssetRent, hasLiquidationOptions, finalDiceSpin,
   doublesOutcome, jailRollOutcome, jailStatus, isAuctionable, cashSnapshot, cashDeltas, appendEventLog, JAIL_MAX_ATTEMPTS
@@ -446,6 +446,7 @@ function showGameView() {
   cameraRestored = false;
   camera?.invalidate();
   camera?.overview(0);
+  requestAnimationFrame(() => requestAnimationFrame(() => camera?.premeasure()));
   // The lobby button can remain focused after its section is hidden on mobile.
   // Blur it and reset scroll so the game controls are not clipped above the viewport.
   if (document.activeElement && typeof document.activeElement.blur === "function") {
@@ -657,12 +658,17 @@ function renderBoard() {
     div.dataset.index = String(index);
     div.title = description;
     div.setAttribute("aria-label", description);
+    const bar = space.corner || !space.color ? "" : `<span class="space-color" style="background:${colorBar}"></span>`;
+    const kindIcon = space.type === "property" ? "" : escapeHtml(space.icon || "");
+    // Mặt ô xoay theo cạnh bàn (chữ quay ra ngoài như bàn cờ thật); quân cờ, cờ chủ và công trình nằm ngoài lớp xoay.
     div.innerHTML = `
-      <span class="space-color" style="background:${colorBar}"></span>
+      <span class="sp-face">
+        ${bar}
+        ${buildingMark ? `<span class="space-buildings" aria-label="${houseCount === 5 ? "Khách sạn" : houseCount + " căn nhà"}">${buildingMark}</span>` : ""}
+        <span class="space-text" style="--name-scale:${nameScale.toFixed(2)}">${kindIcon ? `<span class="sp-icon" aria-hidden="true">${kindIcon}</span>` : ""}<span class="space-name">${escapeHtml(name)}</span>${price && !space.corner ? `<span class="space-price">${price}</span>` : ""}</span>
+        ${mortgaged ? '<span class="space-mortgage-mark" title="Đang cầm cố">C</span>' : ""}
+      </span>
       ${owner ? `<span class="space-owner-mark" title="Tài sản của ${escapeHtml(owner.name)}" aria-hidden="true"></span>` : ""}
-      ${mortgaged ? '<span class="space-mortgage-mark" title="Đang cầm cố">C</span>' : ""}
-      ${buildingMark ? `<span class="space-buildings" aria-label="${houseCount === 5 ? "Khách sạn" : houseCount + " căn nhà"}">${buildingMark}</span>` : ""}
-      <span class="space-text" style="--name-scale:${nameScale.toFixed(2)}"><span class="space-name">${escapeHtml(name)}</span>${price && !space.corner ? `<span class="space-price">${price}</span>` : ""}</span>
       <span class="space-players">${tokensHtml(index)}</span>
     `;
     board.insertBefore(div, center);
@@ -1152,6 +1158,50 @@ function eventReason(e, uid, delta) {
     default: return "";
   }
 }
+const MASCOT_SVG = `<svg class="deed-mascot" viewBox="0 0 90 130" aria-hidden="true" focusable="false">
+  <ellipse cx="45" cy="124" rx="26" ry="5" fill="rgba(0,0,0,.25)"/>
+  <path d="M26 62 Q24 112 30 120 H62 Q68 112 64 62 Q45 52 26 62Z" fill="#2b5aa8"/>
+  <path d="M45 56 V118" stroke="#1d3f7c" stroke-width="2"/>
+  <circle cx="45" cy="64" r="2" fill="#f2c14e"/><circle cx="45" cy="80" r="2" fill="#f2c14e"/><circle cx="45" cy="96" r="2" fill="#f2c14e"/>
+  <path d="M62 66 Q82 58 84 40" fill="none" stroke="#2b5aa8" stroke-width="9" stroke-linecap="round"/>
+  <circle cx="84" cy="36" r="6" fill="#f0c49a"/>
+  <path d="M28 70 Q18 84 22 98" fill="none" stroke="#2b5aa8" stroke-width="9" stroke-linecap="round"/>
+  <circle cx="22" cy="100" r="6" fill="#f0c49a"/>
+  <rect x="30" y="118" width="12" height="8" rx="3" fill="#4a3320"/><rect x="48" y="118" width="12" height="8" rx="3" fill="#4a3320"/>
+  <circle cx="45" cy="40" r="17" fill="#f0c49a"/>
+  <path d="M30 44 Q45 66 60 44 Q45 54 30 44Z" fill="#f5f5f5"/>
+  <path d="M38 36 q2 -2 4 0 M48 36 q2 -2 4 0" stroke="#3a2a1a" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+  <path d="M40 48 Q45 52 50 48" stroke="#8a4b2a" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+  <path d="M4 32 L45 -2 L86 32 Q45 24 4 32Z" fill="#e7c36b" stroke="#b58b2b" stroke-width="1.5"/>
+  <path d="M16 28 L45 6 M30 28 L45 6 M60 28 L45 6 M74 28 L45 6" stroke="#c9a14a" stroke-width="1" fill="none"/>
+  <path d="M36 30 Q45 40 54 30" stroke="#c0392b" stroke-width="1.4" fill="none"/>
+</svg>`;
+function textColorFor(hex) {
+  const m = /^#([0-9a-f]{6})$/i.exec(hex || "");
+  if (!m) return "#111";
+  const n = parseInt(m[1], 16);
+  const lum = (0.299 * (n >> 16) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) / 255;
+  return lum > 0.62 ? "#111" : "#fff";
+}
+// Thẻ địa danh như game gốc: giá mua, giá cầm cố, bảng tiền thuê theo nhà/khách sạn, giá xây.
+function deedHtml(index, banner) {
+  const space = SPACE_DATA[index];
+  if (!space || !space.price) return "";
+  const row = (k, v, hl) => `<div class="deed-row${hl ? " hl" : ""}"><span>${k}</span><b>${v}</b></div>`;
+  let rows = row("Giá mua", money(space.price), true) + row("Giá cầm cố", money(mortgageValue(space)));
+  if (space.type === "property") {
+    rows += row("Tiền thuê", money(space.rent)) + row("Thuê trọn nhóm màu", money(space.rent * 2));
+    HOUSE_RENT_MULTIPLIERS.forEach((m, i) => { rows += row(i < 4 ? `Thuê với ${i + 1} nhà` : "Thuê với khách sạn", money(space.rent * m)); });
+    rows += row("Giá xây mỗi nhà", money(getHouseCost(SPACE_DATA, index)));
+  } else if (space.type === "station") {
+    rows += [1, 2, 3, 4].map((n) => row(`Thuê khi có ${n} bến`, money(40 * 2 ** (n - 1)))).join("");
+  } else if (space.type === "utility") {
+    rows += row("Có 1 công ty", "4 × điểm xúc xắc") + row("Có cả 2 công ty", "10 × điểm xúc xắc");
+  }
+  const bg = space.color || "#9b8067";
+  return `${banner ? `<div class="deed-banner">${escapeHtml(banner)}</div>` : ""}<div class="deed">
+    <div class="deed-head" style="background:${safeColor(bg)};color:${textColorFor(bg)}">${escapeHtml(space.name)}</div>${rows}</div>`;
+}
 function renderEventPanel() {
   const panel = $("eventPanel");
   if (!panel || !roomState || !currentUser) return;
@@ -1170,10 +1220,19 @@ function renderEventPanel() {
   $("epTitle").textContent = holding && e ? nameOf(e.uid) + " đang di chuyển…" : space ? space.name : "Lượt chơi";
   const money$ = $("epMoney"), bal = $("epBalances"), confirmRow = $("epConfirmRow");
   money$.innerHTML = ""; bal.innerHTML = ""; confirmRow.innerHTML = "";
+  const deed = $("epDeed"); deed.innerHTML = "";
   if (holding) {
     $("actionMessage").textContent = "🎲 Quân cờ đang di chuyển…";
     $("pendingActions").innerHTML = "";
     return;
+  }
+  // Thẻ địa danh khi có quyền mua / đấu giá; thẻ Cơ hội, Khí vận hiện nội dung lá bài.
+  const deedIndex = roomState.auction ? Number(roomState.auction.index) : roomState.pending ? Number(roomState.pending.index) : -1;
+  if (deedIndex >= 0 && SPACE_DATA[deedIndex]) {
+    deed.innerHTML = deedHtml(deedIndex, roomState.auction ? "Đấu giá" : "Đang bán") +
+      `<div class="deed-bubble">${money(roomState.auction ? Number(roomState.auction.currentBid) || AUCTION_INCREMENT : SPACE_DATA[deedIndex].price)}</div>` + MASCOT_SVG;
+  } else if (e && (e.kind === "chance" || e.kind === "fortune")) {
+    deed.innerHTML = `<div class="deed"><div class="deed-head" style="background:${e.kind === "chance" ? "#f0903c" : "#2f9a58"};color:#fff">${e.kind === "chance" ? "Cơ hội" : "Khí vận"}</div><div class="deed-info" style="font-size:clamp(10px,3cqh,13px);color:#111">${escapeHtml(e.text)}</div></div>` + MASCOT_SVG;
   }
   // Tiền cộng/trừ, lý do, người trả và người nhận.
   if (e?.deltas) {

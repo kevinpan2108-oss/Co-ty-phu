@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;800&family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="./style.css?v=cam1" />
+  <link rel="stylesheet" href="./style.css?v=mm1" />
 </head>
 <body>
   <div class="ambient ambient-one"></div>
@@ -29,7 +29,7 @@
       <div class="hero-copy">
         <h1>Sông nước miền Tây,<br>ai mua được nhiều đất hơn?</h1>
         <p class="hero-subtitle">Rủ bạn bè cùng đấu online hoặc thử sức với đối thủ máy. Tung xúc xắc, mua đất qua cả 13 tỉnh thành đồng bằng sông Cửu Long, từ Long An đến mũi Cà Mau.</p>
-        <ul class="province-chips" aria-label="8 nhóm màu trên bàn cờ">
+        <ul class="province-chips" aria-label="13 tỉnh thành trên bàn cờ">
           <li><i style="background:#8d7b68"></i>Long An</li>
           <li><i style="background:#c9824b"></i>Tiền Giang</li>
           <li><i style="background:#4fb0a8"></i>Bến Tre</li>
@@ -83,8 +83,21 @@
         </div>
         <div id="gameNotice" class="game-notice" role="status" aria-live="polite"></div>
         <div class="board-wrap">
+          <div class="scenery" aria-hidden="true"><i class="sc-cloud c1"></i><i class="sc-cloud c2"></i><i class="sc-cloud c3"></i><svg class="sc-boat" viewBox="0 0 120 40"><path d="M6 24 H114 Q104 36 86 36 H34 Q16 36 6 24Z" fill="#8a5a33"/><path d="M6 24 Q0 18 2 12 Q10 16 14 22Z" fill="#8a5a33"/><path d="M30 24 Q60 -2 96 24Z" fill="#f2c14e"/><path d="M60 8 V24" stroke="#6b4a22" stroke-width="2"/></svg></div>
           <div class="board" id="board">
             <div class="board-center">
+              <svg class="city" viewBox="0 0 300 300" preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false">
+                <rect width="300" height="300" fill="#8fd16a"/>
+                <path d="M0 210 C60 180 90 230 150 205 S250 170 300 200 V300 H0Z" fill="#5fb7d4"/>
+                <path d="M0 214 C60 184 90 234 150 209 S250 174 300 204" fill="none" stroke="#c9eef7" stroke-width="3" opacity=".8"/>
+                <path d="M150 0 C140 60 175 90 150 130 S120 190 150 210" fill="none" stroke="#5fb7d4" stroke-width="14" stroke-linecap="round"/>
+                <g fill="#e6a447"><rect x="28" y="30" width="46" height="34" rx="4"/><rect x="34" y="74" width="34" height="26" rx="4" fill="#d9703c"/><rect x="200" y="28" width="52" height="38" rx="4" fill="#d9703c"/><rect x="214" y="80" width="40" height="28" rx="4"/><rect x="40" y="130" width="50" height="34" rx="4" fill="#c85a4a"/><rect x="205" y="132" width="46" height="34" rx="4" fill="#e6a447"/></g>
+                <g fill="#fff6dc" opacity=".9"><rect x="36" y="38" width="30" height="8" rx="2"/><rect x="208" y="36" width="36" height="9" rx="2"/><rect x="48" y="138" width="34" height="8" rx="2"/></g>
+                <g fill="#2f8f4a"><circle cx="100" cy="50" r="12"/><circle cx="180" cy="110" r="14"/><circle cx="96" cy="170" r="12"/><circle cx="270" cy="170" r="12"/><circle cx="20" cy="190" r="10"/></g>
+                <g stroke="#1f6b3a" stroke-width="3" stroke-linecap="round" fill="none"><path d="M120 120 l-12 -10 M120 120 l12 -10 M120 120 l-14 4 M120 120 l14 4 M120 120 v-14"/><path d="M262 90 l-12 -10 M262 90 l12 -10 M262 90 l-14 4 M262 90 l14 4 M262 90 v-14"/></g>
+                <g><path d="M70 250 H130 Q122 262 108 262 H80 Q72 262 70 250Z" fill="#8a5a33"/><path d="M80 250 Q100 232 122 250Z" fill="#f2c14e"/><path d="M180 262 H236 Q228 274 214 274 H190 Q182 274 180 262Z" fill="#c2552f"/><path d="M192 262 Q208 246 228 262Z" fill="#f2c14e"/></g>
+                <path d="M138 40 l12 -22 l12 22Z" fill="#c33"/><rect x="141" y="40" width="18" height="16" fill="#f7e3a3"/>
+              </svg>
               <svg class="scene" viewBox="0 0 400 300" preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false">
                 <defs>
                   <linearGradient id="skyGrad" x1="0" y1="0" x2="0" y2="1">
@@ -143,6 +156,7 @@
         </div>
         <div id="diceStage" class="dice-stage" aria-hidden="true"></div>
         <div id="cellInfo" class="cell-info" role="status" aria-live="polite"></div>
+        <div id="statusBar" class="status-bar" role="status"><div id="actionMessage" class="action-message ep-text">Tạo phòng hoặc tham gia để bắt đầu.</div></div>
         <aside id="eventPanel" class="event-panel idle" aria-live="polite" aria-label="Bảng sự kiện">
           <header class="ep-head">
             <span id="epIcon" class="ep-icon" aria-hidden="true">🎲</span>
@@ -151,7 +165,7 @@
             <button id="epMinButton" class="ep-icon-btn" type="button" aria-label="Thu gọn bảng sự kiện" aria-expanded="true" title="Thu gọn / mở rộng">▾</button>
           </header>
           <div class="ep-body">
-            <div id="actionMessage" class="action-message ep-text">Tạo phòng hoặc tham gia để bắt đầu.</div>
+            <div id="epDeed" class="ep-deed"></div>
             <ul id="epMoney" class="ep-money"></ul>
             <div id="epBalances" class="ep-balances"></div>
             <div id="pendingActions" class="pending-actions"></div>
@@ -199,6 +213,6 @@
     <footer class="footer"><span>© 2026 Cờ Tỷ Phú Online</span><span>Làm để chơi với bạn bè</span></footer>
   </main>
 
-  <script type="module" src="./app.js?v=cam1"></script>
+  <script type="module" src="./app.js?v=mm1"></script>
 </body>
 </html>
