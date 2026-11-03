@@ -163,7 +163,6 @@ let rules;
       playerDirection: getComputedStyle(players).flexDirection,
       playerWidth: playerRect.width,
       playerCash: players.innerText,
-      hiddenStats: getComputedStyle(players.querySelector(".player-position") || document.body).display === "none",
       cityVisible: !!city && cityStyle.display !== "none" && Number(cityStyle.opacity) > 0.9,
       horizontalRotation: Math.max(Math.abs(transform.b), Math.abs(transform.c))
     };
@@ -283,7 +282,7 @@ let rules;
   const sawStamp = await pb.page.waitForSelector(".space.stamp", { timeout: 2000 }).then(() => true).catch(() => false);
   check("hiệu ứng: ô vừa mua có dấu chủ sở hữu", sawStamp);
   await pa.page.waitForTimeout(500);
-  check("mua đất: tiền A còn 14.400.000₫, hai bên thấy chủ sở hữu", /14\.4M/.test(await text(pa.page, "#playersPanel")) && /14\.4M/.test(await text(pb.page, "#playersPanel")) && (await pb.page.locator("#propertyList .property-row").count()) === 1);
+  check("mua đất: tiền A còn 14.4M, hai bên thấy chủ sở hữu", /14\.4M/.test(await text(pa.page, "#playersPanel")) && /14\.4M/.test(await text(pb.page, "#playersPanel")) && (await pb.page.locator("#propertyList .property-row").count()) === 1);
   check("ô đã mua được viền/chấm chủ sở hữu nổi bật", await pa.page.locator("#board .space[data-index='3'].owned .space-owner-mark").count() === 1 &&
     await pb.page.locator("#board .space[data-index='3'].owned .space-owner-mark").count() === 1);
   const tileFit = await pa.page.locator("#board .space .space-name").first().evaluate(el => ({
