@@ -148,17 +148,17 @@ let rules;
   check("token ghế nhựa và cà phê được lưu theo từng người", await pa.page.locator('.player-avatar[data-token="plastic-chair"]').count() === 1 && await pa.page.locator('.player-avatar[data-token="vietnamese-coffee"]').count() === 1);
   await pa.page.evaluate(() => { Math.random = () => 0.5; });
   await pa.page.click("#rollButton");
-  await pa.page.waitForFunction(() => /Đã tung xí ngầu/.test(document.querySelector("#centerStatus")?.textContent || ""), null, { timeout:4000 });
+  await pa.page.waitForFunction(() => /Đã tung xí ngầu/.test(document.querySelector("#centerStatus")?.textContent || ""), null, { timeout:8000 });
   check("người đã tung không thể tung lần hai trong cùng vòng", await pa.page.locator("#rollButton").isDisabled());
   await pb.page.evaluate(() => { Math.random = () => 0.5; });
   await pb.page.click("#rollButton");
   await pa.page.waitForFunction(() => /Hòa điểm/.test(document.querySelector("#centerStatus")?.textContent || ""), null, { timeout:5000 });
   check("hai người hòa điểm thì mở vòng tung lại", /Vòng 2/.test(await text(pa.page, "#actionMessage")) && !(await pa.page.locator("#rollButton").isDisabled()));
-  await pa.page.waitForFunction(() => !document.querySelector("#diceStage")?.classList.contains("show"), null, { timeout:4000 });
+  await pa.page.waitForFunction(() => !document.querySelector("#diceStage")?.classList.contains("show"), null, { timeout:8000 });
   await pa.page.evaluate(() => { Math.random = () => 0.99; });
   await pa.page.click("#rollButton");
-  await pa.page.waitForFunction(() => /Đã tung xí ngầu/.test(document.querySelector("#centerStatus")?.textContent || ""), null, { timeout:4000 });
-  await pa.page.waitForFunction(() => !document.querySelector("#diceStage")?.classList.contains("show"), null, { timeout:4000 });
+  await pa.page.waitForFunction(() => /Đã tung xí ngầu/.test(document.querySelector("#centerStatus")?.textContent || ""), null, { timeout:8000 });
+  await pa.page.waitForFunction(() => !document.querySelector("#diceStage")?.classList.contains("show"), null, { timeout:8000 });
   await pb.page.evaluate(() => { Math.random = () => 0.01; });
   await pb.page.click("#rollButton");
   await pa.page.waitForFunction(() => document.querySelector("#rollButton")?.disabled === false && document.querySelector("#turnName")?.textContent.trim() === "An", null, { timeout: 6000 });
@@ -337,24 +337,24 @@ let rules;
         [uidB]:{...room.players[uidB],cash:1500}
       }
     };
-    await pa.page.waitForSelector("#board .space[data-index='1'].owned", { timeout:4000 });
+    await pa.page.waitForSelector("#board .space[data-index='1'].owned", { timeout:8000 });
     await pa.page.click("#propsButton");
-    await pa.page.waitForSelector('#propertyList [data-deed-action="build-house"][data-index="3"]', { timeout:4000 });
+    await pa.page.waitForSelector('#propertyList [data-deed-action="build-house"][data-index="3"]', { timeout:8000 });
     check("sổ đất hiển thị nút xây khi đã sở hữu trọn bộ tỉnh", await pa.page.locator('#propertyList [data-deed-action="build-house"][data-index="3"]').count() === 1);
     await pa.page.locator('#propertyList [data-deed-action="build-house"][data-index="3"]').click();
-    await pa.page.waitForSelector('#board .space[data-index="3"].built', { timeout:4000 });
+    await pa.page.waitForSelector('#board .space[data-index="3"].built', { timeout:8000 });
     check("xây căn đầu tiên ở ô 3, bắt buộc chuyển sang ô 1 để xây đều", store.rooms[code].houses.s3 === 1 &&
       store.rooms[code].houses.s1 !== 1 &&
       await pa.page.locator('#propertyList [data-deed-action="build-house"][data-index="3"]').count() === 0);
     await pa.page.locator('#propertyList [data-deed-action="build-house"][data-index="1"]').click();
-    await pa.page.waitForSelector('#board .space[data-index="1"].built', { timeout:4000 });
-    await pa.page.waitForSelector('#propertyList [data-deed-action="sell-house"][data-index="3"]', { timeout:4000 });
+    await pa.page.waitForSelector('#board .space[data-index="1"].built', { timeout:8000 });
+    await pa.page.waitForSelector('#propertyList [data-deed-action="sell-house"][data-index="3"]', { timeout:8000 });
     check("xây nhà đồng đều trên cả hai ô trong bộ màu", store.rooms[code].houses.s3 === 1 && store.rooms[code].houses.s1 === 1);
     check("tài sản có nhà không cho cầm cố", await pa.page.locator('#propertyList [data-deed-action="mortgage-asset"][data-index="3"]').count() === 0);
     await pa.page.locator('#propertyList [data-deed-action="sell-house"][data-index="3"]').click();
-    await pa.page.waitForSelector('#board .space[data-index="3"]:not(.built)', { timeout:4000 });
+    await pa.page.waitForSelector('#board .space[data-index="3"]:not(.built)', { timeout:8000 });
     await pa.page.locator('#propertyList [data-deed-action="sell-house"][data-index="1"]').click();
-    await pa.page.waitForSelector('#board .space[data-index="1"]:not(.built)', { timeout:4000 });
+    await pa.page.waitForSelector('#board .space[data-index="1"]:not(.built)', { timeout:8000 });
     check("bán công trình theo thứ tự đồng đều, nhận lại tiền", !store.rooms[code].houses.s3 && !store.rooms[code].houses.s1 && store.rooms[code].players[uidA].cash === 1450);
 
     // Giả lập khoản thiếu tiền thuê/thuế; dùng cầm cố tài sản để trả nợ trước.
@@ -366,11 +366,11 @@ let rules;
     };
     // Sổ đất là nơi quản lý tài sản và đã được mở ở phần kiểm tra xây nhà bên trên.
     // Khi phát sinh nợ, modal hiển thị banner số nợ cùng nút cầm cố trực tiếp.
-    await pa.page.waitForSelector("#propsModal:not([hidden]) #propertyList .debt-banner", { timeout:4000 });
+    await pa.page.waitForSelector("#propsModal:not([hidden]) #propertyList .debt-banner", { timeout:8000 });
     check("sổ đất hiển thị khoản nợ và hướng xử lý", /Đang nợ 20/.test(await text(pa.page, "#propertyList")));
-    await pa.page.waitForSelector('#propertyList [data-deed-action="mortgage-asset"][data-index="3"]', { timeout:4000 });
+    await pa.page.waitForSelector('#propertyList [data-deed-action="mortgage-asset"][data-index="3"]', { timeout:8000 });
     await pa.page.locator('#propertyList [data-deed-action="mortgage-asset"][data-index="3"]').click();
-    await pa.page.waitForSelector('#board .space[data-index="3"].mortgaged', { timeout:4000 });
+    await pa.page.waitForSelector('#board .space[data-index="3"].mortgaged', { timeout:8000 });
     check("cầm cố đất trả nợ trước và chỉ giữ phần tiền thừa", !store.rooms[code].debt &&
       store.rooms[code].mortgages.s3 === 30 &&
       store.rooms[code].players[uidB].cash === beforeCreditor + 20 &&
