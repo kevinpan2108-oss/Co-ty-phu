@@ -1026,3 +1026,37 @@ body:has(#gameView:not(.hidden)){overflow:hidden}
 /* Nút tung xúc xắc nhỏ gọn */
 #gameView .roll-button{min-width:clamp(72px,14cqw,110px);min-height:clamp(30px,8.5cqh,38px);font-size:clamp(11px,3.3cqh,14px);padding:0 12px;box-shadow:0 3px 0 #4a1670,0 4px 6px rgba(0,0,0,.3)}
 #gameView .hud-roll{bottom:calc(clamp(34px,11cqh,46px) + 10px)}
+
+/* ===== mm6: thông tin không bị che, bỏ nút kết thúc lượt, ô cờ gọn đẹp ===== */
+#gameView .board{--S:min(80cqh,60cqw);top:47%}
+#gameView .status-bar{width:min(56cqw,520px);bottom:6px}
+#gameView .status-bar .action-message{font-size:clamp(10px,3.2cqh,14px);padding:clamp(3px,1.1cqh,6px) 12px;line-height:1.25}
+/* Thẻ sự kiện: nằm trong vùng an toàn, cuộn được, chừa chỗ cho linh vật */
+#gameView .event-panel{top:calc(50% - 22px);max-height:calc(100cqh - 150px);width:min(44cqw,380px)}
+#gameView .ep-balances{display:none!important}
+#gameView .ep-confirm-row:empty{display:none}
+#gameView .ep-body{overflow:auto;max-height:calc(100cqh - 200px);padding:6px 10px 10px;padding-right:clamp(44px,16cqh,76px)}
+#gameView .event-panel .deed-mascot{right:4px;bottom:4px;top:auto;transform:none;width:clamp(40px,15cqh,70px)}
+#gameView .event-panel .deed-bubble{top:-26px;right:8px}
+#gameView .deed:not(.card-event){transform:none;display:grid;grid-template-columns:1fr 1fr;column-gap:10px;padding:5px}
+#gameView .deed:not(.card-event) .deed-head{grid-column:1/-1}
+#gameView .deed:not(.card-event) .deed-row{font-size:clamp(8px,2.5cqh,11px);padding:1px 2px;line-height:1.15;gap:4px}
+#gameView .deed:not(.card-event) .deed-row b{white-space:nowrap}
+#gameView .deed:not(.card-event) .deed-info{grid-column:1/-1}
+/* Thẻ Cơ hội / Khí vận: chữ vừa khung */
+#gameView .event-panel:has(.card-event){width:min(50cqw,440px)}
+#gameView .event-panel:has(.card-event) .ep-body{padding-right:10px}
+#gameView .deed.card-event{min-height:0;padding:8px 30% 10px 12px}
+#gameView .card-event .deed-head{font-size:clamp(14px,5cqh,22px);padding:0 0 4px}
+#gameView .card-event .deed-info{font-size:clamp(11px,3.5cqh,16px);text-transform:none;line-height:1.3;font-weight:700}
+#gameView .event-panel:has(.card-event) .deed-mascot{right:14px;bottom:auto;top:50%;transform:translateY(-50%);width:clamp(48px,20cqh,90px)}
+#gameView .event-panel .pending-actions{display:flex;flex-direction:row;gap:8px;flex-wrap:wrap}
+#gameView .event-panel .pending-actions button{min-height:clamp(28px,8cqh,36px);max-height:36px;font-size:clamp(11px,3.4cqh,14px);padding:0 10px}
+/* Ô cờ: dải màu mảnh, tên 2 dòng, giá trong viên thuốc trắng */
+#gameView .space{background:#d3ead0;border:.025em solid #8db688;border-radius:.07em}
+#gameView .space .space-color{height:19%;border-bottom:0;box-shadow:inset 0 -.035em 0 rgba(0,0,0,.22)}
+#gameView .space .space-text{justify-content:center;gap:.06em;padding:.03em .04em .05em}
+#gameView .space .space-name{display:-webkit-box!important;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;font-size:calc(.2em * var(--name-scale,1));text-transform:none;font-weight:800;line-height:1.1;overflow-wrap:normal;word-break:normal;hyphens:manual;color:#26452b}
+#gameView .space:not(.corner) .space-price{margin-top:auto;font-size:.2em;font-weight:900;color:#26452b;background:#fff;border-radius:99em;padding:.06em .4em;line-height:1.1;box-shadow:0 .03em 0 rgba(0,0,0,.22)}
+#gameView .space:not(.corner) .sp-icon{font-size:.55em;margin-top:auto}
+#gameView .space.corner .space-name{font-size:.2em;text-transform:none}

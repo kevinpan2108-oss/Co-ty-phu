@@ -61,10 +61,10 @@ export const runTransaction=async(r,fn)=>{
 };`
 };
 
-// Người chơi phải bấm "Đã xem" mới qua lượt (không còn tự động kết thúc lượt).
+// Không còn nút kết thúc lượt: chờ ván tự qua lượt sau khi hiện sự kiện.
 async function confirmTurn(p) {
-  await p.page.waitForSelector("#confirmEventButton:not([disabled])", { timeout: 9000 });
-  await p.page.click("#confirmEventButton");
+  const before = await p.page.evaluate(() => document.getElementById("turnName").textContent);
+  await p.page.waitForFunction((b) => document.getElementById("turnName").textContent !== b, before, { timeout: 12000 });
 }
 async function newPlayer(browser, uid, opts = {}) {
   const context = await browser.newContext({ viewport: opts.viewport || { width: 1280, height: 900 }, deviceScaleFactor: 1, isMobile: !!opts.mobile, hasTouch: !!opts.mobile });
@@ -255,13 +255,13 @@ let rules;
     wrap:getComputedStyle(el).overflowWrap,
     width:el.getBoundingClientRect().width
   }));
-  check("tên ô cờ dùng bố cục tự co và giới hạn ba dòng", tileFit.clamp === "3" && tileFit.wrap === "anywhere" && tileFit.width > 0, JSON.stringify(tileFit));
-  // Không tự chuyển lượt: sau 2,5 giây (> AUTO_END_MS cũ = 2 giây) lượt vẫn ở A cho tới khi A bấm "Đã xem".
-  await pa.page.waitForSelector("#confirmEventButton", { timeout: 9000 });
-  await pa.page.waitForTimeout(2500);
-  check("không tự động chuyển lượt khi người chơi chưa xác nhận", /An/.test(await text(pa.page, "#turnName")) && (await pb.page.locator("#rollButton").isDisabled()) && (await pa.page.locator("#confirmEventButton").count()) === 1);
+  check("tên ô cờ giới hạn hai dòng, không ngắt giữa từ", tileFit.clamp === "2" && tileFit.wrap === "normal" && tileFit.width > 0, JSON.stringify(tileFit));
+  // Không còn nút kết thúc lượt: sự kiện hiện đủ thời gian đọc (~2,8 giây) rồi tự qua lượt.
+  await pa.page.waitForSelector("#epTitle", { timeout: 9000 });
+  await pa.page.waitForTimeout(900);
+  check("sự kiện hiện ra trước khi tự qua lượt, không có nút kết thúc lượt", /An/.test(await text(pa.page, "#turnName")) && (await pb.page.locator("#rollButton").isDisabled()) && (await pa.page.locator("#confirmEventButton").count()) === 0);
   check("Bảng sự kiện nêu ô vừa đến, tiền trừ và số dư", /Chợ nổi Cái Bè|Làng nổi/i.test(await text(pa.page, "#epTitle")) && /600\.000₫/.test(await text(pa.page, "#epMoney")) && /14\.400\.000₫/.test(await text(pa.page, "#epBalances")));
-  check("đối thủ cũng thấy bảng sự kiện và nút xác nhận chỉ hiện cho người có lượt", /Chợ nổi Cái Bè|Làng nổi/i.test(await text(pb.page, "#epTitle")) && (await pb.page.locator("#confirmEventButton").count()) === 0);
+  check("đối thủ cũng thấy bảng sự kiện", /Chợ nổi Cái Bè|Làng nổi/i.test(await text(pb.page, "#epTitle")));
   await confirmTurn(pa);
   await pb.page.waitForFunction(() => document.getElementById("stage").dataset.camera === "overview", null, { timeout: 4000, polling: 50 }).catch(() => {});
   await pb.page.waitForTimeout(1200);

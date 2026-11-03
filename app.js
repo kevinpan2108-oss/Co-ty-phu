@@ -1266,16 +1266,30 @@ function renderEventPanel() {
   if (roomState.debt?.uid === uid && playing) {
     addButton("secondary-button", "📋 Mở Sổ đất", () => { $("propsModal").hidden = false; });
     if (canDeclareBankruptcy(roomState, uid)) addButton("danger-button", "🏳️ Phá sản", () => declareBankruptcy(), { id: "bankruptButton" });
-  } else if (playing && roomState.turnUid === uid && roomState.lastRoll && resolved && canAdvanceTurn(roomState)) {
-    const again = roomState.extraRoll === true && !mine?.jailTurns;
-    const b = addButton("confirm-button", again ? "✔ Đã xem · Tung thêm" : "✔ Đã xem · Kết thúc lượt", () => endTurn(), { id: "confirmEventButton" });
-    b.disabled = busy;
-  } else if (playing && e && roomState.turnUid !== uid && resolved) {
-    const note = document.createElement("div");
-    note.className = "ep-wait";
-    note.textContent = computerGame ? "Máy đang chơi…" : "Đang chờ " + nameOf(roomState.turnUid) + " xác nhận…";
-    confirmRow.append(note);
   }
+  // Không còn nút "Kết thúc lượt": sau khi sự kiện xử lý xong và đã hiện đủ thời gian đọc thì tự qua lượt.
+  if (canAutoAdvance()) scheduleAutoAdvance(); else cancelAutoAdvance();
+}
+const AUTO_ADVANCE_MS = 2800;
+let autoAdvTimer = null, autoAdvKey = "";
+function canAutoAdvance() {
+  if (!roomState || !currentUser) return false;
+  const uid = currentUser.uid;
+  const playing = roomState.status === "playing" && getPlayerEntries(roomState).length === 2;
+  const resolved = !roomState.pending && !roomState.auction && !roomState.debt;
+  return playing && roomState.turnUid === uid && !!roomState.lastRoll && resolved && canAdvanceTurn(roomState) && Date.now() >= eventHoldUntil;
+}
+function cancelAutoAdvance() { clearTimeout(autoAdvTimer); autoAdvTimer = null; autoAdvKey = ""; }
+function scheduleAutoAdvance() {
+  const key = JSON.stringify([roomState.turnUid, roomState.eventSeq || 0, roomState.doublesCount || 0, roomState.lastRoll]);
+  if (autoAdvKey === key) return;
+  clearTimeout(autoAdvTimer);
+  autoAdvKey = key;
+  autoAdvTimer = setTimeout(() => {
+    autoAdvTimer = null;
+    if (!canAutoAdvance() || busy) { autoAdvKey = ""; return; }
+    endTurn();
+  }, AUTO_ADVANCE_MS);
 }
 function renderHistory() {
   const players = roomState?.players || {};
