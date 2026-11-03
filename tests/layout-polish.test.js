@@ -6,6 +6,7 @@ const html = await readFile(new URL("../index.html", import.meta.url), "utf8");
 const css = await readFile(new URL("../layout-polish.css", import.meta.url), "utf8");
 const camera = await readFile(new URL("../camera.js", import.meta.url), "utf8");
 const app = await readFile(new URL("../app.js", import.meta.url), "utf8");
+const playerRail = css.slice(css.lastIndexOf("Marmalade-inspired player rail"));
 
 test("the readability stylesheet loads after the game board, HUD and deed styles", () => {
   const deal = html.indexOf("deal-ui.css?v=marmalade-dealflow-20261102");
@@ -48,8 +49,8 @@ test("purchase certificates avoid repeating the district name and construction c
 });
 
 test("player dock is a compact vertical rail on the right for desktop and rotated phones", () => {
-  assert.match(css, /#gameView \.players-panel\s*\{[\s\S]*?right:clamp\([\s\S]*?left:auto;[\s\S]*?width:min\(17cqw,224px\)/);
-  assert.match(css, /#gameView \.player-position,[\s\S]*?#gameView \.player-metrics \{ display:none!important; \}/);
+  assert.match(playerRail, /#gameView \.players-panel\s*\{[\s\S]*?right:clamp\([\s\S]*?left:auto;[\s\S]*?width:min\(17cqw,224px\)/);
+  assert.match(playerRail, /#gameView \.player-position,[\s\S]*?#gameView \.player-metrics \{ display:none!important; \}/);
   assert.match(css, /@media\(max-height:560px\) and \(orientation:landscape\)[\s\S]*?right:10px;[\s\S]*?left:auto;/);
   assert.match(css, /@media\(max-width:620px\)[\s\S]*?right:10px;[\s\S]*?left:auto;/);
   assert.match(css, /#gameView \.deal-card \{\s*top:108px/);
