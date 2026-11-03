@@ -119,12 +119,16 @@ const UNIT_VND = 10000;
 function money(units) {
   return Math.round(Number(units || 0) * UNIT_VND).toLocaleString("vi-VN") + "₫";
 }
-// Dạng ngắn cho ô cờ nhỏ: 600k, 1,2tr, 4tr.
+// Dạng ngắn cho ô cờ và số dư người chơi: 600K, 2.8M, 15M.
 function moneyShort(units) {
   const vnd = Number(units || 0) * UNIT_VND;
-  return vnd >= 1000000
-    ? (vnd / 1000000).toLocaleString("vi-VN", {maximumFractionDigits:1}) + "tr"
-    : Math.round(vnd / 1000) + "k";
+  if (Math.abs(vnd) >= 1000000) {
+    return (vnd / 1000000).toLocaleString("en-US", {maximumFractionDigits:1}) + "M";
+  }
+  if (Math.abs(vnd) >= 1000) {
+    return Math.round(vnd / 1000).toLocaleString("en-US") + "K";
+  }
+  return Math.round(vnd).toLocaleString("en-US");
 }
 // Dữ liệu phòng do trình duyệt của người chơi ghi lên, nên mọi giá trị đưa vào innerHTML/style phải được kiểm tra.
 function safeColor(value) {
@@ -689,14 +693,10 @@ function renderPlayers() {
     const isTurn = !isOpeningRollPhase(roomState) && roomState.turnUid === uid;
     const isMe = uid === currentUser.uid;
     const tokenId = playerTokenId(p, entries.findIndex(([id]) => id === uid));
-    const space = SPACE_DATA[Number(p.position)]?.name || "—";
-    const ownedAssets = Object.entries(roomState.propertyOwners || {}).filter(([, ownerUid]) => ownerUid === uid);
-    const developedAssets = ownedAssets.filter(([id]) => Number(roomState.houses?.[id] || 0) > 0).length;
+    const fullCash = money(p.cash);
     return `<div class="player-card ${isTurn?"active":""}" data-uid="${escapeHtml(uid)}" style="--pc:${safeColor(p.color)}"><span class="player-avatar" data-token="${tokenId}" aria-label="${escapeHtml(tokenLabel(tokenId))}">${tokenMarkup(tokenId)}</span><div class="player-info">
-      <div class="player-head"><i class="player-dot" style="background:${safeColor(p.color)}"></i><span class="player-name">${escapeHtml(p.name)}</span>${isMe?'<span class="you-label">Bạn</span>':""}</div>
-      <div class="player-cash">${money(p.cash)}</div>
-      <p class="player-position">📍 ${escapeHtml(space)} ${jailStatus(p).label ? "· " + jailStatus(p).label : ""}</p>
-      <div class="player-metrics"><span>🏡 <b>${ownedAssets.length}</b> tài sản</span><span>🏠 <b>${developedAssets}</b> có nhà</span></div>
+      <div class="player-head"><span class="player-name">${escapeHtml(p.name)}</span>${isMe?'<span class="you-label">Bạn</span>':""}</div>
+      <div class="player-cash" title="${escapeHtml(fullCash)}" aria-label="${escapeHtml(fullCash)}">${moneyShort(p.cash)}</div>
     </div></div>`;
   }).join("");
   const turnPlayer = roomState.players?.[roomState.turnUid];

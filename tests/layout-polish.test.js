@@ -6,10 +6,11 @@ const html = await readFile(new URL("../index.html", import.meta.url), "utf8");
 const css = await readFile(new URL("../layout-polish.css", import.meta.url), "utf8");
 const camera = await readFile(new URL("../camera.js", import.meta.url), "utf8");
 const app = await readFile(new URL("../app.js", import.meta.url), "utf8");
+const playerRail = css.slice(css.lastIndexOf("Marmalade-inspired player rail"));
 
 test("the readability stylesheet loads after the game board, HUD and deed styles", () => {
   const deal = html.indexOf("deal-ui.css?v=marmalade-dealflow-20261102");
-  const polish = html.indexOf("layout-polish.css?v=marmalade-layout-20261103");
+  const polish = html.indexOf("layout-polish.css?v=marmalade-player-rail-20261103");
   assert.ok(deal >= 0 && polish > deal);
 });
 
@@ -45,4 +46,12 @@ test("rotated phone layout reserves a deed rail and keeps the roll control in th
 test("purchase certificates avoid repeating the district name and construction cost", () => {
   assert.match(app, /space\?\.group && !isPending/);
   assert.match(app, /space\?\.houseCost && !isPending/);
+});
+
+test("player dock is a compact vertical rail on the right for desktop and rotated phones", () => {
+  assert.match(playerRail, /#gameView \.players-panel\s*\{[\s\S]*?right:clamp\([\s\S]*?left:auto;[\s\S]*?width:min\(17cqw,224px\)/);
+  assert.match(playerRail, /#gameView \.player-position,[\s\S]*?#gameView \.player-metrics \{ display:none!important; \}/);
+  assert.match(css, /@media\(max-height:560px\) and \(orientation:landscape\)[\s\S]*?right:10px;[\s\S]*?left:auto;/);
+  assert.match(css, /@media\(max-width:620px\)[\s\S]*?right:10px;[\s\S]*?left:auto;/);
+  assert.match(css, /#gameView \.deal-card \{\s*top:108px/);
 });

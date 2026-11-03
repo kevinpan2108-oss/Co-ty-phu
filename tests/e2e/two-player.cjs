@@ -161,6 +161,8 @@ let rules;
       boardRight: rect.right,
       playerLeft: playerRect.left,
       playerDirection: getComputedStyle(players).flexDirection,
+      playerWidth: playerRect.width,
+      playerCash: players.innerText,
       cityVisible: !!city && cityStyle.display !== "none" && Number(cityStyle.opacity) > 0.9,
       horizontalRotation: Math.max(Math.abs(transform.b), Math.abs(transform.c))
     };
@@ -175,8 +177,11 @@ let rules;
     mapComposition.cityVisible, JSON.stringify(mapComposition));
   check("thẻ người chơi xếp dọc bên phải, tách khỏi bản đồ",
     mapComposition.playerDirection === "column" &&
-    mapComposition.playerLeft > mapComposition.boardRight,
+    mapComposition.playerLeft > mapComposition.boardRight &&
+    mapComposition.playerWidth <= 240 &&
+    mapComposition.playerCash.includes("15M"),
     JSON.stringify(mapComposition));
+  check("số dư người chơi hiển thị gọn dạng M/K", /15M/.test(await text(pa.page, "#playersPanel")) && /15M/.test(await text(pb.page, "#playersPanel")));
   await pa.page.waitForTimeout(400);
   check("cả hai vào bước tung xí ngầu chọn người đi trước", /Tung xí ngầu chọn người đi trước/i.test(await text(pa.page, "#centerStatus")) && /Tung xí ngầu chọn người đi trước/i.test(await text(pb.page, "#centerStatus")));
   check("bàn cờ có cả thẻ Cơ hội và Khí vận", (await pa.page.locator("#board .space[data-index='2']").getAttribute("title")).includes("rút thẻ Cơ hội") && (await pa.page.locator("#board .space[data-index='7']").getAttribute("title")).includes("rút thẻ Khí vận"));
@@ -277,7 +282,7 @@ let rules;
   const sawStamp = await pb.page.waitForSelector(".space.stamp", { timeout: 2000 }).then(() => true).catch(() => false);
   check("hiệu ứng: ô vừa mua có dấu chủ sở hữu", sawStamp);
   await pa.page.waitForTimeout(500);
-  check("mua đất: tiền A còn 14.400.000₫, hai bên thấy chủ sở hữu", /14\.400\.000₫/.test(await text(pa.page, "#playersPanel")) && /14\.400\.000₫/.test(await text(pb.page, "#playersPanel")) && (await pb.page.locator("#propertyList .property-row").count()) === 1);
+  check("mua đất: tiền A còn 14.4M, hai bên thấy chủ sở hữu", /14\.4M/.test(await text(pa.page, "#playersPanel")) && /14\.4M/.test(await text(pb.page, "#playersPanel")) && (await pb.page.locator("#propertyList .property-row").count()) === 1);
   check("ô đã mua được viền/chấm chủ sở hữu nổi bật", await pa.page.locator("#board .space[data-index='3'].owned .space-owner-mark").count() === 1 &&
     await pb.page.locator("#board .space[data-index='3'].owned .space-owner-mark").count() === 1);
   const tileFit = await pa.page.locator("#board .space .space-name").first().evaluate(el => ({
@@ -313,7 +318,7 @@ let rules;
   check("camera lia theo ít nhất ba vị trí của token ở máy B", uniqueFollowTargets(cameraTraceB) >= 3, JSON.stringify(cameraTraceB));
   await pa.page.waitForTimeout(2500);
   check("không tự động chuyển lượt khi người chơi chưa xác nhận", /An/.test(await text(pa.page, "#turnName")) && (await pb.page.locator("#rollButton").isDisabled()) && /Tiếp tục/.test(await text(pa.page, "#rollButton")) && (await pa.page.locator("#confirmEventButton").count()) === 0);
-  check("Thẻ giao dịch hiển thị đúng địa điểm, khoản tiền và số dư", /Chợ nổi Cái Bè|Làng nổi/.test(await text(pa.page, "#dealTitle")) && /600\.000₫/.test(await text(pa.page, "#epMoney")) && /14\.400\.000₫/.test(await text(pa.page, "#playersPanel")));
+  check("Thẻ giao dịch hiển thị đúng địa điểm, khoản tiền và số dư", /Chợ nổi Cái Bè|Làng nổi/.test(await text(pa.page, "#dealTitle")) && /600\.000₫/.test(await text(pa.page, "#epMoney")) && /14\.4M/.test(await text(pa.page, "#playersPanel")));
   const panelLayout = await pa.page.evaluate(() => {
     const panel = document.querySelector("#dealCard").getBoundingClientRect();
     const stage = document.querySelector("#stage").getBoundingClientRect();
@@ -368,7 +373,7 @@ let rules;
   await pa.page.locator("#pendingActions .secondary-button").click();
   await pb.page.waitForFunction(() => document.querySelector("#board .space[data-index='5'].owned"), null, { timeout: 9000 });
   check("người trả giá cao nhất sở hữu bến phà", await pb.page.locator("#board .space[data-index='5']").evaluate(el => el.classList.contains("owned")));
-  check("tiền đấu giá 200.000₫ được trừ đúng", (await text(pb.page, "#playersPanel")).includes("14.800.000₫"));
+  check("tiền đấu giá 200.000₫ được trừ đúng", (await text(pb.page, "#playersPanel")).includes("14.8M"));
   await confirmTurn(pb);
   await pa.page.waitForFunction(() => document.querySelector("#rollButton")?.disabled === false, null, { timeout: 5000 }).catch(() => {});
   check("sau đấu giá, B xác nhận và lượt trả cho A", !(await pa.page.locator("#rollButton").isDisabled()));
@@ -536,7 +541,17 @@ let rules;
     await m.page.waitForTimeout(400);
     const overflow = await m.page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
     const rollBox = await m.page.locator("#rollButton").boundingBox();
+    const playerDock = await m.page.locator("#playersPanel").evaluate(el => ({
+      right:getComputedStyle(el).right,
+      direction:getComputedStyle(el).flexDirection,
+      width:getComputedStyle(el).width,
+      transformedBounds:{width:el.getBoundingClientRect().width,height:el.getBoundingClientRect().height},
+      cash:el.innerText
+    }));
     check(label + ": không tràn ngang (sảnh/ván)", lobbyOverflow <= 0 && overflow <= 0, `sảnh ${lobbyOverflow}px, ván ${overflow}px`);
+    check(label + ": thẻ người chơi gọn ở cạnh phải và dùng số dư dạng M/K",
+      playerDock.right !== "auto" && playerDock.direction === "column" &&
+      parseFloat(playerDock.width) <= 220 && /15M/.test(playerDock.cash), JSON.stringify(playerDock));
     check(label + ": nút Tung xúc xắc nằm trọn trong màn hình đầu, cao ≥ 40px", rollBox && rollBox.y >= 0 && rollBox.y + rollBox.height <= h && rollBox.height >= 40, rollBox ? `y=${Math.round(rollBox.y)}..${Math.round(rollBox.y + rollBox.height)}/${h}, cao ${Math.round(rollBox.height)}` : "không thấy");
     const inputFont = await m.page.evaluate(() => getComputedStyle(document.getElementById("playerName")).fontSize);
     if (OUT) { await m.page.screenshot({ path: `${OUT}/mobile-${w}.png` }); await m.page.evaluate(() => document.getElementById("lobbyView").classList.remove("hidden")); }
