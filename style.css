@@ -1110,3 +1110,9 @@ body:has(#gameView:not(.hidden)){overflow:hidden}
 #gameView .dice-double{font-size:.42em;letter-spacing:.04em;color:#a2260f}
 @keyframes totalPop{0%{transform:translateX(-50%) scale(.3);opacity:0}100%{transform:translateX(-50%) scale(1);opacity:1}}
 @media(prefers-reduced-motion:reduce){#gameView .dice-row .dice-total{animation:none}}
+
+/* Gợi ý có thể xây nhà: chấm 🏠 xanh nhấp nháy trên nút Sổ đất */
+#gameView #propsButton.has-build{position:relative;box-shadow:0 0 0 3px #62c24f,0 2px 6px rgba(0,0,0,.4)}
+#gameView #propsButton.has-build:after{content:"🏠";position:absolute;right:-6px;top:-8px;font-size:15px;filter:drop-shadow(0 1px 1px rgba(0,0,0,.5));animation:buildHint 1.2s ease-in-out infinite}
+@keyframes buildHint{50%{transform:scale(1.25)}}
+@media(prefers-reduced-motion:reduce){#gameView #propsButton.has-build:after{animation:none}}

@@ -705,13 +705,15 @@ function renderProperties() {
     return {space:SPACE_DATA[index],uid,index,id};
   }).filter(item => item.space);
   const debt = roomState.debt;
+  let canBuildAny = false;
   const rows = owned.map(({space,uid,index,id}) => {
     const player = roomState.players?.[uid];
     const houses = Number(roomState.houses?.[id] || 0);
     const mortgage = Number(roomState.mortgages?.[id] || 0);
     const canManage = uid === currentUser.uid && (!debt || debt.uid === uid) &&
       (debt?.uid === uid || (roomState.turnUid === uid && !roomState.pending && !roomState.auction));
-    const canBuildNow = canManage && !debt && roomState.turnUid === uid && !roomState.lastRoll;
+    // Xây được ở lượt của mình cả trước lẫn sau khi tung (sau khi sự kiện đã xử lý xong), như Monopoly thật.
+    const canBuildNow = canManage && !debt && roomState.turnUid === uid;
     const controls = [];
     if (canManage && houses > 0) {
       const sell = sellHouseEligibility(SPACE_DATA, ownerMap, roomState.houses || {}, uid, index);
@@ -719,6 +721,7 @@ function renderProperties() {
     }
     if (canBuildNow && space.type === "property") {
       const build = buildEligibility(SPACE_DATA, ownerMap, roomState.houses || {}, roomState.mortgages || {}, uid, index, player?.cash);
+      if (build.ok) canBuildAny = true;
       if (build.ok) controls.push(`<button class="deed-action build-house" data-deed-action="build-house" data-index="${index}">Xây ${houses === 4 ? "khách sạn" : "nhà"} · ${money(build.cost)}</button>`);
     }
     if (canManage && mortgage > 0) {
@@ -741,6 +744,7 @@ function renderProperties() {
       <div class="property-row-actions">${controls.join("")}</div>
     </div>`;
   });
+  $("propsButton")?.classList.toggle("has-build", canBuildAny);
   const debtNote = debt?.uid === currentUser.uid
     ? `<div class="debt-banner"><strong>Đang nợ ${money(debt.amount)}</strong><span>${escapeHtml(debt.reason || "Khoản thanh toán chưa đủ")}. Bán nhà hoặc cầm cố thêm tài sản để trả nợ.</span></div>`
     : "";
@@ -1293,7 +1297,7 @@ function canAutoAdvance() {
   const uid = currentUser.uid;
   const playing = roomState.status === "playing" && getPlayerEntries(roomState).length === 2;
   const resolved = !roomState.pending && !roomState.auction && !roomState.debt;
-  return playing && roomState.turnUid === uid && !!roomState.lastRoll && resolved && canAdvanceTurn(roomState) && Date.now() >= eventHoldUntil;
+  return playing && roomState.turnUid === uid && !!roomState.lastRoll && resolved && canAdvanceTurn(roomState) && Date.now() >= eventHoldUntil && $("propsModal")?.hidden !== false;
 }
 function cancelAutoAdvance() { clearTimeout(autoAdvTimer); autoAdvTimer = null; autoAdvKey = ""; $("eventPanel")?.classList.remove("counting"); }
 function scheduleAutoAdvance() {
@@ -1628,7 +1632,7 @@ async function buildHouse(index) {
     const uid = currentUser.uid;
     const result = await updateCurrentRoom((room) => {
       if (room === null) return room;
-      if (!room || room.status !== "playing" || room.turnUid !== uid || room.lastRoll || room.pending || room.auction || room.debt) return;
+      if (!room || room.status !== "playing" || room.turnUid !== uid || room.pending || room.auction || room.debt) return;
       const player = room.players?.[uid];
       const check = buildEligibility(SPACE_DATA, room.propertyOwners, room.houses || {}, room.mortgages || {}, uid, index, player?.cash);
       if (!check.ok || !player) return;
@@ -2088,8 +2092,8 @@ $("historyModal").addEventListener("click", (event) => { if (event.target === $(
 $("cellInfo").addEventListener("click", (event) => { if (event.target.closest(".cell-info-close")) $("cellInfo").classList.remove("show"); });
 $("propsButton").addEventListener("click", () => { $("propsModal").hidden = false; });
 $("propertyList").addEventListener("click", handleDeedAction);
-$("propsClose").addEventListener("click", () => { $("propsModal").hidden = true; });
-$("propsModal").addEventListener("click", (event) => { if (event.target === $("propsModal")) $("propsModal").hidden = true; });
+$("propsClose").addEventListener("click", () => { $("propsModal").hidden = true; renderEventPanel(); });
+$("propsModal").addEventListener("click", (event) => { if (event.target === $("propsModal")) { $("propsModal").hidden = true; renderEventPanel(); } });
 // Trên điện thoại: vào toàn màn hình và khóa ngang (nếu trình duyệt cho phép; nếu không giao diện tự xoay bằng CSS).
 function enterGameScreen() {
   if (window.innerWidth > 900) return;
