@@ -61,13 +61,10 @@ export const runTransaction=async(r,fn)=>{
 };`
 };
 
-// Người chơi dùng nút Tiếp tục ở đáy màn hình sau khi sự kiện đã xử lý xong.
+// Người chơi phải bấm "Đã xem" mới qua lượt (không còn tự động kết thúc lượt).
 async function confirmTurn(p) {
-  await p.page.waitForFunction(() => {
-    const button = document.querySelector("#rollButton");
-    return button && !button.disabled && button.textContent.includes("Tiếp tục");
-  }, null, { timeout: 9000 });
-  await p.page.click("#rollButton");
+  await p.page.waitForSelector("#confirmEventButton:not([disabled])", { timeout: 9000 });
+  await p.page.click("#confirmEventButton");
 }
 async function newPlayer(browser, uid, opts = {}) {
   const context = await browser.newContext({ viewport: opts.viewport || { width: 1280, height: 900 }, deviceScaleFactor: 1, isMobile: !!opts.mobile, hasTouch: !!opts.mobile });
@@ -145,43 +142,6 @@ let rules;
   await pb.page.fill("#roomCodeInput", code); await pb.page.click("#joinRoomButton");
   await pb.page.waitForSelector("#gameView:not(.hidden)", { timeout: 4000 }).catch(() => {});
   check("người thứ hai tham gia được (transaction không bị hủy vì dữ liệu null)", await pb.page.locator("#gameView").isVisible(), await text(pb.page, "#lobbyMessage"));
-  const mapComposition = await pa.page.evaluate(() => {
-    const stage = document.querySelector("#stage").getBoundingClientRect();
-    const board = document.querySelector("#board");
-    const rect = board.getBoundingClientRect();
-    const transform = new DOMMatrix(getComputedStyle(board).transform);
-    const players = document.querySelector("#playersPanel");
-    const playerRect = players.getBoundingClientRect();
-    const city = document.querySelector("#board .city-diorama");
-    const cityStyle = city && getComputedStyle(city);
-    return {
-      spaces: board.querySelectorAll(".space").length,
-      boardCenterX: rect.left + rect.width / 2,
-      stageWidth: stage.width,
-      boardRight: rect.right,
-      playerLeft: playerRect.left,
-      playerDirection: getComputedStyle(players).flexDirection,
-      playerWidth: playerRect.width,
-      playerCash: players.innerText,
-      cityVisible: !!city && cityStyle.display !== "none" && Number(cityStyle.opacity) > 0.9,
-      horizontalRotation: Math.max(Math.abs(transform.b), Math.abs(transform.c))
-    };
-  });
-  check("không còn Event Panel cố định", (await pa.page.locator("#eventPanel").count()) === 0 && (await pa.page.locator("#dealCard").count()) === 1);
-  check("bản đồ giữ đủ 40 ô quanh một bàn vuông nhìn gần từ trên xuống",
-    mapComposition.spaces === 40 &&
-    mapComposition.boardCenterX < mapComposition.stageWidth * 0.55 &&
-    mapComposition.horizontalRotation < 0.08,
-    JSON.stringify(mapComposition));
-  check("thành phố 3D ở trung tâm đang hiển thị",
-    mapComposition.cityVisible, JSON.stringify(mapComposition));
-  check("thẻ người chơi xếp dọc bên phải, tách khỏi bản đồ",
-    mapComposition.playerDirection === "column" &&
-    mapComposition.playerLeft > mapComposition.boardRight &&
-    mapComposition.playerWidth <= 240 &&
-    mapComposition.playerCash.includes("15M"),
-    JSON.stringify(mapComposition));
-  check("số dư người chơi hiển thị gọn dạng M/K", /15M/.test(await text(pa.page, "#playersPanel")) && /15M/.test(await text(pb.page, "#playersPanel")));
   await pa.page.waitForTimeout(400);
   check("cả hai vào bước tung xí ngầu chọn người đi trước", /Tung xí ngầu chọn người đi trước/i.test(await text(pa.page, "#centerStatus")) && /Tung xí ngầu chọn người đi trước/i.test(await text(pb.page, "#centerStatus")));
   check("bàn cờ có cả thẻ Cơ hội và Khí vận", (await pa.page.locator("#board .space[data-index='2']").getAttribute("title")).includes("rút thẻ Cơ hội") && (await pa.page.locator("#board .space[data-index='7']").getAttribute("title")).includes("rút thẻ Khí vận"));
@@ -221,28 +181,8 @@ let rules;
     }, null, { timeout: 5000 });
   }));
   // Tung xúc xắc [1,2] → ô 3 (Đường Đồng Khởi, $60)
-  // Theo dõi các target camera trong toàn bộ hành trình ở cả hai trình duyệt.
-  for (const page of [pa.page, pb.page]) {
-    await page.evaluate(() => {
-      const stage = document.querySelector("#stage");
-      const wrap = document.querySelector("#gameView .board-wrap");
-      window.__cameraTrace = [];
-      const record = () => window.__cameraTrace.push({
-        mode: stage?.dataset.camera || "overview",
-        x: Number(stage?.dataset.cameraX || 0),
-        y: Number(stage?.dataset.cameraY || 0),
-        scale: Number(stage?.dataset.cameraScale || 1)
-      });
-      const observer = new MutationObserver(record);
-      observer.observe(stage, {
-        attributes: true,
-        attributeFilter: ["data-camera", "data-cameraScale", "data-cameraX", "data-cameraY"]
-      });
-      observer.observe(wrap, { attributes: true, attributeFilter: ["style"] });
-      window.__cameraTraceObserver = observer;
-    });
-  }
   await pa.page.evaluate(() => { const q = [0, 0.2]; Math.random = () => (q.length ? q.shift() : 0.5); });
+  const cellOverviewBefore = await pb.page.evaluate(() => { const r = document.querySelector(".space[data-index='3']").getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; });
   await pa.page.click("#rollButton");
   const sawRolling = await pb.page.waitForSelector("#diceResult.rolling", { timeout: 2000 }).then(() => true).catch(() => false);
   check("hiệu ứng: xúc xắc lăn hiện ở máy của đối thủ", sawRolling, sawRolling ? "" : await pa.page.evaluate(() => document.getElementById("gameNotice")?.textContent || ""));
@@ -255,9 +195,37 @@ let rules;
     return { burst: getComputedStyle(stage, "::before").display, border: face ? getComputedStyle(face).borderTopWidth : null };
   });
   check("xúc xắc không còn tia trắng hoặc viền trắng", diceStyle.burst === "none" && diceStyle.border === "0px", JSON.stringify(diceStyle));
+  // ===== Camera theo quân cờ (máy đối thủ B chỉ quan sát; camera không ghi gì lên Firebase) =====
+  const stageState = (page) => page.evaluate(() => { const st = document.getElementById("stage"); return { mode: st.dataset.camera || "", scale: Number(st.dataset.cameraScale || 1), tf: document.querySelector("#gameView .board-wrap").style.transform }; });
+  check("giai đoạn 1: đang tung xúc xắc thì camera giữ toàn cảnh", (await stageState(pb.page)).mode !== "follow");
+  const sawFollow = await pb.page.waitForFunction(() => { const st = document.getElementById("stage"); return st.dataset.camera === "follow" && Number(st.dataset.cameraScale) > 1.3; }, null, { timeout: 6000, polling: 20 }).then(() => true).catch(() => false);
+  check("giai đoạn 2: camera zoom vào và đi theo quân cờ ở máy đối thủ", sawFollow);
+  const insideStage = (page) => page.evaluate(() => {
+    const st = document.getElementById("stage").getBoundingClientRect();
+    return [...document.querySelectorAll(".token b")].every((b) => { const r = b.getBoundingClientRect(); return r.left >= st.left && r.right <= st.right && r.top >= st.top && r.bottom <= st.bottom; });
+  });
+  check("quân cờ luôn nằm trong màn hình khi camera đang theo", await insideStage(pb.page));
   const sawHop = await pb.page.waitForFunction(() => document.querySelector(".token.moving"), null, { timeout: 4000, polling: 20 }).then(() => true).catch(() => false);
   if (OUT) { await pb.page.screenshot({ path: `${OUT}/dice-live.png` }); await pb.page.evaluate(() => { const s = document.getElementById("diceStage"); s.className = "dice-stage show"; s.innerHTML = '<div class="dice-row"><span class="die" data-v="4">' + "<i></i>".repeat(9) + '</span><span class="die" data-v="6">' + "<i></i>".repeat(9) + '</span><b class="dice-total">10</b></div>'; });     await pb.page.waitForTimeout(100); await pb.page.screenshot({ path: `${OUT}/desktop-dice.png`, clip: { x: 280, y: 220, width: 720, height: 480 } }); console.log("stage@shot", await pb.page.evaluate(() => { const s = document.getElementById("diceStage"); const d = s.querySelector(".die"); const r = d && d.getBoundingClientRect(); return s.className + " " + JSON.stringify(r && [r.x, r.y, r.width, r.height].map(Math.round)); })); }
   check("hiệu ứng: quân cờ nhảy từng ô", sawHop, sawHop ? "" : await pb.page.evaluate(() => JSON.stringify({tokens: document.querySelectorAll(".token").length, pass: document.querySelectorAll(".space.pass,.space.land").length, ds: document.getElementById("diceStage")?.className})));
+  const sawFocus = await pb.page.waitForFunction(() => document.getElementById("stage").dataset.camera === "focus", null, { timeout: 6000, polling: 20 }).then(() => true).catch(() => false);
+  check("giai đoạn 3: tới ô đích camera dừng lại và focus", sawFocus);
+  await pb.page.waitForTimeout(900);
+  const focusInfo = await pb.page.evaluate(() => {
+    const st = document.getElementById("stage");
+    const sr = st.getBoundingClientRect();
+    const token = [...document.querySelectorAll(".space[data-index='3'] .token b")][0];
+    const tr = token?.getBoundingClientRect();
+    const pr = document.getElementById("eventPanel").getBoundingClientRect();
+    const hit = tr && !(tr.right < pr.left || tr.left > pr.right || tr.bottom < pr.top || tr.top > pr.bottom);
+    const cell = document.querySelector(".space[data-index='3']").getBoundingClientRect();
+    const cellHit = !(cell.right < pr.left || cell.left > pr.right || cell.bottom < pr.top || cell.top > pr.bottom);
+    return { mode: st.dataset.camera, scale: Number(st.dataset.cameraScale), tokenIn: !!tr && tr.left >= sr.left && tr.right <= sr.right && tr.top >= sr.top && tr.bottom <= sr.bottom, tokenUnderPanel: !!hit, cellUnderPanel: cellHit };
+  });
+  check("tại ô đích zoom nhẹ (1.5–2.2×), không zoom quá gần", focusInfo.scale >= 1.5 && focusInfo.scale <= 2.2, JSON.stringify(focusInfo));
+  check("giai đoạn 4: bảng sự kiện không che quân cờ hoặc ô đang focus", focusInfo.tokenIn && !focusInfo.tokenUnderPanel && !focusInfo.cellUnderPanel, JSON.stringify(focusInfo));
+  // Camera chỉ là phép biến đổi hiển thị: toạ độ gốc của ô không đổi.
+  check("camera không làm lệch quân cờ/ô cờ trong Firebase (vị trí vẫn là ô 3)", store.rooms[code].players[store.rooms[code].creatorUid].position === 3 && !JSON.stringify(store.rooms[code]).includes("camera"));
   await pa.page.waitForTimeout(1800);
   const faces = (page) => page.$$eval("#diceResult .die", (els) => els.map((e) => e.dataset.v).join(","));
   const diceA = await faces(pa.page), diceB = await faces(pb.page);
@@ -267,22 +235,19 @@ let rules;
     exactMove?.dice?.join(",") === "1,2" && exactMove.steps === 3 && exactMove.to === 3 &&
     store.rooms[code].players[store.rooms[code].creatorUid].position === 3,
     JSON.stringify(exactMove));
-  check("A thấy nút MUA NGAY; B không thấy", /MUA NGAY/.test(await text(pa.page, "#pendingActions")) && (await pb.page.locator("#pendingActions button").count()) === 0);
-  check("chứng từ đất hiện giá mua và tiền thuê", (await text(pa.page, "#dealTitle")).includes("Cái Bè") && (await text(pa.page, "#dealPrice")).includes("600.000₫") && (await text(pa.page, "#dealRent")).includes("40.000₫"));
-  check("chứng từ đất có bảng thuê theo cấp từ đất trống đến khách sạn", /Đất trống/.test(await text(pa.page, "#dealRentSchedule")) && /Trọn bộ màu/.test(await text(pa.page, "#dealRentSchedule")) && /Khách sạn/.test(await text(pa.page, "#dealRentSchedule")));
-  check("chứng từ đất hiển thị giá trị thế chấp và chi phí xây", /300\.000₫/.test(await text(pa.page, "#dealFacts")) && /500\.000₫/.test(await text(pa.page, "#dealBuildCost")));
-  check("nút giao dịch hiển thị MUA NGAY và ĐẤU GIÁ", /MUA NGAY/.test(await text(pa.page, "#pendingActions")) && /ĐẤU GIÁ/.test(await text(pa.page, "#pendingActions")));
+  check("A thấy nút Mua 600.000₫; B không thấy", /Mua 600\.000₫/.test(await text(pa.page, "#pendingActions")) && (await pb.page.locator("#pendingActions button").count()) === 0);
+  if (OUT) { await pa.page.waitForTimeout(700); await pa.page.screenshot({ path: `${OUT}/deed-focus.png` }); }
   const buyBoxes = await pa.page.locator("#pendingActions button").evaluateAll((els) => els.map((el) => { const r = el.getBoundingClientRect(); return [Math.round(r.width), Math.round(r.height)]; }));
-  check("hai lựa chọn mua/đấu giá nằm gọn trong thẻ, không che bàn cờ", buyBoxes.length === 2 && buyBoxes.every(([w,h]) => w <= 155 && h <= 48), JSON.stringify(buyBoxes));
+  check("hộp Mua/Bỏ qua đã gọn, không che mặt bàn", buyBoxes.length === 2 && buyBoxes.every(([w,h]) => w <= 105 && h <= 38), JSON.stringify(buyBoxes));
   check("không còn nút Kết thúc lượt", (await pa.page.locator("#endTurnButton").count()) === 0);
-  check("lượt chưa chuyển khi A chưa quyết định mua", /MUA NGAY/.test(await text(pa.page, "#pendingActions")) && (await pb.page.locator("#rollButton").isDisabled()));
+  check("lượt chưa chuyển khi A chưa quyết định mua", /Mua/.test(await text(pa.page, "#pendingActions")) && (await pb.page.locator("#rollButton").isDisabled()));
   await pa.page.click("#pendingActions .primary-button");
   const sawFloat = await pb.page.waitForSelector(".float-delta.loss", { timeout: 2000 }).then(() => true).catch(() => false);
   check("hiệu ứng: số tiền trừ bay lên", sawFloat);
   const sawStamp = await pb.page.waitForSelector(".space.stamp", { timeout: 2000 }).then(() => true).catch(() => false);
   check("hiệu ứng: ô vừa mua có dấu chủ sở hữu", sawStamp);
   await pa.page.waitForTimeout(500);
-  check("mua đất: tiền A còn 14.4M, hai bên thấy chủ sở hữu", /14\.4M/.test(await text(pa.page, "#playersPanel")) && /14\.4M/.test(await text(pb.page, "#playersPanel")) && (await pb.page.locator("#propertyList .property-row").count()) === 1);
+  check("mua đất: tiền A còn 14.400.000₫, hai bên thấy chủ sở hữu", /14\.400\.000₫/.test(await text(pa.page, "#playersPanel")) && /14\.400\.000₫/.test(await text(pb.page, "#playersPanel")) && (await pb.page.locator("#propertyList .property-row").count()) === 1);
   check("ô đã mua được viền/chấm chủ sở hữu nổi bật", await pa.page.locator("#board .space[data-index='3'].owned .space-owner-mark").count() === 1 &&
     await pb.page.locator("#board .space[data-index='3'].owned .space-owner-mark").count() === 1);
   const tileFit = await pa.page.locator("#board .space .space-name").first().evaluate(el => ({
@@ -290,63 +255,19 @@ let rules;
     wrap:getComputedStyle(el).overflowWrap,
     width:el.getBoundingClientRect().width
   }));
-  check("tên ô cờ dùng bố cục tự co và giới hạn hai dòng", tileFit.clamp === "2" && tileFit.wrap === "anywhere" && tileFit.width > 0, JSON.stringify(tileFit));
-  // Không tự chuyển lượt: người chơi chủ động bấm nút Tiếp tục ở đáy màn hình.
-  await pa.page.waitForFunction(() => document.querySelector("#rollButton")?.textContent.includes("Tiếp tục"), null, { timeout: 9000 });
-  await pa.page.waitForFunction(() => document.querySelector("#stage")?.dataset.camera === "focus", null, { timeout: 7000 });
-  const landingCamera = await pa.page.evaluate(() => {
-    const stage = document.querySelector("#stage");
-    const wrap = document.querySelector("#gameView .board-wrap");
-    const matrix = new DOMMatrix(getComputedStyle(wrap).transform);
-    return { mode: stage?.dataset.camera, scale: matrix.a, overviewVisible: !document.querySelector("#camOverviewButton")?.hidden };
-  });
-  check("camera tự focus vào ô đích sau khi token di chuyển", landingCamera.mode === "focus" && landingCamera.scale > 1.2 && landingCamera.overviewVisible, JSON.stringify(landingCamera));
-  const spectatorCamera = await pb.page.evaluate(() => {
-    const stage = document.querySelector("#stage");
-    const wrap = document.querySelector("#gameView .board-wrap");
-    const matrix = new DOMMatrix(getComputedStyle(wrap).transform);
-    return { mode: stage?.dataset.camera, scale: matrix.a, overviewVisible: !document.querySelector("#camOverviewButton")?.hidden };
-  });
-  check("camera trên thiết bị đối thủ cũng theo cùng token", spectatorCamera.mode === "focus" && spectatorCamera.scale > 1.2 && spectatorCamera.overviewVisible, JSON.stringify(spectatorCamera));
-  const cameraTraceA = await pa.page.evaluate(() => window.__cameraTrace || []);
-  const cameraTraceB = await pb.page.evaluate(() => window.__cameraTrace || []);
-  const uniqueFollowTargets = (trace) => new Set(
-    trace.filter((item) => item.mode === "follow")
-      .map((item) => Math.round(item.x) + "," + Math.round(item.y))
-  ).size;
-  check("camera lia theo ít nhất ba vị trí của token ở máy A", uniqueFollowTargets(cameraTraceA) >= 3, JSON.stringify(cameraTraceA));
-  check("camera lia theo ít nhất ba vị trí của token ở máy B", uniqueFollowTargets(cameraTraceB) >= 3, JSON.stringify(cameraTraceB));
+  check("tên ô cờ dùng bố cục tự co và giới hạn ba dòng", tileFit.clamp === "3" && tileFit.wrap === "anywhere" && tileFit.width > 0, JSON.stringify(tileFit));
+  // Không tự chuyển lượt: sau 2,5 giây (> AUTO_END_MS cũ = 2 giây) lượt vẫn ở A cho tới khi A bấm "Đã xem".
+  await pa.page.waitForSelector("#confirmEventButton", { timeout: 9000 });
   await pa.page.waitForTimeout(2500);
-  check("không tự động chuyển lượt khi người chơi chưa xác nhận", /An/.test(await text(pa.page, "#turnName")) && (await pb.page.locator("#rollButton").isDisabled()) && /Tiếp tục/.test(await text(pa.page, "#rollButton")) && (await pa.page.locator("#confirmEventButton").count()) === 0);
-  check("Thẻ giao dịch hiển thị đúng địa điểm, khoản tiền và số dư", /Chợ nổi Cái Bè|Làng nổi/.test(await text(pa.page, "#dealTitle")) && /600\.000₫/.test(await text(pa.page, "#epMoney")) && /14\.4M/.test(await text(pa.page, "#playersPanel")));
-  const panelLayout = await pa.page.evaluate(() => {
-    const panel = document.querySelector("#dealCard").getBoundingClientRect();
-    const stage = document.querySelector("#stage").getBoundingClientRect();
-    return {
-      left: panel.left,
-      right: panel.right,
-      width: panel.width,
-      stageMid: stage.left + stage.width / 2,
-      boardRight: document.querySelector("#board").getBoundingClientRect().right,
-      mode: document.querySelector("#stage")?.dataset.camera
-    };
-  });
-  check("Thẻ giao dịch nằm ở vùng thông tin bên phải, tách khỏi bàn cờ",
-    panelLayout.mode === "focus" && panelLayout.left > panelLayout.boardRight &&
-    panelLayout.right <= 1280 && panelLayout.width <= 360,
-    JSON.stringify(panelLayout));
-  check("đối thủ cũng thấy biên nhận giao dịch nhưng không có nút kết thúc lượt riêng", /Chợ nổi Cái Bè|Làng nổi/.test(await text(pb.page, "#dealTitle")) && (await pb.page.locator("#confirmEventButton").count()) === 0);
-  await pa.page.click("#dealHistoryButton");
-  const historyText = await text(pa.page, "#historyList");
-  check("lịch sử giữ lại sự kiện và giao dịch vừa xảy ra", /Chợ nổi Cái Bè|Làng nổi/.test(historyText) && historyText.includes("600.000₫"), historyText);
-  await pa.page.click("#historyClose");
+  check("không tự động chuyển lượt khi người chơi chưa xác nhận", /An/.test(await text(pa.page, "#turnName")) && (await pb.page.locator("#rollButton").isDisabled()) && (await pa.page.locator("#confirmEventButton").count()) === 1);
+  check("Bảng sự kiện nêu ô vừa đến, tiền trừ và số dư", /Chợ nổi Cái Bè|Làng nổi/i.test(await text(pa.page, "#epTitle")) && /600\.000₫/.test(await text(pa.page, "#epMoney")) && /14\.400\.000₫/.test(await text(pa.page, "#epBalances")));
+  check("đối thủ cũng thấy bảng sự kiện và nút xác nhận chỉ hiện cho người có lượt", /Chợ nổi Cái Bè|Làng nổi/i.test(await text(pb.page, "#epTitle")) && (await pb.page.locator("#confirmEventButton").count()) === 0);
   await confirmTurn(pa);
-  await pa.page.waitForFunction(() => document.querySelector("#stage")?.dataset.camera === "overview", null, { timeout: 5000 });
-  const overviewState = await pa.page.evaluate(() => ({
-    mode: document.querySelector("#stage")?.dataset.camera,
-    transform: getComputedStyle(document.querySelector("#gameView .board-wrap")).transform
-  }));
-  check("camera trở về toàn cảnh sau khi xác nhận lượt", overviewState.mode === "overview", JSON.stringify(overviewState));
+  await pb.page.waitForFunction(() => document.getElementById("stage").dataset.camera === "overview", null, { timeout: 4000, polling: 50 }).catch(() => {});
+  await pb.page.waitForTimeout(1200);
+  const cellBaseAfter = await pb.page.evaluate(() => { const r = document.querySelector(".space[data-index='3']").getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; });
+  check("giai đoạn 5: sang lượt mới camera trở về toàn cảnh (cả hai máy)", (await stageState(pb.page)).mode === "overview" && (await stageState(pb.page)).tf === "" && (await stageState(pa.page)).mode === "overview");
+  check("toạ độ ô cờ ở toàn cảnh không đổi sau khi zoom/nghiêng rồi trở về (≤ 3px)", Math.abs(cellOverviewBefore[0] - cellBaseAfter[0]) <= 3 && Math.abs(cellOverviewBefore[1] - cellBaseAfter[1]) <= 3, JSON.stringify([cellOverviewBefore, cellBaseAfter]));
   await pb.page.waitForFunction(() => document.querySelector("#rollButton")?.disabled === false, null, { timeout: 5000 }).catch(() => {});
   check("sau khi A xác nhận: quyền chuyển sang B", !(await pb.page.locator("#rollButton").isDisabled()) && (await pa.page.locator("#rollButton").isDisabled()) && /Bình/.test(await text(pa.page, "#turnName")));
 
@@ -359,7 +280,7 @@ let rules;
   // B đến bến phà (ô đặc biệt) và bỏ mua → A và B đấu giá lần lượt.
   await pb.page.evaluate(() => { const q = [0.2, 0.4]; Math.random = () => (q.length ? q.shift() : 0.5); });
   await pb.page.click("#rollButton");
-  await pb.page.waitForFunction(() => /MUA NGAY/.test(document.querySelector("#pendingActions")?.textContent || ""), null, { timeout: 9000 });
+  await pb.page.waitForFunction(() => /Mua/.test(document.querySelector("#pendingActions")?.textContent || ""), null, { timeout: 9000 });
   check("B đến bến phà và có lựa chọn mua", /Bến phà Rạch Miễu/.test(await text(pb.page, "#actionMessage")));
   await pb.page.locator("#pendingActions .secondary-button").click();
   await pa.page.waitForFunction(() => /Ra giá/.test(document.querySelector("#pendingActions")?.textContent || ""), null, { timeout: 9000 });
@@ -373,7 +294,7 @@ let rules;
   await pa.page.locator("#pendingActions .secondary-button").click();
   await pb.page.waitForFunction(() => document.querySelector("#board .space[data-index='5'].owned"), null, { timeout: 9000 });
   check("người trả giá cao nhất sở hữu bến phà", await pb.page.locator("#board .space[data-index='5']").evaluate(el => el.classList.contains("owned")));
-  check("tiền đấu giá 200.000₫ được trừ đúng", (await text(pb.page, "#playersPanel")).includes("14.8M"));
+  check("tiền đấu giá 200.000₫ được trừ đúng", (await text(pb.page, "#playersPanel")).includes("14.800.000₫"));
   await confirmTurn(pb);
   await pa.page.waitForFunction(() => document.querySelector("#rollButton")?.disabled === false, null, { timeout: 5000 }).catch(() => {});
   check("sau đấu giá, B xác nhận và lượt trả cho A", !(await pa.page.locator("#rollButton").isDisabled()));
@@ -381,7 +302,7 @@ let rules;
   // A đến công ty điện, cả hai cùng bỏ giá → ô không có chủ và lượt vẫn tự kết thúc.
   await pa.page.evaluate(() => { const q = [0.4, 0.9]; Math.random = () => (q.length ? q.shift() : 0.5); });
   await pa.page.click("#rollButton");
-  await pa.page.waitForFunction(() => /MUA NGAY/.test(document.querySelector("#pendingActions")?.textContent || ""), null, { timeout: 9000 });
+  await pa.page.waitForFunction(() => /Mua/.test(document.querySelector("#pendingActions")?.textContent || ""), null, { timeout: 9000 });
   check("A đến ô công ty điện", /Điện lực Miền Tây/.test(await text(pa.page, "#actionMessage")));
   await pa.page.locator("#pendingActions .secondary-button").click();
   await pb.page.waitForFunction(() => /Bỏ đấu giá/.test(document.querySelector("#pendingActions")?.textContent || ""), null, { timeout: 9000 });
@@ -423,8 +344,6 @@ let rules;
     check("sổ đất hiển thị nút xây khi đã sở hữu trọn bộ tỉnh", await pa.page.locator('#propertyList [data-deed-action="build-house"][data-index="3"]').count() === 1);
     await pa.page.locator('#propertyList [data-deed-action="build-house"][data-index="3"]').click();
     await pa.page.waitForSelector('#board .space[data-index="3"].built', { timeout:4000 });
-    check("xây nhà được ghi vào nhật ký với khoản tiền đã chi", store.rooms[code].log?.at(-1)?.kind === "build" && store.rooms[code].log.at(-1).deltas?.[uidA] === -50);
-    check("Thẻ giao dịch nêu rõ lý do chi tiền xây nhà", /xây nhà.*khách sạn/.test(await text(pa.page, "#epMoney")));
     check("xây căn đầu tiên ở ô 3, bắt buộc chuyển sang ô 1 để xây đều", store.rooms[code].houses.s3 === 1 &&
       store.rooms[code].houses.s1 !== 1 &&
       await pa.page.locator('#propertyList [data-deed-action="build-house"][data-index="3"]').count() === 0);
@@ -438,8 +357,6 @@ let rules;
     await pa.page.locator('#propertyList [data-deed-action="sell-house"][data-index="1"]').click();
     await pa.page.waitForSelector('#board .space[data-index="1"]:not(.built)', { timeout:4000 });
     check("bán công trình theo thứ tự đồng đều, nhận lại tiền", !store.rooms[code].houses.s3 && !store.rooms[code].houses.s1 && store.rooms[code].players[uidA].cash === 1450);
-    check("bán nhà được ghi nhận thành sự kiện nhận tiền", store.rooms[code].log?.at(-1)?.kind === "sellHouse" && store.rooms[code].log.at(-1).deltas?.[uidA] === 25);
-    check("Thẻ giao dịch nêu rõ khoản thu từ bán nhà", /bán nhà.*khách sạn/.test(await text(pa.page, "#epMoney")));
 
     // Giả lập khoản thiếu tiền thuê/thuế; dùng cầm cố tài sản để trả nợ trước.
     const beforeCreditor = store.rooms[code].players[uidB].cash;
@@ -459,15 +376,7 @@ let rules;
       store.rooms[code].mortgages.s3 === 30 &&
       store.rooms[code].players[uidB].cash === beforeCreditor + 20 &&
       store.rooms[code].players[uidA].cash === 10);
-    check("cầm cố được ghi vào nhật ký cùng khoản nợ đã thanh toán", store.rooms[code].log?.at(-1)?.kind === "mortgage" &&
-      store.rooms[code].log.at(-1).deltas?.[uidA] === 10 && store.rooms[code].log.at(-1).deltas?.[uidB] === 20);
-    store.rooms[code] = { ...store.rooms[code], players: { ...store.rooms[code].players, [uidA]: { ...store.rooms[code].players[uidA], cash: 50 } } };
-    await pa.page.waitForSelector('#propertyList [data-deed-action="redeem-asset"][data-index="3"]', { timeout:4000 });
-    await pa.page.locator('#propertyList [data-deed-action="redeem-asset"][data-index="3"]').click();
-    await pa.page.waitForSelector("#board .space[data-index='3']:not(.mortgaged)", { timeout:4000 });
-    check("giải chấp được ghi vào lịch sử và trừ đúng 33 đơn vị", store.rooms[code].log?.at(-1)?.kind === "redeem" &&
-      store.rooms[code].log.at(-1).deltas?.[uidA] === -33 && store.rooms[code].players[uidA].cash === 17);
-    check("ô đã giải chấp không còn dấu cầm cố", await pa.page.locator("#board .space[data-index='3'].mortgaged").count() === 0);
+    check("ô đang cầm cố có dấu hiệu riêng trên bàn", await pa.page.locator("#board .space[data-index='3'].mortgaged .space-mortgage-mark").count() === 1);
     await pa.page.locator("#propsClose").click();
   }
 
@@ -513,7 +422,7 @@ let rules;
     // Người chơi đến bến phà, bỏ mua; Máy Miền Tây tự cân nhắc trả giá.
     await cpu.page.evaluate(() => { const q = [0.2, 0.4]; Math.random = () => q.length ? q.shift() : 0.5; });
     await cpu.page.click("#rollButton");
-    await cpu.page.waitForFunction(() => /MUA NGAY/.test(document.querySelector("#pendingActions")?.textContent || ""), null, { timeout: 9000 });
+    await cpu.page.waitForFunction(() => /Mua/.test(document.querySelector("#pendingActions")?.textContent || ""), null, { timeout: 9000 });
     await cpu.page.locator("#pendingActions .secondary-button").click();
     await cpu.page.waitForFunction(() => /Nâng giá|Bỏ đấu giá/.test(document.querySelector("#pendingActions")?.textContent || ""), null, { timeout: 5000 });
     check("Máy Miền Tây tự tham gia đấu giá bến phà", /Nâng giá/.test(await text(cpu.page, "#pendingActions")));
@@ -541,21 +450,72 @@ let rules;
     await m.page.waitForTimeout(400);
     const overflow = await m.page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
     const rollBox = await m.page.locator("#rollButton").boundingBox();
-    const playerDock = await m.page.locator("#playersPanel").evaluate(el => ({
-      right:getComputedStyle(el).right,
-      direction:getComputedStyle(el).flexDirection,
-      width:getComputedStyle(el).width,
-      transformedBounds:{width:el.getBoundingClientRect().width,height:el.getBoundingClientRect().height},
-      cash:el.innerText
-    }));
     check(label + ": không tràn ngang (sảnh/ván)", lobbyOverflow <= 0 && overflow <= 0, `sảnh ${lobbyOverflow}px, ván ${overflow}px`);
-    check(label + ": thẻ người chơi gọn ở cạnh phải và dùng số dư dạng M/K",
-      playerDock.right !== "auto" && playerDock.direction === "column" &&
-      parseFloat(playerDock.width) <= 220 && /15M/.test(playerDock.cash), JSON.stringify(playerDock));
     check(label + ": nút Tung xúc xắc nằm trọn trong màn hình đầu, cao ≥ 40px", rollBox && rollBox.y >= 0 && rollBox.y + rollBox.height <= h && rollBox.height >= 40, rollBox ? `y=${Math.round(rollBox.y)}..${Math.round(rollBox.y + rollBox.height)}/${h}, cao ${Math.round(rollBox.height)}` : "không thấy");
     const inputFont = await m.page.evaluate(() => getComputedStyle(document.getElementById("playerName")).fontSize);
     if (OUT) { await m.page.screenshot({ path: `${OUT}/mobile-${w}.png` }); await m.page.evaluate(() => document.getElementById("lobbyView").classList.remove("hidden")); }
     await m.context.close();
+  }
+  // ===== Camera trên điện thoại ngang / dọc (stage xoay 90°) và nút Toàn cảnh =====
+  for (const [label, vw, vh] of [["ngang 844x390", 844, 390], ["dọc 390x844 (xoay)", 390, 844], ["dọc 360x740 (xoay)", 360, 740], ["ngang 667x375", 667, 375]]) {
+    await pa.page.setViewportSize({ width: vw, height: vh });
+    await pa.page.waitForTimeout(500);
+    const r = store.rooms[code];
+    const uid = r.creatorUid;
+    const from = Number(r.players[uid].position);
+    const to = (from + 5) % 40;
+    const turn = Number(r.turnNumber || 1);
+    store.rooms[code] = { ...r, status: "playing", debt: null, pending: null, auction: null, turnUid: uid, lastRoll: [2, 3],
+      lastMove: { uid, from, to, steps: 5, dice: [2, 3], turnNumber: turn }, eventSeq: 900, 
+      event: { id: 900 + vw, uid, kind: "info", text: "Kiểm tra camera " + label, turn, index: to, cash: { [uid]: 1 }, at: Date.now() },
+      players: { ...r.players, [uid]: { ...r.players[uid], position: to } } };
+    const followed = await pa.page.waitForFunction(() => document.getElementById("stage").dataset.camera === "follow", null, { timeout: 8000, polling: 20 }).then(() => true).catch(() => false);
+    const focused = await pa.page.waitForFunction(() => document.getElementById("stage").dataset.camera === "focus", null, { timeout: 8000, polling: 20 }).then(() => true).catch(() => false);
+    await pa.page.waitForTimeout(800);
+    const info = await pa.page.evaluate((to) => {
+      const sr = document.getElementById("stage").getBoundingClientRect();
+      const tok = document.querySelector(`.space[data-index="${to}"] .token b`)?.getBoundingClientRect();
+      const wrapRect = document.getElementById("board").getBoundingClientRect();
+      return { tokenIn: !!tok && tok.left >= sr.left && tok.right <= sr.right && tok.top >= sr.top && tok.bottom <= sr.bottom, boardStillVisible: wrapRect.right > sr.left + 40 && wrapRect.left < sr.right - 40 && wrapRect.bottom > sr.top + 40 && wrapRect.top < sr.bottom - 40, scale: Number(document.getElementById("stage").dataset.cameraScale), btn: !document.getElementById("camOverviewButton").hidden };
+    }, to);
+    check(`camera ${label}: theo quân cờ rồi focus, quân cờ trong khung, bàn cờ không biến mất`, followed && focused && info.tokenIn && info.boardStillVisible && info.btn, JSON.stringify(info));
+    if (OUT) await pa.page.screenshot({ path: `${OUT}/camera-${vw}x${vh}.png` });
+    await pa.page.click("#camOverviewButton");
+    await pa.page.waitForTimeout(900);
+    const back = await pa.page.evaluate(() => ({ mode: document.getElementById("stage").dataset.camera, tf: document.querySelector("#gameView .board-wrap").style.transform, btnHidden: document.getElementById("camOverviewButton").hidden }));
+    check(`nút Toàn cảnh (${label}) đưa camera về toàn cảnh bất cứ lúc nào`, back.mode === "overview" && back.tf === "" && back.btnHidden, JSON.stringify(back));
+  }
+  // Hai thay đổi trạng thái đến sát nhau: hành trình mới nhất thắng, camera không kẹt.
+  {
+    const r = store.rooms[code]; const uid = r.creatorUid; const turn = Number(r.turnNumber || 1);
+    const p0 = Number(r.players[uid].position);
+    const hop = (n, id) => { const cur = store.rooms[code]; const f = Number(cur.players[uid].position); const t = (f + n) % 40; store.rooms[code] = { ...cur, lastRoll: [1, n - 1], lastMove: { uid, from: f, to: t, steps: n, dice: [1, n - 1], turnNumber: turn }, eventSeq: id, event: { id, uid, kind: "info", text: "move " + id, turn, index: t, cash: { [uid]: 1 }, at: Date.now() }, players: { ...cur.players, [uid]: { ...cur.players[uid], position: t } } }; return t; };
+    await pa.page.setViewportSize({ width: 844, height: 390 }); await pa.page.waitForTimeout(400);
+    hop(3, 1001); const last = hop(4, 1002);
+    await pa.page.waitForFunction(() => document.getElementById("stage").dataset.camera === "focus", null, { timeout: 9000, polling: 50 }).catch(() => {});
+    await pa.page.waitForTimeout(1500);
+    const fin = await pa.page.evaluate((last) => { const sr = document.getElementById("stage").getBoundingClientRect(); const t = document.querySelector(`.space[data-index="${last}"] .token b`)?.getBoundingClientRect(); return { mode: document.getElementById("stage").dataset.camera, tokenIn: !!t && t.left >= sr.left && t.right <= sr.right && t.top >= sr.top && t.bottom <= sr.bottom, moving: document.querySelectorAll(".token.moving").length }; }, last);
+    check("hai di chuyển liên tiếp: camera kết thúc ở ô đích mới nhất, không kẹt", fin.mode === "focus" && fin.tokenIn && fin.moving === 0, JSON.stringify(fin));
+    await pa.page.click("#camOverviewButton");
+    await pa.page.waitForTimeout(1100);
+  }
+  // ===== Tải lại trang giữa lúc đang xử lý sự kiện: camera quay lại ô đang xử lý, không phát lại hành trình =====
+  {
+    const r = store.rooms[code]; const uid = r.creatorUid; const turn = Number(r.turnNumber || 1);
+    const at = Number(r.players[uid].position);
+    store.rooms[code] = { ...r, status: "playing", debt: null, pending: null, auction: null, turnUid: uid, lastRoll: [3, 4],
+      eventSeq: 2000, event: { id: 2000, uid, kind: "info", text: "Sự kiện chờ xác nhận sau khi tải lại", turn, index: at, cash: { [uid]: 1 }, at: Date.now() } };
+    await pa.page.setViewportSize({ width: 1280, height: 900 });
+    await pa.page.reload();
+    await pa.page.waitForSelector("#gameView:not(.hidden)", { timeout: 15000 });
+    const restored = await pa.page.waitForFunction(() => document.getElementById("stage").dataset.camera === "focus", null, { timeout: 8000, polling: 50 }).then(() => true).catch(() => false);
+    check("tải lại trang giữa sự kiện: camera focus lại ô đang xử lý", restored);
+    check("tải lại trang: không lặp hành trình cũ (không có quân đang nhảy)", (await pa.page.locator(".token.moving").count()) === 0);
+    await pa.page.click("#camOverviewButton");
+    await pa.page.waitForTimeout(900);
+    store.rooms[code] = { ...store.rooms[code], turnNumber: turn + 1, lastRoll: null };
+    await pa.page.waitForTimeout(600);
+    check("sau khi tải lại vẫn qua lượt bình thường, camera ở toàn cảnh", (await stageState(pa.page)).mode === "overview");
   }
   if (OUT) {
     await pa.page.screenshot({ path: `${OUT}/desktop-game.png` });

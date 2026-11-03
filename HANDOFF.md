@@ -1,17 +1,5 @@
 # Ghi chú bàn giao – Cờ Tỷ Phú Miền Tây
 
-## Trạng thái mới nhất – 02/11/2026
-
-- Nhánh Claude đã triển khai luật + camera/Event Panel: `feat/monopoly-rules-camera`.
-- Nhánh tiếp tục bổ sung nhật ký giao dịch và kiểm thử: `fix/event-camera-followup` (PR #16 vào `feat/online-mvp`).
-- Nhánh nền/phát hành: `feat/online-mvp`. Chưa được xem là đã phát hành cho tới khi PR được merge và GitHub Pages cập nhật.
-- 22 bất động sản được chia thành 8 nhóm màu theo cấu trúc 2–3–3–3–3–3–3–2; không còn chia nhóm xây nhà theo 13 tỉnh.
-- Đã có đấu giá mọi tài sản chưa có chủ, luật tung đôi, 3 đôi liên tiếp vào tù, 3 cách ra tù, xây/bán nhà, cầm cố/giải chấp và phá sản.
-- Event Panel có lịch sử, hiển thị tiền cộng/trừ và số dư; camera theo token, focus ô đích và có nút quay lại toàn cảnh. Camera là trạng thái cục bộ từng thiết bị, không ghi vào Firebase.
-- CI mới nhất trên nhánh follow-up: **147/147 unit/smoke đạt** và **84/84 E2E đạt** (workflow run #185, 02/11/2026). E2E kiểm tra camera focus/overview, Event Panel/lịch sử và nhật ký mua, xây/bán nhà, cầm cố/giải chấp.
-- Chưa xác nhận Firebase production trên hai điện thoại thật; E2E hiện dùng Firebase giả lập.
-
-
 ## Trạng thái nhánh
 
 - Nhánh tính năng đang làm: `feat/mekong-board-polish`.
@@ -30,8 +18,8 @@ Không có tài khoản/mật khẩu, chat, thanh toán, quảng cáo hoặc gia
 ## Nội dung và giao diện đã có
 
 - Bàn cờ 40 ô; 22 bất động sản thuộc đủ 13 tỉnh/thành ĐBSCL trong bộ dữ liệu.
-- Sở hữu đủ bất động sản trong cùng một trong 8 nhóm màu thì tiền thuê ô đất trống được nhân đôi.
-- Dữ liệu địa danh có icon/giới thiệu; màu nhóm tài sản được phân bổ theo 8 nhóm kinh tế Monopoly, không còn ràng buộc theo tỉnh.
+- Sở hữu đủ bất động sản thuộc cùng tỉnh thì tiền thuê ô đó nhân đôi.
+- Dữ liệu địa danh có icon, giới thiệu và màu nhóm theo tỉnh.
 - Khung thông tin khi chạm ô; cảnh sông nước, khung bàn cờ và màu chủ đề miền Tây.
 - Xúc xắc lăn, quân cờ nhảy từng ô, tiền bay, dấu sở hữu, pháo giấy khi thắng; tôn trọng `prefers-reduced-motion`.
 - Đối thủ máy có chiến lược giữ tiền và ưu tiên hoàn thiện nhóm tỉnh; logic nằm trong `computer-player.js`.
@@ -39,9 +27,9 @@ Không có tài khoản/mật khẩu, chat, thanh toán, quảng cáo hoặc gia
 ## Kết quả kiểm thử mới nhất
 
 - `npm run check`: đạt.
-- `npm test`: lần CI trước phần camera/Event Panel đạt **138/138**.
-- `npm run test:e2e`: lần CI trước đạt **74/74** ở GitHub Actions (hai trình duyệt Chromium + Firebase giả lập).
-- E2E bao gồm tạo/tham gia phòng, từ chối người thứ ba, đồng bộ xúc xắc và tài sản, camera focus ô đích/overview trên cả hai thiết bị, Event Panel và lịch sử giao dịch, đấu giá, xây/bán nhà, cầm cố/giải chấp, chế độ chơi với máy, và viewport 390px/360px.
+- `npm test`: **63/63** đạt.
+- `npm run test:e2e`: **34/34** đạt ở GitHub Actions (hai trình duyệt Chromium + Firebase giả lập).
+- E2E bao gồm tạo/tham gia phòng, từ chối người thứ ba, đồng bộ xúc xắc và tài sản, hiệu ứng quân cờ, chế độ chơi với máy, và viewport 390px/360px.
 - Chưa phải kiểm thử Firebase Emulator hay hai điện thoại thật.
 - E2E đã phát hiện và sửa lỗi focus/scroll khi chuyển từ sảnh sang bàn cờ: nút xúc xắc từng bị nằm phía trên viewport trên Android 360px. `showGameView()` trong `app.js` làm mờ nút sảnh đang focus và đưa trang về đầu trước khi hiển thị game.
 
@@ -94,3 +82,21 @@ npm run test:e2e
 - Khi bỏ mua bến phà (station) hoặc công ty điện/nước (utility), mở đấu giá hai người: mỗi lượt tăng 100.000₫ hoặc bỏ lượt; ai cao nhất thắng, cả hai bỏ thì tài sản để trống. Máy Miền Tây cũng tự trả giá theo giới hạn ngân sách.
 - firebase-database.rules.json bổ sung kiểm tra cấu trúc auction; dữ liệu phòng cũ không có trường auction vẫn tương thích.
 - Query cache CSS/JS: auction1.
+
+
+## Cập nhật: nhánh feat/monopoly-rules-camera (luật Monopoly + camera + Event Panel + giao diện kiểu Marmalade)
+**Phải làm thủ công:** Publish lại `firebase-database.rules.json` trong Firebase Console (có trường mới: `doublesCount`, `extraRoll`, `eventSeq`, `event`, `log`, auction cho mọi tài sản). Phòng cũ vẫn tương thích (trường mới đều tùy chọn).
+- Dữ liệu: `SPACE_DATA` giữ nguyên 40 chỉ số ô, nhưng `group/color/rent/houseCost` được chia lại thành 8 nhóm (ô 1,3 | 6,8,9 | 11,13,14 | 16,18,19 | 21,23,24 | 26,27,29 | 31,32,34 | 37,39). Không cần migration phòng.
+- `economy.js`: thêm `doublesOutcome`, `jailRollOutcome`, `jailStatus`, `isAuctionable`, `cashSnapshot/cashDeltas`, `appendEventLog`. App: `rollDice`, `rollInJail`, `leaveJail`, `resolveLanding`, `sendToJail`, `recordEvent`.
+- Trạng thái phòng mới: `doublesCount` (0-2), `extraRoll`, `event` (sự kiện của lượt hiện tại), `log` (≤20), `eventSeq`. `endTurn()` do người chơi bấm **Đã xem**; máy tự bấm sau ~1,8 giây. Đã bỏ `scheduleAutoEnd`.
+- `camera.js`: `solveCamera` (thuần túy, có unit test), `createCamera`. Camera áp transform lên `.board-wrap` và đặt `--rx` (độ nghiêng) cho `.board`; đo toạ độ ô bằng `getBoundingClientRect` ở từng độ nghiêng rồi cache (`premeasure` khi vào ván, `invalidate` khi đổi cỡ). Mỗi hành trình có `seq` — hành trình mới nhất luôn thắng. Dữ liệu camera chỉ nằm trên `#stage[data-camera]`.
+- Giao diện: khối CSS cuối `style.css` ("Giao diện kiểu Monopoly mobile"). Ô cờ có `.sp-face` xoay theo cạnh. `?v=` hiện là `mm2`.
+- Lỗi phát hiện khi làm: người chơi thật trước đây không có nút Phá sản (chỉ máy gọi `declareBankruptcy`) — đã thêm vào Bảng sự kiện khi hết khả năng thanh lý.
+- Kiểm thử đã chạy: `npm run check`, `npm test`, `npm run test:e2e` (Playwright, Firebase giả + Rules mô phỏng). **Chưa** kiểm thử hai điện thoại thật với Firebase thật, chưa chạy Firebase Emulator; cần làm trước khi phát hành.
+- Chưa làm: rời phòng giữa ván vẫn chỉ thoát cục bộ (đối thủ không được báo); nhân vật/âm thanh ngoài phần đã mô tả.
+
+
+## Làm lại giao diện theo mẫu Marmalade (mm3)
+- Giữa bàn: thành phố 3D nhìn từ trên (SVG sinh bằng script, màu nhà khớp 8 nhóm), đường, ray, công viên, đài phun nước. Giữ SVG nhẹ (dùng pattern cửa sổ) vì SVG nặng làm camera E2E trễ.
+- Tường rào gỗ nâu quanh bàn, ô xanh bạc hà, thẻ người chơi ruy băng mũi tên, banner tím "Đang bán", thẻ địa danh khung đôi nghiêng, thẻ Cơ hội/Khí vận trắng khung đen + linh vật Bác Ba.
+- Chưa kiểm thử trên điện thoại thật.
