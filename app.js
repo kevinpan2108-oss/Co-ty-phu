@@ -9,8 +9,7 @@ import {
   doublesOutcome, jailRollOutcome, jailStatus, isAuctionable, cashSnapshot, cashDeltas, appendEventLog, JAIL_MAX_ATTEMPTS
 } from "./economy.js?v=2";
 import { cubeTransform } from "./dice-visuals.js?v=1";
-import { createCamera, CAMERA } from "./camera.js?v=marmalade-camera-20261102";
-import { currentTurnEvent, eventLogList, eventReason } from "./events.js?v=1";
+import { createCamera, CAMERA } from "./camera.js?v=1";
 import { getDatabase, ref, set, get, onValue, runTransaction } from "https://www.gstatic.com/firebasejs/13.1.0/firebase-database.js";
 
 // Public Firebase Web App configuration for this game.
@@ -119,16 +118,12 @@ const UNIT_VND = 10000;
 function money(units) {
   return Math.round(Number(units || 0) * UNIT_VND).toLocaleString("vi-VN") + "₫";
 }
-// Dạng ngắn cho ô cờ và số dư người chơi: 600K, 2.8M, 15M.
+// Dạng ngắn cho ô cờ nhỏ: 600k, 1,2tr, 4tr.
 function moneyShort(units) {
   const vnd = Number(units || 0) * UNIT_VND;
-  if (Math.abs(vnd) >= 1000000) {
-    return (vnd / 1000000).toLocaleString("en-US", {maximumFractionDigits:1}) + "M";
-  }
-  if (Math.abs(vnd) >= 1000) {
-    return Math.round(vnd / 1000).toLocaleString("en-US") + "K";
-  }
-  return Math.round(vnd).toLocaleString("en-US");
+  return vnd >= 1000000
+    ? (vnd / 1000000).toLocaleString("vi-VN", {maximumFractionDigits:1}) + "tr"
+    : Math.round(vnd / 1000) + "k";
 }
 // Dữ liệu phòng do trình duyệt của người chơi ghi lên, nên mọi giá trị đưa vào innerHTML/style phải được kiểm tra.
 function safeColor(value) {
@@ -460,13 +455,6 @@ function showGameView() {
   window.scrollTo(0, 0);
 }
 function openRoom(code) {
-  resetEffects();
-  clearTimeout(holdTimer);
-  holdTimer = null;
-  cameraRestored = false;
-  epSeenId = 0;
-  dealDismissedId = null;
-  eventHoldUntil = 0;
   computerGame = false;
   computerBusy = false;
   if (computerTimer) clearTimeout(computerTimer);
@@ -607,12 +595,6 @@ async function joinRoom() {
   }
 }
 function leaveRoom(message) {
-  clearTimeout(holdTimer);
-  holdTimer = null;
-  cameraRestored = false;
-  epSeenId = 0;
-  
-  eventHoldUntil = 0;
   if (computerTimer) clearTimeout(computerTimer);
   computerTimer = null;
   computerBusy = false;
@@ -699,10 +681,11 @@ function renderPlayers() {
     const isTurn = !isOpeningRollPhase(roomState) && roomState.turnUid === uid;
     const isMe = uid === currentUser.uid;
     const tokenId = playerTokenId(p, entries.findIndex(([id]) => id === uid));
-    const fullCash = money(p.cash);
+    const space = SPACE_DATA[Number(p.position)]?.name || "—";
     return `<div class="player-card ${isTurn?"active":""}" data-uid="${escapeHtml(uid)}" style="--pc:${safeColor(p.color)}"><span class="player-avatar" data-token="${tokenId}" aria-label="${escapeHtml(tokenLabel(tokenId))}">${tokenMarkup(tokenId)}</span><div class="player-info">
-      <div class="player-head"><span class="player-name">${escapeHtml(p.name)}</span>${isMe?'<span class="you-label">Bạn</span>':""}</div>
-      <div class="player-cash" title="${escapeHtml(fullCash)}" aria-label="${escapeHtml(fullCash)}">${moneyShort(p.cash)}</div>
+      <div class="player-head"><i class="player-dot" style="background:${safeColor(p.color)}"></i><span class="player-name">${escapeHtml(p.name)}</span>${isMe?'<span class="you-label">Bạn</span>':""}</div>
+      <div class="player-cash">${money(p.cash)}</div>
+      <p class="player-position">${escapeHtml(space)} ${jailStatus(p).label ? "· " + jailStatus(p).label : ""}</p>
     </div></div>`;
   }).join("");
   const turnPlayer = roomState.players?.[roomState.turnUid];
@@ -817,12 +800,12 @@ function renderActions() {
     const space = SPACE_DATA[pending.index];
     const buy = document.createElement("button");
     buy.className = "primary-button";
-    buy.textContent = "MUA NGAY";
+    buy.textContent = "Mua " + money(space.price);
     buy.disabled = busy || mine.cash < space.price;
     buy.addEventListener("click", buyProperty);
     const pass = document.createElement("button");
     pass.className = "secondary-button";
-    pass.textContent = "ĐẤU GIÁ";
+    pass.textContent = "Bỏ qua";
     pass.disabled = busy;
     pass.addEventListener("click", passProperty);
     buttons.append(buy, pass);
@@ -852,13 +835,9 @@ function renderActions() {
   }
 
   const canPayJail = Number(mine?.jailTurns || 0) > 0 && !dice;
-  const canContinueTurn = !!dice && isMyTurn && !pending && !auction && !roomState.debt && canAdvanceTurn(roomState) && playing;
   if (openingPhase) {
     $("rollButton").textContent = myOpeningRoll ? "⏳ Đợi đối thủ tung..." : "🎲 Tung xí ngầu chọn lượt";
     $("rollButton").disabled = busy || !playing || !!myOpeningRoll;
-  } else if (canContinueTurn) {
-    $("rollButton").textContent = roomState.extraRoll === true && !mine?.jailTurns ? "➡️ Tiếp tục · Tung thêm" : "➡️ Tiếp tục";
-    $("rollButton").disabled = busy;
   } else {
     $("rollButton").textContent = canPayJail ? "🎲 Thử tung đôi (" + mine.jailTurns + "/" + JAIL_MAX_ATTEMPTS + ")" : roomState.extraRoll && isMyTurn ? "🎲 Tung thêm (được đôi)" : "🎲 Tung xúc xắc";
     $("rollButton").disabled = busy || !playing || !isMyTurn || !!pending || !!auction || !!dice || roomState.status === "finished";
@@ -898,7 +877,7 @@ let diceAnimating = false;
 let diceTimer = null;
 let diceFinishTimer = null;
 let diceAnimationId = 0;
-const DICE_MS = 1320;
+const DICE_MS = 1200;
 const HOP_MS = 190;
 
 function tokensHtml(index) {
@@ -917,7 +896,7 @@ function renderTokens() {
   });
 }
 function resetEffects() {
-  clearTimeout(holdTimer); holdTimer = null; eventHoldUntil = 0; epSeenId = 0; dealDismissedId = null;
+  clearTimeout(holdTimer); holdTimer = null; eventHoldUntil = 0; epSeenId = 0; epMinimized = false;
   cameraRestored = false;
   camera?.overview(0);
   clearInterval(diceTimer);
@@ -1109,7 +1088,7 @@ function runEffects(previous, next) {
   if (holdMs > 0) {
     eventHoldUntil = Date.now() + holdMs + 150;
     clearTimeout(holdTimer);
-    holdTimer = setTimeout(() => { holdTimer = null; if (roomState) { renderActions(); renderDealCard(); } }, holdMs + 170);
+    holdTimer = setTimeout(() => { holdTimer = null; if (roomState) { renderActions(); renderEventPanel(); } }, holdMs + 170);
   }
   for (const key of Object.keys(next.propertyOwners || {})) {
     if (previous.propertyOwners?.[key]) continue;
@@ -1127,30 +1106,15 @@ function planCameraRoute(from, to, steps, diceDelay) {
   const distance = Number.isInteger(steps) ? steps : (to - from + 40) % 40;
   const hops = !reduceMotion && distance >= 1 && distance <= 12 && (from + distance) % 40 === to;
   const seq = camera.beginSequence();
-
   if (!hops) {
-    // Dịch chuyển đặc biệt (ví dụ vào tù): focus ô đích và giữ khung hình
-    // cho tới khi người chơi xác nhận chuyển lượt.
-    return {
-      follow: false,
-      teleport: (delay) => {
-        camera.later(() => camera.focus(to, { seq }), delay);
-        return CAMERA.focusMs;
-      }
-    };
+    // Dịch chuyển thẳng (vào tù): bỏ qua hành trình, focus thẳng vào ô đích.
+    return { follow: false, teleport: (delay) => { camera.later(() => camera.focus(to, { seq }), delay); return CAMERA.focusMs; } };
   }
-
-  // Mở camera từ vị trí xuất phát, sau đó bám token từng ô với nhịp ngắn hơn
-  // thời gian nhảy token để mỗi lần pan hoàn tất trước bước kế tiếp.
   camera.later(() => camera.follow(from, { seq, ms: CAMERA.zoomInMs }), diceDelay);
   return {
     follow: true,
     hooks: {
-      step: (cell) => camera.follow(cell, {
-        seq,
-        ms: CAMERA.stepMs,
-        ease: "cubic-bezier(.22,.78,.25,1)"
-      }),
+      step: (cell) => camera.follow(cell, { seq, ms: HOP_MS + 60, ease: "cubic-bezier(.3,.1,.6,.9)" }),
       land: (cell) => camera.focus(cell, { seq })
     }
   };
@@ -1159,15 +1123,15 @@ function planCameraRoute(from, to, steps, diceDelay) {
 function restoreCameraAfterReload() {
   if (cameraRestored || !camera || !roomState) return;
   cameraRestored = true;
-  const e = currentTurnEvent(roomState);
+  const e = currentTurnEvent();
   if (!camera.state.enabled || !e || !Number.isInteger(e.index) || roomState.status !== "playing" || !roomState.lastRoll) return;
   const seq = camera.beginSequence();
   camera.later(() => camera.focus(e.index, { ms: 700, seq }), 350);
 }
 
-// ===== Thẻ giao dịch theo ngữ cảnh =====
+// ===== Bảng sự kiện =====
+let epMinimized = false;
 let epSeenId = 0;
-let dealDismissedId = null;
 let eventHoldUntil = 0;
 let holdTimer = null;
 function currentTurnEvent() {
@@ -1245,11 +1209,6 @@ function renderEventPanel() {
   const holding = Date.now() < eventHoldUntil;
   const uid = currentUser.uid;
   const players = roomState.players || {};
-  const pending = roomState.pending;
-  const auction = roomState.auction;
-  const debt = roomState.debt;
-  const e = currentTurnEvent(roomState);
-  const holding = Date.now() < eventHoldUntil;
   const nameOf = (id) => players[id]?.name || "Người chơi";
   if (e && e.id !== epSeenId) { epSeenId = e.id; epMinimized = false; }
   panel.classList.toggle("idle", !e || holding);
@@ -1288,77 +1247,39 @@ function renderEventPanel() {
       const amount = Math.min(Math.abs(payer[1]), receiver[1]);
       money$.insertAdjacentHTML("beforeend", `<li class="ep-flow-row"><span class="ep-flow">💸 ${escapeHtml(nameOf(payer[0]))} trả cho ${escapeHtml(nameOf(receiver[0]))} ${money(amount)}</span></li>`);
     }
-    schedule.innerHTML = rentRows.map(([label,value]) => {
-      const active = label === currentRentLabel;
-      const shown = typeof value === "number" ? money(value) : value;
-      return '<div class="deal-rent-row' + (active ? ' active' : '') + '"><span>' +
-        escapeHtml(label) + '</span><b>' + escapeHtml(shown) + '</b></div>';
-    }).join("");
-    schedule.hidden = false;
   }
-
-  const facts = [];
-  // Tên nhóm đã nằm ngay dưới tên ô; tránh lặp lại trong chứng từ mua đất.
-  if (space?.group && !isPending) facts.push(["NHÓM MÀU", space.group]);
-  if (space?.price) facts.push(["GIÁ TRỊ THẾ CHẤP", money(mortgage > 0 ? mortgage : mortgageValue(space))]);
-  if (mortgage > 0) facts.push(["PHÍ GIẢI CHẤP", money(redemptionCost(mortgage))]);
-  // Chi phí xây đã có một dòng riêng trong bảng quyền thuê.
-  if (space?.houseCost && !isPending) facts.push(["CHI PHÍ XÂY NHÀ", money(space.houseCost)]);
-  if (space?.type === "station") facts.push(["TIỀN THUÊ", "Tăng theo số bến sở hữu"]);
-  if (space?.type === "utility") facts.push(["CÁCH TÍNH THUÊ", "Theo điểm xúc xắc"]);
-  if (owner) facts.push(["CHỦ SỞ HỮU", owner.name]);
-  if (houses > 0) facts.push(["CÔNG TRÌNH", houses === 5 ? "Khách sạn" : houses + " căn nhà"]);
-  if (mortgage > 0) facts.push(["TÌNH TRẠNG", "Đang cầm cố"]);
-  if (isAuction && auction.highestUid) facts.push(["NGƯỜI DẪN GIÁ", nameOf(auction.highestUid)]);
-  if (isDebt && debt.creditorUid) facts.push(["CHỦ NỢ", nameOf(debt.creditorUid)]);
-  $("dealFacts").innerHTML = facts.map(([label, value]) =>
-    "<span><small>" + escapeHtml(label) + "</small><b>" + escapeHtml(value) + "</b></span>").join("");
-
-  // The receipt lists actual cash movements; live balances remain in each player's rail card.
-  const moneyList = $("epMoney");
-  moneyList.innerHTML = "";
-  $("epBalances").textContent = Object.entries(players).map(([id, p]) =>
-    escapeHtml(p.name) + ": " + money(p.cash)).join(" · ");
-  if (e?.deltas) {
-    moneyList.innerHTML = Object.entries(e.deltas).filter(([, delta]) => Number(delta) !== 0).map(([id, delta]) => {
-      const positive = Number(delta) > 0;
-      const reason = eventReason(e, id, delta);
-      return '<li class="' + (positive ? "gain" : "loss") + '"><span>' + escapeHtml(nameOf(id)) +
-        (reason ? "<small>" + escapeHtml(reason) + "</small>" : "") +
-        '</span><b>' + (positive ? "+" : "−") + money(Math.abs(delta)) + "</b></li>";
-    }).join("");
+  if (e) {
+    bal.innerHTML = Object.entries(players).map(([id, p]) => `<span style="--pc:${safeColor(p.color)}">${escapeHtml(p.name)}: ${money(p.cash)}</span>`).join("");
   }
-
-  const confirmRow = $("epConfirmRow");
-  confirmRow.innerHTML = "";
+  // Nút xác nhận: chỉ người đang đến lượt, và chỉ khi sự kiện đã xử lý xong (không còn mua/đấu giá/nợ).
+  const mine = players[uid];
   const playing = roomState.status === "playing" && getPlayerEntries(roomState).length === 2;
-  const resolved = !pending && !auction && !debt;
+  const resolved = !roomState.pending && !roomState.auction && !roomState.debt;
   const addButton = (cls, text, handler, attrs = {}) => {
-    const button = document.createElement("button");
-    button.className = cls;
-    button.type = "button";
-    button.textContent = text;
-    Object.entries(attrs).forEach(([key, value]) => button.setAttribute(key, value));
-    button.addEventListener("click", handler);
-    confirmRow.append(button);
-    return button;
+    const b = document.createElement("button");
+    b.className = cls; b.type = "button"; b.textContent = text;
+    Object.entries(attrs).forEach(([k, v]) => b.setAttribute(k, v));
+    b.addEventListener("click", handler);
+    confirmRow.append(b);
+    return b;
   };
-
-  if (debt?.uid === uid && playing) {
-    addButton("secondary-button", "MỞ SỔ TÀI SẢN", () => { $("propsModal").hidden = false; });
-    if (canDeclareBankruptcy(roomState, uid)) addButton("danger-button", "TUYÊN BỐ PHÁ SẢN", () => declareBankruptcy(), { id: "bankruptButton" });
+  if (roomState.debt?.uid === uid && playing) {
+    addButton("secondary-button", "📋 Mở Sổ đất", () => { $("propsModal").hidden = false; });
+    if (canDeclareBankruptcy(roomState, uid)) addButton("danger-button", "🏳️ Phá sản", () => declareBankruptcy(), { id: "bankruptButton" });
+  } else if (playing && roomState.turnUid === uid && roomState.lastRoll && resolved && canAdvanceTurn(roomState)) {
+    const again = roomState.extraRoll === true && !mine?.jailTurns;
+    const b = addButton("confirm-button", again ? "✔ Đã xem · Tung thêm" : "✔ Đã xem · Kết thúc lượt", () => endTurn(), { id: "confirmEventButton" });
+    b.disabled = busy;
   } else if (playing && e && roomState.turnUid !== uid && resolved) {
     const note = document.createElement("div");
-    note.className = "deal-wait";
-    note.textContent = computerGame ? "Đối thủ máy đang suy nghĩ…" : "Đang chờ " + nameOf(roomState.turnUid) + " xác nhận lượt…";
+    note.className = "ep-wait";
+    note.textContent = computerGame ? "Máy đang chơi…" : "Đang chờ " + nameOf(roomState.turnUid) + " xác nhận…";
     confirmRow.append(note);
   }
-
-  $("actionMessage").textContent = $("actionMessage").textContent || roomState.message || "";
 }
 function renderHistory() {
   const players = roomState?.players || {};
-  const list = eventLogList(roomState).slice().reverse();
+  const list = eventLogList().slice().reverse();
   $("historyList").innerHTML = list.length ? list.map((e) => {
     const space = Number.isInteger(e.index) ? SPACE_DATA[e.index] : null;
     const d = Object.entries(e.deltas || {}).map(([id, v]) => `<span class="hl-d ${v > 0 ? "gain" : "loss"}">${escapeHtml(players[id]?.name || "")} ${v > 0 ? "+" : "−"}${money(Math.abs(v))}</span>`).join("");
@@ -1375,7 +1296,7 @@ function renderRoom() {
   renderBoard();
   renderProperties();
   renderActions();
-  renderDealCard();
+  renderEventPanel();
   restoreCameraAfterReload();
 }
 
@@ -1679,14 +1600,12 @@ async function buildHouse(index) {
       const player = room.players?.[uid];
       const check = buildEligibility(SPACE_DATA, room.propertyOwners, room.houses || {}, room.mortgages || {}, uid, index, player?.cash);
       if (!check.ok || !player) return;
-      const before = cashSnapshot(room.players);
       player.cash -= check.cost;
       room.houses = room.houses || {};
       const key = getSpaceId(index);
       room.houses[key] = Number(room.houses[key] || 0) + 1;
       const label = room.houses[key] === 5 ? "khách sạn" : "căn nhà";
       room.message = player.name + " xây " + label + " tại " + SPACE_DATA[index].name + " với chi phí " + money(check.cost) + ".";
-      recordEvent(room, uid, index, before, "build");
       room.updatedAt = Date.now();
       return room;
     });
@@ -1705,14 +1624,12 @@ async function sellHouse(index) {
           (room.debt ? room.debt.uid !== uid : room.turnUid !== uid)) return;
       const check = sellHouseEligibility(SPACE_DATA, room.propertyOwners, room.houses || {}, uid, index);
       if (!check.ok) return;
-      const before = cashSnapshot(room.players);
       const key = getSpaceId(index);
       room.houses[key] = Number(room.houses[key] || 0) - 1;
       if (room.houses[key] <= 0) delete room.houses[key];
       applyDebtFunds(room, uid, check.refund);
       if (room.debt?.uid === uid) room.message = "Đã bán một công trình tại " + SPACE_DATA[index].name + ", thu về " + money(check.refund) + ". Còn nợ " + money(room.debt.amount) + ".";
       else room.message = "Đã bán một công trình tại " + SPACE_DATA[index].name + ", thu về " + money(check.refund) + ".";
-      recordEvent(room, uid, index, before, "sellHouse");
       room.updatedAt = Date.now();
       return room;
     });
@@ -1731,7 +1648,6 @@ async function mortgageAsset(index) {
           (room.debt ? room.debt.uid !== uid : room.turnUid !== uid)) return;
       const check = mortgageEligibility(SPACE_DATA, room.propertyOwners, room.houses || {}, room.mortgages || {}, uid, index);
       if (!check.ok) return;
-      const before = cashSnapshot(room.players);
       const key = getSpaceId(index);
       room.mortgages = room.mortgages || {};
       room.mortgages[key] = check.amount;
@@ -1739,7 +1655,6 @@ async function mortgageAsset(index) {
       room.message = room.debt?.uid === uid
         ? "Đã cầm cố " + SPACE_DATA[index].name + ", nhận " + money(check.amount) + ". Còn nợ " + money(room.debt.amount) + "."
         : "Đã cầm cố " + SPACE_DATA[index].name + " và nhận " + money(check.amount) + ". Tài sản tạm ngưng thu tiền thuê.";
-      recordEvent(room, uid, index, before, "mortgage");
       room.updatedAt = Date.now();
       return room;
     });
@@ -1760,11 +1675,9 @@ async function redeemAsset(index) {
       const cost = redemptionCost(amount);
       const player = room.players?.[uid];
       if (!amount || !player || player.cash < cost) return;
-      const before = cashSnapshot(room.players);
       player.cash -= cost;
       delete room.mortgages[key];
       room.message = player.name + " đã giải chấp " + SPACE_DATA[index].name + " với chi phí " + money(cost) + ".";
-      recordEvent(room, uid, index, before, "redeem");
       room.updatedAt = Date.now();
       return room;
     });
@@ -1782,8 +1695,6 @@ async function declareBankruptcy(skipConfirm = false) {
       if (room === null) return room;
       if (!room || room.status !== "playing" || room.debt?.uid !== uid ||
           hasLiquidationOptions(SPACE_DATA, room.propertyOwners, room.houses || {}, room.mortgages || {}, uid)) return;
-      const before = cashSnapshot(room.players);
-      const bankruptcyIndex = Number.isInteger(room.event?.index) ? room.event.index : undefined;
       const debtor = room.players?.[uid];
       const creditorUid = room.debt.creditorUid || "";
       const creditor = creditorUid && room.players?.[creditorUid] ? creditorUid : "";
@@ -1803,7 +1714,6 @@ async function declareBankruptcy(skipConfirm = false) {
       room.winner = creditor || Object.keys(room.players || {}).find((id) => id !== uid);
       room.message = debtor.name + " không thể thanh toán và đã phá sản. " +
         (room.players?.[room.winner]?.name || "Người chơi còn lại") + " chiến thắng.";
-      recordEvent(room, uid, bankruptcyIndex, before, "bankruptcy");
       room.updatedAt = Date.now();
       return room;
     });
@@ -1977,13 +1887,6 @@ async function endTurn() {
 }
 function startComputerGame() {
   if (busy) return;
-  resetEffects();
-  clearTimeout(holdTimer);
-  holdTimer = null;
-  cameraRestored = false;
-  epSeenId = 0;
-  
-  eventHoldUntil = 0;
   const humanUid = getPlayerId();
   currentUser = {uid:humanUid};
   computerGame = true;
@@ -2138,15 +2041,7 @@ renderTokenPicker();
 $("createRoomButton").addEventListener("click", createRoom);
 $("joinRoomButton").addEventListener("click", joinRoom);
 $("playComputerButton").addEventListener("click", startComputerGame);
-$("rollButton").addEventListener("click", () => {
-  const canContinue = !!roomState?.lastRoll &&
-    roomState.status === "playing" &&
-    roomState.turnUid === currentUser?.uid &&
-    !roomState.pending && !roomState.auction && !roomState.debt &&
-    canAdvanceTurn(roomState);
-  if (canContinue) endTurn();
-  else rollDice();
-});
+$("rollButton").addEventListener("click", rollDice);
 camera = createCamera({
   stage: $("stage"), wrap: document.querySelector("#gameView .board-wrap"), board: $("board"), reduceMotion,
   onChange: (mode) => { $("camOverviewButton").hidden = mode === "overview"; }
@@ -2154,10 +2049,8 @@ camera = createCamera({
 $("camOverviewButton").addEventListener("click", () => camera.manualOverview());
 window.addEventListener("resize", () => camera.invalidate());
 window.addEventListener("orientationchange", () => camera.invalidate());
-
-$("dealHistoryButton").addEventListener("click", () => { renderHistory(); $("historyModal").hidden = false; });
-$("dealCloseButton").addEventListener("click", () => { const event = currentTurnEvent(roomState); if (event) dealDismissedId = event.id; $("dealCard").hidden = true; });
-
+$("epMinButton").addEventListener("click", () => { epMinimized = !epMinimized; renderEventPanel(); });
+$("epHistoryButton").addEventListener("click", () => { renderHistory(); $("historyModal").hidden = false; });
 $("historyClose").addEventListener("click", () => { $("historyModal").hidden = true; });
 $("historyModal").addEventListener("click", (event) => { if (event.target === $("historyModal")) $("historyModal").hidden = true; });
 $("cellInfo").addEventListener("click", (event) => { if (event.target.closest(".cell-info-close")) $("cellInfo").classList.remove("show"); });

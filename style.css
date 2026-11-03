@@ -501,7 +501,7 @@ body:has(#gameView:not(.hidden)){overflow:hidden}
 #gameView .turn-card small{font-size:10px;color:#1d2b53}
 #gameView .turn-card strong{font-size:12px;color:#1d2b53}
 #gameView .turn-pulse{width:8px;height:8px;background:#e8402a}
-#gameView .game-notice{position:absolute;left:50%;top:calc(8px + 12cqh);transform:translateX(-50%);z-index:72;max-width:72cqw;margin:0}
+#gameView .game-notice{position:absolute;left:50%;top:70px;transform:translateX(-50%);z-index:40;max-width:60cqw;margin:0}
 #gameView .game-notice:empty{display:none}
 
 /* Bàn cờ 3D xéo */
@@ -806,16 +806,15 @@ body:has(#gameView:not(.hidden)){overflow:hidden}
 #gameView .board-wrap{transform-origin:0 0;backface-visibility:hidden}
 #gameView #camOverviewButton[hidden]{display:none}
 #gameView .cam-button{background:#e5f4ff}
-#gameView .event-panel{position:absolute;left:50%;right:auto;top:50%;bottom:auto;width:min(58cqw,520px);max-height:min(68cqh,520px);z-index:70;display:flex;flex-direction:column;background:#fffdf4;color:#1d2b53;border:3px solid #1d2b53;border-radius:18px;box-shadow:0 8px 0 rgba(29,43,83,.35),0 18px 55px rgba(15,35,60,.28);overflow:hidden;transform:translate(-50%,-50%);transition:opacity .25s,transform .25s}
- #gameView .event-panel.idle{width:min(42cqw,360px)}
- #gameView .event-panel.min{transform:translate(-50%,-50%)}
+#gameView .event-panel{position:absolute;right:8px;top:calc(10px + 20cqh);bottom:auto;width:min(37cqw,360px);max-height:calc(100cqh - 20cqh - 16cqh - 28px);z-index:46;display:flex;flex-direction:column;background:#fffdf4;color:#1d2b53;border:3px solid #1d2b53;border-radius:16px;box-shadow:0 4px 0 rgba(29,43,83,.35);overflow:hidden;transition:opacity .25s,transform .25s}
+#gameView .event-panel.idle{width:min(30cqw,280px)}
 #gameView .event-panel.min .ep-body{display:none}
 #gameView .ep-head{display:flex;align-items:center;gap:6px;padding:5px 6px 5px 10px;background:#ffd23f;border-bottom:2px solid #1d2b53}
 #gameView .ep-head .ep-icon{font-size:clamp(14px,4cqh,18px)}
-#gameView .ep-title{flex:1;min-width:0;font-family:var(--display);font-size:clamp(14px,4cqh,18px);line-height:1.15;overflow-wrap:anywhere}
+#gameView .ep-title{flex:1;min-width:0;font-family:var(--display);font-size:clamp(12px,3.4cqh,15px);line-height:1.15;overflow-wrap:anywhere}
 #gameView .ep-icon-btn{flex:none;width:28px;height:28px;border-radius:50%;border:2px solid #1d2b53;background:#fff;color:#1d2b53;font-size:14px;line-height:1;cursor:pointer;padding:0}
-#gameView .ep-body{padding:12px 14px 14px;overflow:auto;display:flex;flex-direction:column;gap:9px;min-height:0;-webkit-overflow-scrolling:touch}
-#gameView .event-panel .action-message{display:block;-webkit-line-clamp:unset;-webkit-box-orient:unset;position:static;transform:none;max-width:none;max-height:none;overflow:visible;margin:0;padding:2px 0;border:0;border-radius:0;background:none;box-shadow:none;text-align:left;font-size:clamp(13px,3.4cqh,16px);line-height:1.5;color:#1d2b53}
+#gameView .ep-body{padding:8px 10px 10px;overflow:auto;display:flex;flex-direction:column;gap:7px;min-height:0;-webkit-overflow-scrolling:touch}
+#gameView .event-panel .action-message{display:block;-webkit-line-clamp:unset;-webkit-box-orient:unset;position:static;transform:none;max-width:none;max-height:none;overflow:visible;margin:0;padding:0;border:0;border-radius:0;background:none;box-shadow:none;text-align:left;font-size:clamp(11px,3cqh,14px);line-height:1.4;color:#1d2b53}
 #gameView .ep-money{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px}
 #gameView .ep-money:empty,#gameView .ep-balances:empty,#gameView .ep-confirm-row:empty{display:none}
 #gameView .ep-money li{display:flex;justify-content:space-between;gap:8px;align-items:baseline;padding:4px 8px;border-radius:9px;font-size:clamp(11px,2.9cqh,13px);font-weight:800;background:#eef7ee;border:1px solid #9cc9a0}
@@ -841,12 +840,8 @@ body:has(#gameView:not(.hidden)){overflow:hidden}
 #gameView .history-list li .hl-d{font-weight:800;margin-right:8px}
 #gameView .history-list li .hl-d.gain{color:#1a7a3a}#gameView .history-list li .hl-d.loss{color:#c1272d}
 @media(max-height:500px) and (orientation:landscape){
-  #gameView .event-panel{top:50%;width:min(62cqw,500px);max-height:72cqh}
-  #gameView .ep-body{padding:8px 10px 10px;gap:6px}
-}
-@media(max-width:560px){
-  #gameView .event-panel{width:min(76cqw,520px)}
-  #gameView .event-panel.idle{width:min(58cqw,360px)}
+  #gameView .event-panel{top:calc(8px + 19cqh);max-height:calc(100cqh - 19cqh - 15cqh - 20px)}
+  #gameView .ep-body{padding:6px 8px 8px;gap:5px}
 }
 @media(prefers-reduced-motion:reduce){#gameView .event-panel{transition:none}}
 

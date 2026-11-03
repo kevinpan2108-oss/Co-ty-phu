@@ -1,5 +1,5 @@
-// Cinematic camera theo token, giữ toàn bộ trạng thái ở trình duyệt.
-// Camera bám vào tọa độ chiếu thực của ô trên bàn nghiêng; không ghi vị trí camera lên Firebase.
+// Camera theo quân cờ. Chỉ là hiển thị phía trình duyệt: không đọc/ghi Firebase và không đổi vị trí quân cờ.
+// Camera là một phép biến đổi 2D (translate + scale, gốc ở góc trên trái) áp lên .board-wrap.
 
 export const CAMERA = Object.freeze({
   followScale: 1.45,   // zoom khi đi theo quân cờ
@@ -12,52 +12,19 @@ export const CAMERA = Object.freeze({
   zoomOutMs: 1000
 });
 
-const clampNumber = (value, min, max) => Math.min(max, Math.max(min, value));
+const clampNumber = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
 
-export function quadCenter(points) {
-  if (!Array.isArray(points) || points.length < 3) {
-    throw new TypeError("quadCenter requires at least three points");
-  }
-  const total = points.reduce((sum, point) => ({
-    x: sum.x + Number(point.x),
-    y: sum.y + Number(point.y)
-  }), { x: 0, y: 0 });
-  return { x: total.x / points.length, y: total.y / points.length };
-}
-
-export function boundsFromPoints(points) {
-  if (!Array.isArray(points) || points.length < 3) {
-    throw new TypeError("boundsFromPoints requires at least three points");
-  }
-  const xs = points.map((point) => Number(point.x));
-  const ys = points.map((point) => Number(point.y));
-  if (![...xs, ...ys].every(Number.isFinite)) {
-    throw new TypeError("boundsFromPoints received a non-finite coordinate");
-  }
-  const x = Math.min(...xs), y = Math.min(...ys);
-  return { x, y, w: Math.max(...xs) - x, h: Math.max(...ys) - y };
-}
-
-// Khi dựng overview có thể giới hạn bàn trong viewport. Khi theo token, bỏ giới hạn này:
-// camera phải được phép đưa các cạnh bàn ra ngoài màn hình để giữ quân cờ đúng điểm nhìn.
-export function solveCamera({
-  focus, viewport, anchor, scale, bounds, constrainToBounds = true
-}) {
+// Tính camera để điểm `focus` (toạ độ gốc, chưa zoom) nằm đúng vị trí `anchor` trong khung nhìn,
+// đồng thời không cho tấm bàn cờ trượt ra khỏi khung (bounds = hộp bao của bàn cờ ở camera gốc).
+export function solveCamera({ focus, viewport, anchor, scale, bounds }) {
   const s = clampNumber(Number(scale) || 1, 1, CAMERA.maxScale);
   let tx = anchor.x - focus.x * s;
   let ty = anchor.y - focus.y * s;
-
-  if (bounds && constrainToBounds) {
-    const axis = (translation, viewLength, start, length) => {
-      const scaledLength = length * s;
-      if (scaledLength <= viewLength) {
-        return (viewLength - scaledLength) / 2 - start * s;
-      }
-      return clampNumber(
-        translation,
-        viewLength - (start + length) * s,
-        -start * s
-      );
+  if (bounds) {
+    const axis = (t, viewLen, bStart, bLen) => {
+      const size = bLen * s;
+      if (size <= viewLen) return (viewLen - size) / 2 - bStart * s; // bàn nhỏ hơn khung: căn giữa
+      return clampNumber(t, viewLen - (bStart + bLen) * s, -bStart * s); // bàn lớn hơn khung: luôn phủ kín khung
     };
     tx = axis(tx, viewport.w, bounds.x, bounds.w);
     ty = axis(ty, viewport.h, bounds.y, bounds.h);
@@ -73,39 +40,20 @@ export function readCamera(el) {
 export function createCamera({ stage, wrap, board, onChange, reduceMotion = false }) {
   const state = { mode: "overview", seq: 0, enabled: !reduceMotion, measured: new Map(), manualUntilNextMove: false };
   let timers = [];
-  const markerCache = new WeakMap();
 
-  const stageMatrix = () => {
-    const value = getComputedStyle(stage).transform;
-    return new DOMMatrix(value && value !== "none" ? value : undefined);
-  };
+  const stageMatrix = () => new DOMMatrix(getComputedStyle(stage).transform);
   const viewport = () => ({ w: stage.clientWidth, h: stage.clientHeight });
-  const clearTimers = () => {
-    timers.forEach((timer) => clearTimeout(timer));
-    timers = [];
-  };
-  const later = (fn, ms) => {
-    const timer = setTimeout(fn, Math.max(0, ms));
-    timers.push(timer);
-    return timer;
-  };
+  const clearTimers = () => { timers.forEach(clearTimeout); timers = []; };
+  const later = (fn, ms) => { const id = setTimeout(fn, ms); timers.push(id); return id; };
   const setMode = (mode) => {
     state.mode = mode;
     stage.dataset.camera = mode;
     onChange?.(mode);
   };
   const apply = (cam, ms, easing) => {
-    wrap.style.transition = ms > 0
-      ? "transform " + ms + "ms " + easing
-      : "none";
-    const identity = cam.scale === 1 && cam.tx === 0 && cam.ty === 0;
-    wrap.style.transform = identity
-      ? ""
-      : "translate3d(" + cam.tx.toFixed(2) + "px," +
-        cam.ty.toFixed(2) + "px,0) scale(" + cam.scale.toFixed(4) + ")";
-    stage.dataset.cameraScale = cam.scale.toFixed(3);
-    stage.dataset.cameraX = cam.tx.toFixed(1);
-    stage.dataset.cameraY = cam.ty.toFixed(1);
+    wrap.style.transition = ms > 0 ? `transform ${ms}ms ${easing}` : "none";
+    wrap.style.transform = cam.scale === 1 && cam.tx === 0 && cam.ty === 0 ? "" : `translate(${cam.tx.toFixed(2)}px,${cam.ty.toFixed(2)}px) scale(${cam.scale.toFixed(4)})`;
+    stage.dataset.cameraScale = cam.scale.toFixed(2);
   };
   // Đo vị trí gốc (trong hệ toạ độ của .board-wrap, chưa zoom/dịch) của mọi ô ở một độ nghiêng nhất định.
   // Tạm tắt transition + camera để đọc layout đồng bộ trong cùng một khung hình rồi khôi phục (không vẽ ra màn hình).
@@ -180,15 +128,13 @@ export function createCamera({ stage, wrap, board, onChange, reduceMotion = fals
       setTilt(0, ms, "cubic-bezier(.45,.05,.4,1)");
       apply({ tx: 0, ty: 0, scale: 1 }, ms, "cubic-bezier(.45,.05,.4,1)");
     },
+    // Người chơi bấm "Toàn cảnh": giữ toàn cảnh cho tới khi có một lượt di chuyển mới.
     manualOverview() {
       this.overview(700);
       state.manualUntilNextMove = true;
     },
-    later(fn, ms) {
-      return later(fn, ms);
-    },
-    current() {
-      return readCamera(wrap);
-    }
+    later(fn, ms) { return later(fn, ms); },
+    // Dùng cho test/diagnostic: camera hiện hành đọc trực tiếp từ DOM.
+    current() { return readCamera(wrap); }
   };
 }
