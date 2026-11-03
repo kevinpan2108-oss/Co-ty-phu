@@ -1232,7 +1232,7 @@ function renderEventPanel() {
     deed.innerHTML = deedHtml(deedIndex, roomState.auction ? "Đấu giá" : "Đang bán") +
       `<div class="deed-bubble">${money(roomState.auction ? Number(roomState.auction.currentBid) || AUCTION_INCREMENT : SPACE_DATA[deedIndex].price)}</div>` + MASCOT_SVG;
   } else if (e && (e.kind === "chance" || e.kind === "fortune")) {
-    deed.innerHTML = `<div class="deed"><div class="deed-head" style="background:${e.kind === "chance" ? "#f0903c" : "#2f9a58"};color:#fff">${e.kind === "chance" ? "Cơ hội" : "Khí vận"}</div><div class="deed-info" style="font-size:clamp(10px,3cqh,13px);color:#111">${escapeHtml(e.text)}</div></div>` + MASCOT_SVG;
+    deed.innerHTML = `<div class="deed card-event ${e.kind === "chance" ? "is-chance" : "is-chest"}"><div class="deed-head">${e.kind === "chance" ? "Cơ hội" : "Khí vận"}</div><div class="deed-info">${escapeHtml(e.text)}</div></div>` + MASCOT_SVG;
   }
   // Tiền cộng/trừ, lý do, người trả và người nhận.
   if (e?.deltas) {

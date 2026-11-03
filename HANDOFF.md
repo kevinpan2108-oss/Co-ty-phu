@@ -94,3 +94,9 @@ npm run test:e2e
 - Lỗi phát hiện khi làm: người chơi thật trước đây không có nút Phá sản (chỉ máy gọi `declareBankruptcy`) — đã thêm vào Bảng sự kiện khi hết khả năng thanh lý.
 - Kiểm thử đã chạy: `npm run check`, `npm test`, `npm run test:e2e` (Playwright, Firebase giả + Rules mô phỏng). **Chưa** kiểm thử hai điện thoại thật với Firebase thật, chưa chạy Firebase Emulator; cần làm trước khi phát hành.
 - Chưa làm: rời phòng giữa ván vẫn chỉ thoát cục bộ (đối thủ không được báo); nhân vật/âm thanh ngoài phần đã mô tả.
+
+
+## Làm lại giao diện theo mẫu Marmalade (mm3)
+- Giữa bàn: thành phố 3D nhìn từ trên (SVG sinh bằng script, màu nhà khớp 8 nhóm), đường, ray, công viên, đài phun nước. Giữ SVG nhẹ (dùng pattern cửa sổ) vì SVG nặng làm camera E2E trễ.
+- Tường rào gỗ nâu quanh bàn, ô xanh bạc hà, thẻ người chơi ruy băng mũi tên, banner tím "Đang bán", thẻ địa danh khung đôi nghiêng, thẻ Cơ hội/Khí vận trắng khung đen + linh vật Bác Ba.
+- Chưa kiểm thử trên điện thoại thật.

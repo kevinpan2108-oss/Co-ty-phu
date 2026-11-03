@@ -989,3 +989,37 @@ body:has(#gameView:not(.hidden)){overflow:hidden}
 #gameView .event-panel .deed-mascot{right:-34px;bottom:-14px}
 #gameView .ep-body{padding:10px 12px 12px}
 #gameView .event-panel .ep-balances{margin-right:34px}
+
+/* ===== Làm lại theo mẫu Monopoly mobile (mm3): tường rào, ô nhạt, thẻ người chơi mũi tên, thẻ địa danh/thẻ bài ===== */
+/* Tường rào nâu quanh bàn, bãi cỏ bên ngoài */
+#gameView .board{background:#c6e4bf;border:.07em solid #3f2b16;border-radius:.12em;gap:.02em;padding:.06em}
+#gameView .board:before{display:none}
+#gameView .board:after{inset:-.55em;border-radius:.5em;background:repeating-linear-gradient(90deg,#8a5a34 0 .5em,#7a4c2a .5em .56em);border:.07em solid #4a3019;box-shadow:inset 0 0 0 .13em #b98655,inset 0 0 0 .2em #5e3b20,0 .1em .3em rgba(0,0,0,.35);opacity:1;z-index:-2}
+#gameView .board-center{border:.03em solid #4a6a3a;border-radius:.1em}
+/* Ô cờ xanh bạc hà nhạt, viền xanh xám mảnh */
+#gameView .space{background:#cfe9c8;border:.025em solid #86ae80}
+#gameView .space.corner{background:#d6edcf}
+#gameView .space .space-color{height:26%;border-bottom:.025em solid rgba(0,0,0,.28)}
+#gameView .space .space-name{color:#2b4a2e;font-weight:900}
+#gameView .space .space-price{color:#2b4a2e;font-size:.21em}
+/* Thẻ người chơi: ruy băng mũi tên, ô tiền trắng nằm dưới */
+#gameView .player-head{clip-path:polygon(0 50%,13% 0,100% 0,100% 100%,13% 100%);border-radius:0;padding:clamp(9px,3.6cqh,17px) 10px 3px 16px;justify-content:center;font-style:italic}
+#gameView .player-cash{width:78%;align-self:flex-end;border-radius:0 0 .45em .45em;font-weight:900;letter-spacing:.01em;box-shadow:0 2px 3px rgba(0,0,0,.28)}
+#gameView .player-avatar{box-shadow:0 2px 5px rgba(0,0,0,.4),inset 0 0 0 .08em rgba(255,255,255,.9)}
+/* Banner "Đang bán": ruy băng tím cong phía trên thẻ */
+#gameView .deed-banner{font-size:clamp(14px,5cqh,22px);padding:3px 30px;letter-spacing:.02em;background:linear-gradient(180deg,#b24bd8,#7a2bb0);filter:drop-shadow(0 2px 2px rgba(0,0,0,.4));border-radius:.5em .5em 0 0;margin:-10px auto 8px}
+/* Thẻ địa danh: giấy trắng khung đôi, hơi nghiêng, đầu thẻ theo màu nhóm */
+#gameView .deed:not(.card-event){transform:rotate(-2deg);box-shadow:0 6px 14px rgba(0,0,0,.4);outline:1px solid #222;outline-offset:-5px;border:1px solid #222;padding:6px}
+#gameView .deed:not(.card-event) .deed-head{border:2px solid #222;margin:0 0 3px;font-weight:900}
+#gameView .deed:not(.card-event) .deed-row{font-size:clamp(9px,2.8cqh,12px);padding:1px 4px}
+/* Thẻ Cơ hội / Khí vận: trắng, khung đen đôi, chữ to, linh vật bên phải */
+#gameView .event-panel:has(.card-event){width:min(46cqw,420px);right:50%;transform:translate(50%,-50%);top:50%;border-radius:0;padding:10px}
+#gameView .event-panel:has(.card-event) .ep-body{padding:2px 6px 10px}
+#gameView .deed.card-event{border:2px solid #111;outline:0;min-height:clamp(120px,40cqh,200px);padding:10px 36% 12px 14px;background:#fff;position:relative;display:flex;flex-direction:column;justify-content:center}
+#gameView .card-event .deed-head{background:none!important;color:#111!important;border:0;font-size:clamp(16px,6.4cqh,26px);letter-spacing:.04em;text-align:center;padding:2px 0 8px;font-weight:900}
+#gameView .card-event .deed-info{border:0;color:#111;font-family:var(--display);font-size:clamp(12px,4.2cqh,18px);text-transform:uppercase;line-height:1.35;text-align:left;padding:0}
+#gameView .event-panel:has(.card-event) .deed-mascot{right:10px;bottom:auto;top:50%;transform:translateY(-50%);width:clamp(56px,26cqh,110px)}
+#gameView .event-panel:has(.card-event) .ep-balances{margin-right:0}
+/* Thanh trạng thái tím rộng, bo tròn */
+#gameView .status-bar{width:min(64cqw,640px)}
+#gameView .status-bar .action-message{background:linear-gradient(180deg,#6b2fa8,#522088);border-radius:.55em;font-weight:600;font-size:clamp(11px,3.6cqh,16px)}
