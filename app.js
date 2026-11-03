@@ -118,11 +118,11 @@ const UNIT_VND = 10000;
 function money(units) {
   return Math.round(Number(units || 0) * UNIT_VND).toLocaleString("vi-VN") + "₫";
 }
-// Dạng ngắn cho ô cờ nhỏ: 600k, 1,2tr, 4tr.
+// Dạng ngắn cho ô cờ nhỏ: 600k, 1.2M, 4M.
 function moneyShort(units) {
   const vnd = Number(units || 0) * UNIT_VND;
   return vnd >= 1000000
-    ? (vnd / 1000000).toLocaleString("vi-VN", {maximumFractionDigits:1}) + "tr"
+    ? (Math.round(vnd / 100000) / 10).toString() + "M"
     : Math.round(vnd / 1000) + "k";
 }
 // Dữ liệu phòng do trình duyệt của người chơi ghi lên, nên mọi giá trị đưa vào innerHTML/style phải được kiểm tra.
