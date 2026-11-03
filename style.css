@@ -1068,3 +1068,20 @@ body:has(#gameView:not(.hidden)){overflow:hidden}
 #gameView .event-panel{max-height:calc(100cqh - 90px)}
 #gameView .ep-body{max-height:calc(100cqh - 130px)}
 #gameView .event-panel .pending-actions{margin-top:4px}
+
+/* mm8: thẻ địa danh không lem ra ngoài; ô cạnh trái/phải giống ô trên/dưới */
+#gameView .event-panel{width:min(52cqw,430px)}
+#gameView .ep-body{padding-right:10px}
+#gameView .event-panel .pending-actions{padding-right:clamp(46px,14cqh,66px);min-height:42px;padding-bottom:6px}
+#gameView .event-panel .deed-mascot{width:clamp(34px,11cqh,50px);right:6px;bottom:2px}
+#gameView .deed:not(.card-event){overflow:hidden;min-width:0}
+#gameView .deed:not(.card-event) .deed-row{min-width:0}
+#gameView .deed:not(.card-event) .deed-row span{min-width:0}
+#gameView .event-panel:has(.card-event) .ep-body{padding-right:10px}
+/* Ô hai bên: bỏ luật cũ (dải màu dọc, chữ lệch trái), dùng cùng bố cục với ô trên/dưới */
+#gameView .space.side-left,#gameView .space.side-right{padding:0;align-items:stretch;justify-content:flex-start}
+#gameView .space.side-left .space-color,#gameView .space.side-right .space-color{position:static;top:auto;bottom:auto;left:auto;right:auto;width:100%;height:19%;border-radius:0}
+#gameView .space.side-left .space-text,#gameView .space.side-right .space-text{align-items:center;text-align:center;padding:.03em .04em .05em;justify-content:center}
+#gameView .space.side-left .space-name,#gameView .space.side-right .space-name{font-size:calc(.2em * var(--name-scale,1));text-align:center;overflow-wrap:normal}
+#gameView .space.side-left .space-price,#gameView .space.side-right .space-price{font-size:.2em;padding:.06em .4em;white-space:nowrap}
+#gameView .space.side-left .space-art,#gameView .space.side-right .space-art{display:none}

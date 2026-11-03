@@ -256,12 +256,11 @@ let rules;
     width:el.getBoundingClientRect().width
   }));
   check("tên ô cờ giới hạn hai dòng, không ngắt giữa từ", tileFit.clamp === "2" && tileFit.wrap === "normal" && tileFit.width > 0, JSON.stringify(tileFit));
-  // Không còn nút kết thúc lượt: sự kiện hiện đủ thời gian đọc (~2,8 giây) rồi tự qua lượt.
-  await pa.page.waitForSelector("#epTitle", { timeout: 9000 });
+  // Mua xong không hiện thẻ thông báo; thanh trạng thái nêu kết quả, ván tự qua lượt sau ~2,8 giây.
+  await pa.page.waitForFunction(() => /đã mua|Chợ nổi/i.test(document.getElementById("actionMessage")?.textContent || ""), null, { timeout: 9000 });
   await pa.page.waitForTimeout(900);
-  check("sự kiện hiện ra trước khi tự qua lượt, không có nút kết thúc lượt", /An/.test(await text(pa.page, "#turnName")) && (await pb.page.locator("#rollButton").isDisabled()) && (await pa.page.locator("#confirmEventButton").count()) === 0);
-  check("Bảng sự kiện nêu ô vừa đến, tiền trừ và số dư", /Chợ nổi Cái Bè|Làng nổi/i.test(await text(pa.page, "#epTitle")) && /600\.000₫/.test(await text(pa.page, "#epMoney")) && /14\.400\.000₫/.test(await text(pa.page, "#epBalances")));
-  check("đối thủ cũng thấy bảng sự kiện", /Chợ nổi Cái Bè|Làng nổi/i.test(await text(pb.page, "#epTitle")));
+  check("mua xong: không có thẻ thông báo, không có nút kết thúc lượt, chưa qua lượt ngay", /An/.test(await text(pa.page, "#turnName")) && (await pb.page.locator("#rollButton").isDisabled()) && (await pa.page.locator("#confirmEventButton").count()) === 0 && !(await pa.page.locator("#eventPanel").isVisible()));
+  check("tiền và số dư cập nhật sau khi mua", (await text(pa.page, "#playersPanel")).includes("14.400.000₫"));
   await confirmTurn(pa);
   await pb.page.waitForFunction(() => document.getElementById("stage").dataset.camera === "overview", null, { timeout: 4000, polling: 50 }).catch(() => {});
   await pb.page.waitForTimeout(1200);

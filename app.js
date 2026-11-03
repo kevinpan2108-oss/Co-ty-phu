@@ -1211,7 +1211,8 @@ function renderEventPanel() {
   const players = roomState.players || {};
   const nameOf = (id) => players[id]?.name || "Người chơi";
   if (e && e.id !== epSeenId) { epSeenId = e.id; epMinimized = false; }
-  panel.classList.toggle("idle", !e || holding);
+  const quiet = !!e && (e.kind === "buy" || e.kind === "auction"); // mua/đấu giá xong không hiện thẻ thông báo
+  panel.classList.toggle("idle", !e || holding || quiet);
   panel.classList.toggle("min", epMinimized);
   $("epMinButton").setAttribute("aria-expanded", String(!epMinimized));
   $("epMinButton").textContent = epMinimized ? "▴" : "▾";
