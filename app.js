@@ -1202,6 +1202,12 @@ function deedHtml(index, banner) {
   return `${banner ? `<div class="deed-banner">${escapeHtml(banner)}</div>` : ""}<div class="deed">
     <div class="deed-head" style="background:${safeColor(bg)};color:${textColorFor(bg)}">${escapeHtml(space.name)}</div>${rows}</div>`;
 }
+// Bỏ câu "Bạn tung được x + y = n bước và đến ..." (đã có ở thanh trạng thái), chỉ giữ nội dung lá bài.
+function cardOnlyText(text) {
+  const t = String(text || "");
+  const m = t.match(/(?:CƠ HỘI|KHÍ VẬN)\.\s*([\s\S]+)$/i);
+  return (m ? m[1] : t).trim();
+}
 function renderEventPanel() {
   const panel = $("eventPanel");
   if (!panel || !roomState || !currentUser) return;
@@ -1233,7 +1239,7 @@ function renderEventPanel() {
     deed.innerHTML = deedHtml(deedIndex, roomState.auction ? "Đấu giá" : "Đang bán") +
       `<div class="deed-bubble">${money(roomState.auction ? Number(roomState.auction.currentBid) || AUCTION_INCREMENT : SPACE_DATA[deedIndex].price)}</div>` + MASCOT_SVG;
   } else if (e && (e.kind === "chance" || e.kind === "fortune")) {
-    deed.innerHTML = `<div class="deed card-event ${e.kind === "chance" ? "is-chance" : "is-chest"}"><div class="deed-head">${e.kind === "chance" ? "Cơ hội" : "Khí vận"}</div><div class="deed-info">${escapeHtml(e.text)}</div></div>` + MASCOT_SVG;
+    deed.innerHTML = `<div class="deed card-event ${e.kind === "chance" ? "is-chance" : "is-chest"}"><div class="deed-head">${e.kind === "chance" ? "Cơ hội" : "Khí vận"}</div><div class="deed-info">${escapeHtml(cardOnlyText(e.text))}</div></div>` + MASCOT_SVG;
   }
   // Tiền cộng/trừ, lý do, người trả và người nhận.
   if (e?.deltas) {
@@ -1271,7 +1277,12 @@ function renderEventPanel() {
   // Không còn nút "Kết thúc lượt": sau khi sự kiện xử lý xong và đã hiện đủ thời gian đọc thì tự qua lượt.
   if (canAutoAdvance()) scheduleAutoAdvance(); else cancelAutoAdvance();
 }
-const AUTO_ADVANCE_MS = 2800;
+// Thời gian đọc trước khi tự qua lượt: thẻ Cơ hội/Khí vận dài hơn thì chờ lâu hơn (4–9 giây), sự kiện khác 3,2 giây.
+function autoAdvanceMs() {
+  const e = currentTurnEvent();
+  if (e && (e.kind === "chance" || e.kind === "fortune")) return Math.max(4500, Math.min(9000, 2200 + cardOnlyText(e.text).length * 60));
+  return 3200;
+}
 let autoAdvTimer = null, autoAdvKey = "";
 function canAutoAdvance() {
   if (!roomState || !currentUser) return false;
@@ -1280,17 +1291,19 @@ function canAutoAdvance() {
   const resolved = !roomState.pending && !roomState.auction && !roomState.debt;
   return playing && roomState.turnUid === uid && !!roomState.lastRoll && resolved && canAdvanceTurn(roomState) && Date.now() >= eventHoldUntil;
 }
-function cancelAutoAdvance() { clearTimeout(autoAdvTimer); autoAdvTimer = null; autoAdvKey = ""; }
+function cancelAutoAdvance() { clearTimeout(autoAdvTimer); autoAdvTimer = null; autoAdvKey = ""; $("eventPanel")?.classList.remove("counting"); }
 function scheduleAutoAdvance() {
   const key = JSON.stringify([roomState.turnUid, roomState.eventSeq || 0, roomState.doublesCount || 0, roomState.lastRoll]);
   if (autoAdvKey === key) return;
   clearTimeout(autoAdvTimer);
   autoAdvKey = key;
+  const ms = autoAdvanceMs(), panel = $("eventPanel");
+  if (panel) { panel.classList.remove("counting"); panel.style.setProperty("--adv-ms", ms + "ms"); void panel.offsetWidth; panel.classList.add("counting"); }
   autoAdvTimer = setTimeout(() => {
     autoAdvTimer = null;
     if (!canAutoAdvance() || busy) { autoAdvKey = ""; return; }
     endTurn();
-  }, AUTO_ADVANCE_MS);
+  }, ms);
 }
 function renderHistory() {
   const players = roomState?.players || {};

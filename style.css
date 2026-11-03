@@ -1085,3 +1085,8 @@ body:has(#gameView:not(.hidden)){overflow:hidden}
 #gameView .space.side-left .space-name,#gameView .space.side-right .space-name{font-size:calc(.2em * var(--name-scale,1));text-align:center;overflow-wrap:normal}
 #gameView .space.side-left .space-price,#gameView .space.side-right .space-price{font-size:.2em;padding:.06em .4em;white-space:nowrap}
 #gameView .space.side-left .space-art,#gameView .space.side-right .space-art{display:none}
+
+/* Thanh đếm ngược thời gian đọc trước khi tự qua lượt */
+#gameView .event-panel.counting:after{content:"";position:absolute;left:8px;right:8px;bottom:3px;height:4px;border-radius:4px;background:linear-gradient(90deg,#7a2bb0,#b24bd8);transform-origin:left center;animation:advDrain var(--adv-ms,3s) linear forwards;pointer-events:none}
+@keyframes advDrain{from{transform:scaleX(1)}to{transform:scaleX(0)}}
+@media(prefers-reduced-motion:reduce){#gameView .event-panel.counting:after{animation:none}}
