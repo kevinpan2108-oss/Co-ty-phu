@@ -1060,3 +1060,11 @@ body:has(#gameView:not(.hidden)){overflow:hidden}
 #gameView .space:not(.corner) .space-price{margin-top:auto;font-size:.2em;font-weight:900;color:#26452b;background:#fff;border-radius:99em;padding:.06em .4em;line-height:1.1;box-shadow:0 .03em 0 rgba(0,0,0,.22)}
 #gameView .space:not(.corner) .sp-icon{font-size:.55em;margin-top:auto}
 #gameView .space.corner .space-name{font-size:.2em;text-transform:none}
+
+/* mm7: thẻ địa danh gọn, không phải kéo xuống mới thấy */
+#gameView .deed:not(.card-event) .deed-row{white-space:nowrap;justify-content:space-between;font-size:clamp(9px,2.6cqh,12px)}
+#gameView .deed:not(.card-event) .deed-row span{overflow:hidden;text-overflow:ellipsis}
+#gameView .deed:not(.card-event) .deed-head{padding:3px 6px;font-size:clamp(10px,3cqh,14px)}
+#gameView .event-panel{max-height:calc(100cqh - 90px)}
+#gameView .ep-body{max-height:calc(100cqh - 130px)}
+#gameView .event-panel .pending-actions{margin-top:4px}
