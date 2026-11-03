@@ -319,6 +319,8 @@ let rules;
     const room = store.rooms[code];
     const uidA = room.creatorUid;
     const uidB = room.joinerUid;
+    const incompleteOwners = {...room.propertyOwners,s1:uidA};
+    delete incompleteOwners.s3;
     store.rooms[code] = {
       ...room,
       status:"playing",
@@ -328,7 +330,7 @@ let rules;
       pending:null,
       auction:null,
       debt:null,
-      propertyOwners:{...room.propertyOwners,s1:uidA},
+      propertyOwners:incompleteOwners,
       houses:{},
       mortgages:{},
       players:{
