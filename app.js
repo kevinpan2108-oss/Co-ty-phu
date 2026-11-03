@@ -2134,7 +2134,7 @@ $("epHistoryButton").addEventListener("click", () => { renderHistory(); $("histo
 $("historyClose").addEventListener("click", () => { $("historyModal").hidden = true; });
 $("historyModal").addEventListener("click", (event) => { if (event.target === $("historyModal")) $("historyModal").hidden = true; });
 $("cellInfo").addEventListener("click", (event) => { if (event.target.closest(".cell-info-close")) $("cellInfo").classList.remove("show"); });
-$("propsButton").addEventListener("click", () => { $("propsModal").hidden = false; });
+$("propsButton").addEventListener("click", () => { cancelAutoAdvance(); $("propsModal").hidden = false; });
 $("propertyList").addEventListener("click", handleDeedAction);
 $("propsClose").addEventListener("click", () => { $("propsModal").hidden = true; renderEventPanel(); });
 $("propsModal").addEventListener("click", (event) => { if (event.target === $("propsModal")) { $("propsModal").hidden = true; renderEventPanel(); } });
