@@ -61,10 +61,13 @@ export const runTransaction=async(r,fn)=>{
 };`
 };
 
-// Người chơi phải bấm "Đã xem" mới qua lượt (không còn tự động kết thúc lượt).
+// Người chơi dùng nút Tiếp tục ở đáy màn hình sau khi sự kiện đã xử lý xong.
 async function confirmTurn(p) {
-  await p.page.waitForSelector("#confirmEventButton:not([disabled])", { timeout: 9000 });
-  await p.page.click("#confirmEventButton");
+  await p.page.waitForFunction(() => {
+    const button = document.querySelector("#rollButton");
+    return button && !button.disabled && button.textContent.includes("Tiếp tục");
+  }, null, { timeout: 9000 });
+  await p.page.click("#rollButton");
 }
 async function newPlayer(browser, uid, opts = {}) {
   const context = await browser.newContext({ viewport: opts.viewport || { width: 1280, height: 900 }, deviceScaleFactor: 1, isMobile: !!opts.mobile, hasTouch: !!opts.mobile });
@@ -142,6 +145,43 @@ let rules;
   await pb.page.fill("#roomCodeInput", code); await pb.page.click("#joinRoomButton");
   await pb.page.waitForSelector("#gameView:not(.hidden)", { timeout: 4000 }).catch(() => {});
   check("người thứ hai tham gia được (transaction không bị hủy vì dữ liệu null)", await pb.page.locator("#gameView").isVisible(), await text(pb.page, "#lobbyMessage"));
+  const mapComposition = await pa.page.evaluate(() => {
+    const stage = document.querySelector("#stage").getBoundingClientRect();
+    const board = document.querySelector("#board");
+    const rect = board.getBoundingClientRect();
+    const transform = new DOMMatrix(getComputedStyle(board).transform);
+    const players = document.querySelector("#playersPanel");
+    const playerRect = players.getBoundingClientRect();
+    const city = document.querySelector("#board .city-diorama");
+    const cityStyle = city && getComputedStyle(city);
+    return {
+      spaces: board.querySelectorAll(".space").length,
+      boardCenterX: rect.left + rect.width / 2,
+      stageWidth: stage.width,
+      boardRight: rect.right,
+      playerLeft: playerRect.left,
+      playerDirection: getComputedStyle(players).flexDirection,
+      playerWidth: playerRect.width,
+      playerCash: players.innerText,
+      cityVisible: !!city && cityStyle.display !== "none" && Number(cityStyle.opacity) > 0.9,
+      horizontalRotation: Math.max(Math.abs(transform.b), Math.abs(transform.c))
+    };
+  });
+  check("không còn Event Panel cố định", (await pa.page.locator("#eventPanel").count()) === 0 && (await pa.page.locator("#dealCard").count()) === 1);
+  check("bản đồ giữ đủ 40 ô quanh một bàn vuông nhìn gần từ trên xuống",
+    mapComposition.spaces === 40 &&
+    mapComposition.boardCenterX < mapComposition.stageWidth * 0.55 &&
+    mapComposition.horizontalRotation < 0.08,
+    JSON.stringify(mapComposition));
+  check("thành phố 3D ở trung tâm đang hiển thị",
+    mapComposition.cityVisible, JSON.stringify(mapComposition));
+  check("thẻ người chơi xếp dọc bên phải, tách khỏi bản đồ",
+    mapComposition.playerDirection === "column" &&
+    mapComposition.playerLeft > mapComposition.boardRight &&
+    mapComposition.playerWidth <= 240 &&
+    mapComposition.playerCash.includes("15M"),
+    JSON.stringify(mapComposition));
+  check("số dư người chơi hiển thị gọn dạng M/K", /15M/.test(await text(pa.page, "#playersPanel")) && /15M/.test(await text(pb.page, "#playersPanel")));
   await pa.page.waitForTimeout(400);
   check("cả hai vào bước tung xí ngầu chọn người đi trước", /Tung xí ngầu chọn người đi trước/i.test(await text(pa.page, "#centerStatus")) && /Tung xí ngầu chọn người đi trước/i.test(await text(pb.page, "#centerStatus")));
   check("bàn cờ có cả thẻ Cơ hội và Khí vận", (await pa.page.locator("#board .space[data-index='2']").getAttribute("title")).includes("rút thẻ Cơ hội") && (await pa.page.locator("#board .space[data-index='7']").getAttribute("title")).includes("rút thẻ Khí vận"));
@@ -181,6 +221,27 @@ let rules;
     }, null, { timeout: 5000 });
   }));
   // Tung xúc xắc [1,2] → ô 3 (Đường Đồng Khởi, $60)
+  // Theo dõi các target camera trong toàn bộ hành trình ở cả hai trình duyệt.
+  for (const page of [pa.page, pb.page]) {
+    await page.evaluate(() => {
+      const stage = document.querySelector("#stage");
+      const wrap = document.querySelector("#gameView .board-wrap");
+      window.__cameraTrace = [];
+      const record = () => window.__cameraTrace.push({
+        mode: stage?.dataset.camera || "overview",
+        x: Number(stage?.dataset.cameraX || 0),
+        y: Number(stage?.dataset.cameraY || 0),
+        scale: Number(stage?.dataset.cameraScale || 1)
+      });
+      const observer = new MutationObserver(record);
+      observer.observe(stage, {
+        attributes: true,
+        attributeFilter: ["data-camera", "data-cameraScale", "data-cameraX", "data-cameraY"]
+      });
+      observer.observe(wrap, { attributes: true, attributeFilter: ["style"] });
+      window.__cameraTraceObserver = observer;
+    });
+  }
   await pa.page.evaluate(() => { const q = [0, 0.2]; Math.random = () => (q.length ? q.shift() : 0.5); });
   const cellOverviewBefore = await pb.page.evaluate(() => { const r = document.querySelector(".space[data-index='3']").getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; });
   await pa.page.click("#rollButton");
@@ -238,16 +299,16 @@ let rules;
   check("A thấy nút Mua 600.000₫; B không thấy", /Mua 600\.000₫/.test(await text(pa.page, "#pendingActions")) && (await pb.page.locator("#pendingActions button").count()) === 0);
   if (OUT) { await pa.page.waitForTimeout(700); await pa.page.screenshot({ path: `${OUT}/deed-focus.png` }); }
   const buyBoxes = await pa.page.locator("#pendingActions button").evaluateAll((els) => els.map((el) => { const r = el.getBoundingClientRect(); return [Math.round(r.width), Math.round(r.height)]; }));
-  check("hộp Mua/Bỏ qua đã gọn, không che mặt bàn", buyBoxes.length === 2 && buyBoxes.every(([w,h]) => w <= 105 && h <= 38), JSON.stringify(buyBoxes));
+  check("hai lựa chọn mua/đấu giá nằm gọn trong thẻ, không che bàn cờ", buyBoxes.length === 2 && buyBoxes.every(([w,h]) => w <= 155 && h <= 48), JSON.stringify(buyBoxes));
   check("không còn nút Kết thúc lượt", (await pa.page.locator("#endTurnButton").count()) === 0);
-  check("lượt chưa chuyển khi A chưa quyết định mua", /Mua/.test(await text(pa.page, "#pendingActions")) && (await pb.page.locator("#rollButton").isDisabled()));
+  check("lượt chưa chuyển khi A chưa quyết định mua", /MUA NGAY/.test(await text(pa.page, "#pendingActions")) && (await pb.page.locator("#rollButton").isDisabled()));
   await pa.page.click("#pendingActions .primary-button");
   const sawFloat = await pb.page.waitForSelector(".float-delta.loss", { timeout: 2000 }).then(() => true).catch(() => false);
   check("hiệu ứng: số tiền trừ bay lên", sawFloat);
   const sawStamp = await pb.page.waitForSelector(".space.stamp", { timeout: 2000 }).then(() => true).catch(() => false);
   check("hiệu ứng: ô vừa mua có dấu chủ sở hữu", sawStamp);
   await pa.page.waitForTimeout(500);
-  check("mua đất: tiền A còn 14.400.000₫, hai bên thấy chủ sở hữu", /14\.400\.000₫/.test(await text(pa.page, "#playersPanel")) && /14\.400\.000₫/.test(await text(pb.page, "#playersPanel")) && (await pb.page.locator("#propertyList .property-row").count()) === 1);
+  check("mua đất: tiền A còn 14.4M, hai bên thấy chủ sở hữu", /14\.4M/.test(await text(pa.page, "#playersPanel")) && /14\.4M/.test(await text(pb.page, "#playersPanel")) && (await pb.page.locator("#propertyList .property-row").count()) === 1);
   check("ô đã mua được viền/chấm chủ sở hữu nổi bật", await pa.page.locator("#board .space[data-index='3'].owned .space-owner-mark").count() === 1 &&
     await pb.page.locator("#board .space[data-index='3'].owned .space-owner-mark").count() === 1);
   const tileFit = await pa.page.locator("#board .space .space-name").first().evaluate(el => ({
@@ -280,7 +341,7 @@ let rules;
   // B đến bến phà (ô đặc biệt) và bỏ mua → A và B đấu giá lần lượt.
   await pb.page.evaluate(() => { const q = [0.2, 0.4]; Math.random = () => (q.length ? q.shift() : 0.5); });
   await pb.page.click("#rollButton");
-  await pb.page.waitForFunction(() => /Mua/.test(document.querySelector("#pendingActions")?.textContent || ""), null, { timeout: 9000 });
+  await pb.page.waitForFunction(() => /MUA NGAY/.test(document.querySelector("#pendingActions")?.textContent || ""), null, { timeout: 9000 });
   check("B đến bến phà và có lựa chọn mua", /Bến phà Rạch Miễu/.test(await text(pb.page, "#actionMessage")));
   await pb.page.locator("#pendingActions .secondary-button").click();
   await pa.page.waitForFunction(() => /Ra giá/.test(document.querySelector("#pendingActions")?.textContent || ""), null, { timeout: 9000 });
@@ -294,7 +355,7 @@ let rules;
   await pa.page.locator("#pendingActions .secondary-button").click();
   await pb.page.waitForFunction(() => document.querySelector("#board .space[data-index='5'].owned"), null, { timeout: 9000 });
   check("người trả giá cao nhất sở hữu bến phà", await pb.page.locator("#board .space[data-index='5']").evaluate(el => el.classList.contains("owned")));
-  check("tiền đấu giá 200.000₫ được trừ đúng", (await text(pb.page, "#playersPanel")).includes("14.800.000₫"));
+  check("tiền đấu giá 200.000₫ được trừ đúng", (await text(pb.page, "#playersPanel")).includes("14.8M"));
   await confirmTurn(pb);
   await pa.page.waitForFunction(() => document.querySelector("#rollButton")?.disabled === false, null, { timeout: 5000 }).catch(() => {});
   check("sau đấu giá, B xác nhận và lượt trả cho A", !(await pa.page.locator("#rollButton").isDisabled()));
@@ -302,7 +363,7 @@ let rules;
   // A đến công ty điện, cả hai cùng bỏ giá → ô không có chủ và lượt vẫn tự kết thúc.
   await pa.page.evaluate(() => { const q = [0.4, 0.9]; Math.random = () => (q.length ? q.shift() : 0.5); });
   await pa.page.click("#rollButton");
-  await pa.page.waitForFunction(() => /Mua/.test(document.querySelector("#pendingActions")?.textContent || ""), null, { timeout: 9000 });
+  await pa.page.waitForFunction(() => /MUA NGAY/.test(document.querySelector("#pendingActions")?.textContent || ""), null, { timeout: 9000 });
   check("A đến ô công ty điện", /Điện lực Miền Tây/.test(await text(pa.page, "#actionMessage")));
   await pa.page.locator("#pendingActions .secondary-button").click();
   await pb.page.waitForFunction(() => /Bỏ đấu giá/.test(document.querySelector("#pendingActions")?.textContent || ""), null, { timeout: 9000 });
@@ -344,6 +405,8 @@ let rules;
     check("sổ đất hiển thị nút xây khi đã sở hữu trọn bộ tỉnh", await pa.page.locator('#propertyList [data-deed-action="build-house"][data-index="3"]').count() === 1);
     await pa.page.locator('#propertyList [data-deed-action="build-house"][data-index="3"]').click();
     await pa.page.waitForSelector('#board .space[data-index="3"].built', { timeout:4000 });
+    check("xây nhà được ghi vào nhật ký với khoản tiền đã chi", store.rooms[code].log?.at(-1)?.kind === "build" && store.rooms[code].log.at(-1).deltas?.[uidA] === -50);
+    check("Thẻ giao dịch nêu rõ lý do chi tiền xây nhà", /xây nhà.*khách sạn/.test(await text(pa.page, "#epMoney")));
     check("xây căn đầu tiên ở ô 3, bắt buộc chuyển sang ô 1 để xây đều", store.rooms[code].houses.s3 === 1 &&
       store.rooms[code].houses.s1 !== 1 &&
       await pa.page.locator('#propertyList [data-deed-action="build-house"][data-index="3"]').count() === 0);
@@ -357,6 +420,8 @@ let rules;
     await pa.page.locator('#propertyList [data-deed-action="sell-house"][data-index="1"]').click();
     await pa.page.waitForSelector('#board .space[data-index="1"]:not(.built)', { timeout:4000 });
     check("bán công trình theo thứ tự đồng đều, nhận lại tiền", !store.rooms[code].houses.s3 && !store.rooms[code].houses.s1 && store.rooms[code].players[uidA].cash === 1450);
+    check("bán nhà được ghi nhận thành sự kiện nhận tiền", store.rooms[code].log?.at(-1)?.kind === "sellHouse" && store.rooms[code].log.at(-1).deltas?.[uidA] === 25);
+    check("Thẻ giao dịch nêu rõ khoản thu từ bán nhà", /bán nhà.*khách sạn/.test(await text(pa.page, "#epMoney")));
 
     // Giả lập khoản thiếu tiền thuê/thuế; dùng cầm cố tài sản để trả nợ trước.
     const beforeCreditor = store.rooms[code].players[uidB].cash;
@@ -376,7 +441,15 @@ let rules;
       store.rooms[code].mortgages.s3 === 30 &&
       store.rooms[code].players[uidB].cash === beforeCreditor + 20 &&
       store.rooms[code].players[uidA].cash === 10);
-    check("ô đang cầm cố có dấu hiệu riêng trên bàn", await pa.page.locator("#board .space[data-index='3'].mortgaged .space-mortgage-mark").count() === 1);
+    check("cầm cố được ghi vào nhật ký cùng khoản nợ đã thanh toán", store.rooms[code].log?.at(-1)?.kind === "mortgage" &&
+      store.rooms[code].log.at(-1).deltas?.[uidA] === 10 && store.rooms[code].log.at(-1).deltas?.[uidB] === 20);
+    store.rooms[code] = { ...store.rooms[code], players: { ...store.rooms[code].players, [uidA]: { ...store.rooms[code].players[uidA], cash: 50 } } };
+    await pa.page.waitForSelector('#propertyList [data-deed-action="redeem-asset"][data-index="3"]', { timeout:4000 });
+    await pa.page.locator('#propertyList [data-deed-action="redeem-asset"][data-index="3"]').click();
+    await pa.page.waitForSelector("#board .space[data-index='3']:not(.mortgaged)", { timeout:4000 });
+    check("giải chấp được ghi vào lịch sử và trừ đúng 33 đơn vị", store.rooms[code].log?.at(-1)?.kind === "redeem" &&
+      store.rooms[code].log.at(-1).deltas?.[uidA] === -33 && store.rooms[code].players[uidA].cash === 17);
+    check("ô đã giải chấp không còn dấu cầm cố", await pa.page.locator("#board .space[data-index='3'].mortgaged").count() === 0);
     await pa.page.locator("#propsClose").click();
   }
 
@@ -422,7 +495,7 @@ let rules;
     // Người chơi đến bến phà, bỏ mua; Máy Miền Tây tự cân nhắc trả giá.
     await cpu.page.evaluate(() => { const q = [0.2, 0.4]; Math.random = () => q.length ? q.shift() : 0.5; });
     await cpu.page.click("#rollButton");
-    await cpu.page.waitForFunction(() => /Mua/.test(document.querySelector("#pendingActions")?.textContent || ""), null, { timeout: 9000 });
+    await cpu.page.waitForFunction(() => /MUA NGAY/.test(document.querySelector("#pendingActions")?.textContent || ""), null, { timeout: 9000 });
     await cpu.page.locator("#pendingActions .secondary-button").click();
     await cpu.page.waitForFunction(() => /Nâng giá|Bỏ đấu giá/.test(document.querySelector("#pendingActions")?.textContent || ""), null, { timeout: 5000 });
     check("Máy Miền Tây tự tham gia đấu giá bến phà", /Nâng giá/.test(await text(cpu.page, "#pendingActions")));
@@ -450,7 +523,17 @@ let rules;
     await m.page.waitForTimeout(400);
     const overflow = await m.page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
     const rollBox = await m.page.locator("#rollButton").boundingBox();
+    const playerDock = await m.page.locator("#playersPanel").evaluate(el => ({
+      right:getComputedStyle(el).right,
+      direction:getComputedStyle(el).flexDirection,
+      width:getComputedStyle(el).width,
+      transformedBounds:{width:el.getBoundingClientRect().width,height:el.getBoundingClientRect().height},
+      cash:el.innerText
+    }));
     check(label + ": không tràn ngang (sảnh/ván)", lobbyOverflow <= 0 && overflow <= 0, `sảnh ${lobbyOverflow}px, ván ${overflow}px`);
+    check(label + ": thẻ người chơi gọn ở cạnh phải và dùng số dư dạng M/K",
+      playerDock.right !== "auto" && playerDock.direction === "column" &&
+      parseFloat(playerDock.width) <= 220 && /15M/.test(playerDock.cash), JSON.stringify(playerDock));
     check(label + ": nút Tung xúc xắc nằm trọn trong màn hình đầu, cao ≥ 40px", rollBox && rollBox.y >= 0 && rollBox.y + rollBox.height <= h && rollBox.height >= 40, rollBox ? `y=${Math.round(rollBox.y)}..${Math.round(rollBox.y + rollBox.height)}/${h}, cao ${Math.round(rollBox.height)}` : "không thấy");
     const inputFont = await m.page.evaluate(() => getComputedStyle(document.getElementById("playerName")).fontSize);
     if (OUT) { await m.page.screenshot({ path: `${OUT}/mobile-${w}.png` }); await m.page.evaluate(() => document.getElementById("lobbyView").classList.remove("hidden")); }
