@@ -1090,3 +1090,23 @@ body:has(#gameView:not(.hidden)){overflow:hidden}
 #gameView .event-panel.counting:after{content:"";position:absolute;left:8px;right:8px;bottom:3px;height:4px;border-radius:4px;background:linear-gradient(90deg,#7a2bb0,#b24bd8);transform-origin:left center;animation:advDrain var(--adv-ms,3s) linear forwards;pointer-events:none}
 @keyframes advDrain{from{transform:scaleX(1)}to{transform:scaleX(0)}}
 @media(prefers-reduced-motion:reduce){#gameView .event-panel.counting:after{animation:none}}
+
+/* ===== mm10: hoạt cảnh đổ xúc xắc kiểu Marmalade (WAAPI trong dice-roll.js) ===== */
+#gameView .dice-stage{--ds:clamp(54px,16cqh,84px);top:46%;filter:none}
+#gameView .dice-row{gap:calc(var(--ds) * .4);align-items:center}
+#gameView .die-slot{position:relative;width:var(--ds);height:var(--ds)}
+#gameView .die-shadow{position:absolute;left:-6%;right:-6%;bottom:-14%;height:34%;border-radius:50%;background:radial-gradient(ellipse at center,rgba(10,30,10,.6),rgba(10,30,10,0) 70%);opacity:0;pointer-events:none}
+#gameView .dice-stage.rolling .cube-wrap,#gameView .dice-stage.landed .cube-wrap{animation:none;filter:none}
+#gameView .cube,#gameView .dice-stage .cube{transition:none}
+#gameView .cube .die.face{border:0!important;border-radius:calc(var(--ds) * .17);background:linear-gradient(145deg,#ffffff,#f1f1ec);box-shadow:inset 0 0 0 calc(var(--ds) * .02) rgba(0,0,0,.1),inset 0 calc(var(--ds) * -.05) 0 rgba(0,0,0,.08)}
+#gameView .cube .face[data-v="2"]{background:linear-gradient(145deg,#f4f4ef,#e3e3dc)}
+#gameView .cube .face[data-v="5"]{background:linear-gradient(145deg,#ececE6,#d9d9d1)}
+#gameView .cube .face[data-v="3"]{background:linear-gradient(145deg,#ffffff,#f6f6f1)}
+#gameView .cube .face[data-v="4"]{background:linear-gradient(145deg,#e6e6df,#d2d2c9)}
+#gameView .cube .face[data-v="6"]{background:linear-gradient(145deg,#dcdcd3,#c9c9bf)}
+/* Kết quả nổi bật: viên sáng viền vàng, tổng điểm bật lên */
+#gameView .dice-stage.landed .cube-wrap{filter:drop-shadow(0 0 calc(var(--ds) * .18) rgba(255,214,90,.95)) drop-shadow(0 calc(var(--ds) * .06) calc(var(--ds) * .05) rgba(0,0,0,.3));transition:filter .2s}
+#gameView .dice-row .dice-total{top:calc(100% + var(--ds) * .22);min-width:calc(var(--ds) * .9);height:calc(var(--ds) * .75);padding:0 calc(var(--ds) * .24);display:flex;align-items:center;justify-content:center;gap:.3em;border-radius:99em;background:linear-gradient(180deg,#ffe066,#ffb703);color:#3a2300;font-family:var(--display);font-size:calc(var(--ds) * .5);border:calc(var(--ds) * .04) solid #fff;box-shadow:0 4px 10px rgba(0,0,0,.4),0 0 0 calc(var(--ds) * .05) rgba(255,183,3,.45);animation:totalPop .5s cubic-bezier(.2,1.6,.4,1) both}
+#gameView .dice-double{font-size:.42em;letter-spacing:.04em;color:#a2260f}
+@keyframes totalPop{0%{transform:translateX(-50%) scale(.3);opacity:0}100%{transform:translateX(-50%) scale(1);opacity:1}}
+@media(prefers-reduced-motion:reduce){#gameView .dice-row .dice-total{animation:none}}

@@ -9,7 +9,9 @@ import {
   doublesOutcome, jailRollOutcome, jailStatus, isAuctionable, cashSnapshot, cashDeltas, appendEventLog, JAIL_MAX_ATTEMPTS
 } from "./economy.js?v=2";
 import { cubeTransform } from "./dice-visuals.js?v=1";
-import { createCamera, CAMERA } from "./camera.js?v=1";
+import { playDiceRoll, DICE_ANIM_MS } from "./dice-roll.js?v=2";
+import { playDiceSound, isMuted, setMuted } from "./dice-sound.js?v=2";
+import { createCamera, CAMERA } from "./camera.js?v=2";
 import { getDatabase, ref, set, get, onValue, runTransaction } from "https://www.gstatic.com/firebasejs/13.1.0/firebase-database.js";
 
 // Public Firebase Web App configuration for this game.
@@ -877,7 +879,8 @@ let diceAnimating = false;
 let diceTimer = null;
 let diceFinishTimer = null;
 let diceAnimationId = 0;
-const DICE_MS = 1200;
+// Tổng thời gian đổ xúc xắc: 2,34 giây hoạt cảnh + ~0,4 giây nêu bật kết quả rồi quân cờ mới đi.
+const DICE_MS = 2750;
 const HOP_MS = 190;
 
 function tokensHtml(index) {
@@ -944,7 +947,7 @@ function animateMove(uid, from, to, delay, expectedSteps = null, cam = null) {
 }
 function cubeHtml() {
   const faces = [1, 2, 3, 4, 5, 6].map((n) => `<span class="die face" data-v="${n}">${"<i></i>".repeat(9)}</span>`).join("");
-  return `<div class="cube-wrap"><div class="cube">${faces}</div></div>`;
+  return `<div class="die-slot"><i class="die-shadow"></i><div class="cube-wrap"><div class="cube">${faces}</div></div></div>`;
 }
 function setCube(el, value, spin) {
   el.style.transform = cubeTransform(value, spin);
@@ -966,6 +969,16 @@ function animateDice(finalDice) {
   diceFinishTimer = null;
   const animationId = ++diceAnimationId;
 
+  // Dừng hẳn: nêu bật tổng điểm (và "Đôi!"), giữ một nhịp để người chơi đọc rồi mới cho quân cờ đi.
+  const land = () => {
+    if (animationId !== diceAnimationId || !stage) return;
+    stage.classList.remove("rolling");
+    stage.classList.add("landed");
+    if (!stage.querySelector(".dice-total")) {
+      const dbl = result[0] === result[1] ? '<span class="dice-double">ĐÔI!</span>' : "";
+      stage.querySelector(".dice-row")?.insertAdjacentHTML("beforeend", `<b class="dice-total">${dbl}${total}</b>`);
+    }
+  };
   const finish = () => {
     // Timer cũ không được phép dừng một lượt xúc xắc mới hơn.
     if (animationId !== diceAnimationId) return;
@@ -977,12 +990,10 @@ function animateDice(finalDice) {
     box.classList.remove("rolling");
     box.innerHTML = diceHtml(result);
     if (stage) {
-      stage.classList.remove("rolling");
-      stage.classList.add("landed");
-      stage.querySelector(".dice-row")?.insertAdjacentHTML("beforeend", `<b class="dice-total">${total}</b>`);
+      land();
       setTimeout(() => {
         if (animationId === diceAnimationId) stage.className = "dice-stage";
-      }, 1500);
+      }, 900);
     }
   };
 
@@ -1006,16 +1017,9 @@ function animateDice(finalDice) {
     if (stage) {
       stage.className = "dice-stage show rolling";
       stage.innerHTML = `<div class="dice-row">${cubeHtml()}${cubeHtml()}</div>`;
-      const cubes = stage.querySelectorAll(".cube");
-      cubes.forEach((cube) => {
-        cube.style.transition = "none";
-        setCube(cube, face(), [0, 0]);
-      });
-      void stage.offsetWidth;
-      cubes.forEach((cube, i) => {
-        cube.style.transition = "";
-        setCube(cube, result[i], finalDiceSpin(i));
-      });
+      playDiceRoll(stage, result);
+      playDiceSound();
+      setTimeout(land, DICE_ANIM_MS + 40);
     }
   } catch (error) {
     console.error("Không thể dựng hiệu ứng xúc xắc 3D:", error);
@@ -2145,3 +2149,13 @@ async function boot() {
   await resumeLastRoom();
 }
 boot();
+
+// Nút bật/tắt âm thanh xúc xắc (nhớ lựa chọn trên máy này).
+{
+  const soundBtn = $("soundButton");
+  if (soundBtn) {
+    const sync = () => { soundBtn.querySelector("span").textContent = isMuted() ? "🔇" : "🔊"; };
+    sync();
+    soundBtn.addEventListener("click", () => { setMuted(!isMuted()); sync(); });
+  }
+}

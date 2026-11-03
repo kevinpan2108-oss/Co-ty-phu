@@ -79,7 +79,11 @@ export function createCamera({ stage, wrap, board, onChange, reduceMotion = fals
     state.measured.set(key, { cells, bounds });
     return state.measured.get(key);
   };
-  const measuredFor = (tilt) => state.measured.get(String(tilt)) || measure(tilt);
+  // Số đo lấy lúc bàn cờ chưa dựng xong (thiếu ô) không được giữ lại: đo lại cho tới khi đủ 40 ô.
+  const measuredFor = (tilt) => {
+    const hit = state.measured.get(String(tilt));
+    return hit && hit.cells.size >= 40 && hit.bounds.w > 0 ? hit : measure(tilt);
+  };
   // Vị trí quân cờ trong khung nhìn: lệch về bên trái để bảng sự kiện (bên phải) không che ô đang focus.
   const anchorFor = (v, withPanel) => ({ x: v.w * (withPanel ? 0.34 : 0.5), y: v.h * 0.52 });
   const cameraFor = (index, scale, tilt, withPanel) => {
