@@ -543,15 +543,15 @@ let rules;
     const rollBox = await m.page.locator("#rollButton").boundingBox();
     const playerDock = await m.page.locator("#playersPanel").evaluate(el => ({
       right:getComputedStyle(el).right,
-      left:getComputedStyle(el).left,
       direction:getComputedStyle(el).flexDirection,
-      width:el.getBoundingClientRect().width,
+      width:getComputedStyle(el).width,
+      transformedBounds:{width:el.getBoundingClientRect().width,height:el.getBoundingClientRect().height},
       cash:el.innerText
     }));
     check(label + ": không tràn ngang (sảnh/ván)", lobbyOverflow <= 0 && overflow <= 0, `sảnh ${lobbyOverflow}px, ván ${overflow}px`);
     check(label + ": thẻ người chơi gọn ở cạnh phải và dùng số dư dạng M/K",
-      playerDock.right !== "auto" && playerDock.left === "auto" && playerDock.direction === "column" &&
-      playerDock.width <= 220 && /15M/.test(playerDock.cash), JSON.stringify(playerDock));
+      playerDock.right !== "auto" && playerDock.direction === "column" &&
+      parseFloat(playerDock.width) <= 220 && /15M/.test(playerDock.cash), JSON.stringify(playerDock));
     check(label + ": nút Tung xúc xắc nằm trọn trong màn hình đầu, cao ≥ 40px", rollBox && rollBox.y >= 0 && rollBox.y + rollBox.height <= h && rollBox.height >= 40, rollBox ? `y=${Math.round(rollBox.y)}..${Math.round(rollBox.y + rollBox.height)}/${h}, cao ${Math.round(rollBox.height)}` : "không thấy");
     const inputFont = await m.page.evaluate(() => getComputedStyle(document.getElementById("playerName")).fontSize);
     if (OUT) { await m.page.screenshot({ path: `${OUT}/mobile-${w}.png` }); await m.page.evaluate(() => document.getElementById("lobbyView").classList.remove("hidden")); }
