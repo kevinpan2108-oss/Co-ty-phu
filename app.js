@@ -11,7 +11,7 @@ import {
 import { cubeTransform } from "./dice-visuals.js?v=1";
 import { playDiceRoll, DICE_ANIM_MS } from "./dice-roll.js?v=2";
 import { playDiceSound, isMuted, setMuted } from "./dice-sound.js?v=2";
-import { createCamera, CAMERA } from "./camera.js?v=2";
+import { createCamera, CAMERA } from "./camera.js?v=3";
 import { getDatabase, ref, set, get, onValue, runTransaction } from "https://www.gstatic.com/firebasejs/13.1.0/firebase-database.js";
 
 // Public Firebase Web App configuration for this game.
@@ -632,8 +632,15 @@ function getBoardCoords(index) {
   if (index === 30) return [0,10];
   return [index-30,10];
 }
+let boardSig = "";
 function renderBoard() {
   const board = $("board");
+  // Chỉ dựng lại 40 ô khi chủ đất/nhà/cầm cố/màu người chơi thay đổi; còn lại (tiền, vị trí...) chỉ cập nhật quân cờ.
+  const stamped = Object.keys(stampUntil).filter((i) => stampUntil[i] > Date.now()).join(",");
+  const sig = JSON.stringify([roomState?.propertyOwners || {}, roomState?.houses || {}, roomState?.mortgages || {},
+    Object.entries(roomState?.players || {}).map(([k, v]) => [k, v.color, v.name]), stamped]);
+  if (sig === boardSig && board.querySelectorAll(".space").length === SPACE_DATA.length) { renderTokens(); return; }
+  boardSig = sig;
   board.querySelectorAll(".space").forEach((el) => el.remove());
   const center = board.querySelector(".board-center");
   SPACE_DATA.forEach((space,index) => {
@@ -706,6 +713,7 @@ function renderProperties() {
   }).filter(item => item.space);
   const debt = roomState.debt;
   let canBuildAny = false;
+  const reasonOf = (r) => (r || "").replace(/^Bạn cần sở hữu toàn bộ đất của nhóm (.+) trước khi xây\.$/, "Cần đủ nhóm $1 để xây");
   const rows = owned.map(({space,uid,index,id}) => {
     const player = roomState.players?.[uid];
     const houses = Number(roomState.houses?.[id] || 0);
@@ -722,6 +730,7 @@ function renderProperties() {
     if (canBuildNow && space.type === "property") {
       const build = buildEligibility(SPACE_DATA, ownerMap, roomState.houses || {}, roomState.mortgages || {}, uid, index, player?.cash);
       if (build.ok) canBuildAny = true;
+      else controls.push(`<span class="deed-status build-reason">${escapeHtml(reasonOf(build.reason))}${build.cost && Number(player?.cash) < build.cost ? ` (thiếu ${money(build.cost - Number(player?.cash || 0))})` : ""}</span>`);
       if (build.ok) controls.push(`<button class="deed-action build-house" data-deed-action="build-house" data-index="${index}">Xây ${houses === 4 ? "khách sạn" : "nhà"} · ${money(build.cost)}</button>`);
     }
     if (canManage && mortgage > 0) {
@@ -745,6 +754,7 @@ function renderProperties() {
     </div>`;
   });
   $("propsButton")?.classList.toggle("has-build", canBuildAny);
+  const bq = $("buildQuickButton"); if (bq) bq.hidden = !canBuildAny;
   const debtNote = debt?.uid === currentUser.uid
     ? `<div class="debt-banner"><strong>Đang nợ ${money(debt.amount)}</strong><span>${escapeHtml(debt.reason || "Khoản thanh toán chưa đủ")}. Bán nhà hoặc cầm cố thêm tài sản để trả nợ.</span></div>`
     : "";
@@ -899,7 +909,9 @@ function tokensHtml(index) {
 function renderTokens() {
   document.querySelectorAll("#board .space").forEach((cell) => {
     const holder = cell.querySelector(".space-players");
-    if (holder) holder.innerHTML = tokensHtml(Number(cell.dataset.index));
+    if (!holder) return;
+    const html = tokensHtml(Number(cell.dataset.index));
+    if (holder.dataset.t !== html) { holder.innerHTML = html; holder.dataset.t = html; }
   });
 }
 function resetEffects() {
@@ -933,7 +945,7 @@ function animateMove(uid, from, to, delay, expectedSteps = null, cam = null) {
     movingUid = uid;
     displayPos[uid] = (from + step) % 40;
     const cell = document.querySelector(`#board .space[data-index="${displayPos[uid]}"]`);
-    if (cell) { cell.classList.remove("pass", "land"); void cell.offsetWidth; cell.classList.add(step >= distance ? "land" : "pass"); }
+    if (cell) { cell.classList.remove("pass", "pass2", "land"); cell.classList.add(step >= distance ? "land" : (step % 2 ? "pass" : "pass2")); }
     if (step >= distance) {
       delete displayPos[uid];
       delete moveTimers[uid];
@@ -1009,9 +1021,6 @@ function animateDice(finalDice) {
   diceAnimating = true;
   box.classList.add("rolling");
   const face = () => 1 + Math.floor(Math.random() * 6);
-  const shuffle = () => { box.innerHTML = diceHtml([face(), face()]); };
-  shuffle();
-  diceTimer = setInterval(shuffle, 90);
 
   // Luôn đặt giờ kết thúc trước khi dựng khối 3D. Nếu dựng mặt xúc xắc bị lỗi,
   // animation vẫn phải tự dừng và hiện kết quả cuối cùng.
@@ -2163,3 +2172,5 @@ boot();
     soundBtn.addEventListener("click", () => { setMuted(!isMuted()); sync(); });
   }
 }
+
+$("buildQuickButton")?.addEventListener("click", () => { $("propsModal").hidden = false; });
