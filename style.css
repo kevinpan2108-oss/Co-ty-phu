@@ -1201,3 +1201,9 @@ body:has(#gameView:not(.hidden)){overflow:hidden}
 #gameView .event-panel:has(.deed:not(.card-event)) .deed-banner{display:inline-block;margin:0 0 6px;padding:2px 14px;font-size:clamp(11px,3.4cqh,14px);clip-path:none;border-radius:99em;filter:none}
 #gameView .event-panel:has(.deed:not(.card-event)) .deed-mascot{right:-8px;top:clamp(-70px,-14cqh,-44px);bottom:auto;width:clamp(44px,13cqh,62px)}
 #gameView .event-panel:has(.deed:not(.card-event)) .deed:not(.card-event) .deed-row{font-size:clamp(9px,2.8cqh,12px)}
+
+/* ===== mm16: quân cờ dạng tượng nhỏ (SVG + đế màu người chơi), nút góc quay ===== */
+#gameView .token .token-svg{width:1.5em;height:1.5em;filter:drop-shadow(0 .05em .03em rgba(0,0,0,.45))}
+#gameView .token:before{left:8%;right:8%;height:24%;bottom:.02em;background:radial-gradient(ellipse at 50% 35%,rgba(255,255,255,.55),rgba(255,255,255,0) 60%),var(--tc,#fff);box-shadow:0 .05em .08em rgba(0,0,0,.5),inset 0 0 0 .04em rgba(255,255,255,.9)}
+#gameView .token{padding-bottom:.12em}
+#gameView .hud-button.cam-button[aria-pressed="true"]{background:rgba(232,140,30,.92)}

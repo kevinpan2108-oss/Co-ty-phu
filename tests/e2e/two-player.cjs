@@ -226,6 +226,21 @@ let rules;
   check("giai đoạn 4: bảng sự kiện không che quân cờ hoặc ô đang focus", focusInfo.tokenIn && !focusInfo.tokenUnderPanel && !focusInfo.cellUnderPanel, JSON.stringify(focusInfo));
   // Camera chỉ là phép biến đổi hiển thị: toạ độ gốc của ô không đổi.
   check("camera không làm lệch quân cờ/ô cờ trong Firebase (vị trí vẫn là ô 3)", store.rooms[code].players[store.rooms[code].creatorUid].position === 3 && !JSON.stringify(store.rooms[code]).includes("camera"));
+  // Góc thấp (kiểu Monopoly Marmalade): bấm nút đổi góc khi đang focus -> nghiêng sâu hơn, quân cờ vẫn nằm trong khung và không bị bảng che.
+  await pb.page.click("#camViewButton");
+  await pb.page.waitForTimeout(1100);
+  const lowInfo = await pb.page.evaluate(() => {
+    const st = document.getElementById("stage"), sr = st.getBoundingClientRect();
+    const tr = document.querySelector(".space[data-index='3'] .token b")?.getBoundingClientRect();
+    const pr = document.getElementById("eventPanel").getBoundingClientRect();
+    const hit = tr && !(tr.right < pr.left || tr.left > pr.right || tr.bottom < pr.top || tr.top > pr.bottom);
+    return { pressed: document.getElementById("camViewButton").getAttribute("aria-pressed"), rx: document.getElementById("board").style.getPropertyValue("--rx"), mode: st.dataset.camera, in: !!tr && tr.left >= sr.left && tr.right <= sr.right && tr.top >= sr.top && tr.bottom <= sr.bottom, hit: !!hit, saved: localStorage.getItem("coTyPhu.cameraView") };
+  });
+  check("góc thấp: nghiêng ≥60°, quân cờ trong khung, không bị bảng che, nhớ lựa chọn", lowInfo.pressed === "true" && parseFloat(lowInfo.rx) >= 60 && lowInfo.in && !lowInfo.hit && lowInfo.saved === "low", JSON.stringify(lowInfo));
+  if (OUT) await pb.page.screenshot({ path: path.join(OUT, "camera-low.png") });
+  await pb.page.click("#camViewButton");
+  await pb.page.waitForTimeout(300);
+  check("bấm lần nữa trở về góc chuẩn", (await pb.page.getAttribute("#camViewButton", "aria-pressed")) === "false");
   await pa.page.waitForTimeout(1800);
   const faces = (page) => page.$$eval("#diceResult .die", (els) => els.map((e) => e.dataset.v).join(","));
   const diceA = await faces(pa.page), diceB = await faces(pb.page);

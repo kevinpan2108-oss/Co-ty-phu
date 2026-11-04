@@ -12,6 +12,12 @@ export const CAMERA = Object.freeze({
   zoomOutMs: 1000
 });
 
+// Góc nhìn khi đi theo quân cờ: "chase" là góc chuẩn; "low" là góc thấp sát mặt bàn như Monopoly Marmalade.
+export const CAMERA_VIEWS = Object.freeze({
+  chase: Object.freeze({ followTilt: CAMERA.followTilt, focusTilt: CAMERA.focusTilt, followScale: CAMERA.followScale, focusScale: CAMERA.focusScale, anchorY: 0.52 }),
+  low: Object.freeze({ followTilt: 64, focusTilt: 67, followScale: 2.05, focusScale: 2.2, anchorY: 0.64 })
+});
+
 const clampNumber = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
 
 // Tính camera để điểm `focus` (toạ độ gốc, chưa zoom) nằm đúng vị trí `anchor` trong khung nhìn,
@@ -38,7 +44,7 @@ export function readCamera(el) {
 }
 
 export function createCamera({ stage, wrap, board, onChange, reduceMotion = false }) {
-  const state = { mode: "overview", seq: 0, enabled: !reduceMotion, measured: new Map(), manualUntilNextMove: false, tilt: null };
+  const state = { mode: "overview", seq: 0, enabled: !reduceMotion, measured: new Map(), manualUntilNextMove: false, tilt: null, view: "chase" };
   let timers = [];
 
   const stageMatrix = () => new DOMMatrix(getComputedStyle(stage).transform);
@@ -85,7 +91,7 @@ export function createCamera({ stage, wrap, board, onChange, reduceMotion = fals
     return hit && hit.cells.size >= 40 && hit.bounds.w > 0 ? hit : measure(tilt);
   };
   // Vị trí quân cờ trong khung nhìn: lệch về bên trái để bảng sự kiện (bên phải) không che ô đang focus.
-  const anchorFor = (v, withPanel) => ({ x: v.w * (withPanel ? 0.34 : 0.5), y: v.h * 0.52 });
+  const anchorFor = (v, withPanel) => ({ x: v.w * (withPanel ? 0.34 : 0.5), y: v.h * CAMERA_VIEWS[state.view].anchorY });
   const cameraFor = (index, scale, tilt, withPanel) => {
     const m = measuredFor(tilt);
     const focus = m.cells.get(Number(index));
@@ -105,25 +111,27 @@ export function createCamera({ stage, wrap, board, onChange, reduceMotion = fals
     get mode() { return state.mode; },
     setEnabled(value) { state.enabled = !!value && !reduceMotion; if (!state.enabled) this.overview(0); },
     invalidate() { state.measured.clear(); },
-    premeasure() { [0, CAMERA.followTilt, CAMERA.focusTilt].forEach(measure); },
+    premeasure() { [0, ...Object.values(CAMERA_VIEWS).flatMap((v) => [v.followTilt, v.focusTilt])].forEach(measure); },
+    get view() { return state.view; },
+    setView(view) { if (CAMERA_VIEWS[view]) state.view = view; },
     // Bắt đầu một hành trình mới: mọi hẹn giờ của hành trình cũ bị huỷ, hành trình mới nhất luôn thắng.
     beginSequence() { state.seq += 1; clearTimers(); state.manualUntilNextMove = false; return state.seq; },
     isCurrent(seq) { return seq === state.seq; },
-    follow(index, { ms = CAMERA.zoomInMs, scale = CAMERA.followScale, ease = "cubic-bezier(.45,.05,.4,1)", seq = state.seq } = {}) {
+    follow(index, { ms = CAMERA.zoomInMs, scale = CAMERA_VIEWS[state.view].followScale, ease = "cubic-bezier(.45,.05,.4,1)", seq = state.seq } = {}) {
       if (!state.enabled || state.manualUntilNextMove || seq !== state.seq) return false;
-      const cam = cameraFor(index, scale, CAMERA.followTilt, true);
+      const cam = cameraFor(index, scale, CAMERA_VIEWS[state.view].followTilt, true);
       if (!cam) return false;
       setMode("follow");
-      setTilt(CAMERA.followTilt, ms, ease);
+      setTilt(CAMERA_VIEWS[state.view].followTilt, ms, ease);
       apply(cam, ms, ease);
       return true;
     },
     focus(index, { ms = CAMERA.focusMs, seq = state.seq } = {}) {
       if (!state.enabled || state.manualUntilNextMove || seq !== state.seq) return false;
-      const cam = cameraFor(index, CAMERA.focusScale, CAMERA.focusTilt, true);
+      const cam = cameraFor(index, CAMERA_VIEWS[state.view].focusScale, CAMERA_VIEWS[state.view].focusTilt, true);
       if (!cam) return false;
       setMode("focus");
-      setTilt(CAMERA.focusTilt, ms, "cubic-bezier(.2,.8,.2,1)");
+      setTilt(CAMERA_VIEWS[state.view].focusTilt, ms, "cubic-bezier(.2,.8,.2,1)");
       apply(cam, ms, "cubic-bezier(.2,.8,.2,1)");
       return true;
     },
