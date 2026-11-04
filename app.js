@@ -1118,7 +1118,8 @@ function runEffects(previous, next) {
   let holdMs = rolled ? DICE_MS : 0;
   // Qua lượt (hoặc tung thêm do được đôi): camera từ từ trở về toàn cảnh.
   if (Number(next.turnNumber) !== Number(previous.turnNumber) && !rolled) camera?.overview();
-  if (Number(next.turnNumber) !== Number(previous.turnNumber) || next.turnUid !== previous.turnUid) {
+  // Chỉ nghỉ khi quyền chơi chuyển sang người khác. Tung thêm do đôi vẫn là cùng lượt.
+  if (next.turnUid !== previous.turnUid) {
     handoffUntil = Date.now() + HANDOFF_MS;
     setTimeout(() => { if (roomState) { renderActions(); scheduleComputerTurn(); } }, HANDOFF_MS + 40);
   }
