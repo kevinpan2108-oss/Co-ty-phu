@@ -1117,6 +1117,25 @@ body:has(#gameView:not(.hidden)){overflow:hidden}
 @keyframes buildHint{50%{transform:scale(1.25)}}
 @media(prefers-reduced-motion:reduce){#gameView #propsButton.has-build:after{animation:none}}
 
+/* ===== mm12: mượt hơn, nút tung xúc xắc dời sang cột phải, nút xây nhà ===== */
+#gameView .board-wrap,#gameView .board{will-change:transform}
+#gameView .sc-cloud{filter:none}
+/* Hiệu ứng ô đi qua / dừng: chỉ đổi độ trong suốt của lớp phủ (nhẹ hơn nhiều so với box-shadow + scale) */
+#gameView .space.pass,#gameView .space.pass2,#gameView .space.land{animation:none}
+#gameView .space.pass:after,#gameView .space.pass2:after,#gameView .space.land:after{content:"";position:absolute;inset:0;border-radius:inherit;background:rgba(255,214,90,.6);pointer-events:none;z-index:5}
+#gameView .space.pass:after{animation:flashA .5s ease-out forwards}
+#gameView .space.pass2:after{animation:flashB .5s ease-out forwards}
+#gameView .space.land:after{background:rgba(255,214,90,.85);animation:flashA .9s ease-out forwards}
+@keyframes flashA{from{opacity:1}to{opacity:0}}
+@keyframes flashB{from{opacity:1}to{opacity:0}}
+@media(prefers-reduced-motion:reduce){#gameView .space.pass:after,#gameView .space.pass2:after,#gameView .space.land:after{animation:none;opacity:0}}
+/* Cột phải dưới thẻ người chơi: nút Xây nhà (khi xây được) và Tung xúc xắc, không che bàn cờ */
+#gameView .hud-roll{right:6px;bottom:8px;width:clamp(88px,17cqw,150px);flex-direction:column;align-items:stretch;gap:6px}
+#gameView .hud-roll .roll-button{width:100%;min-width:0;min-height:clamp(34px,10cqh,44px);font-size:clamp(11px,3.4cqh,15px);padding:0 6px}
+#gameView .build-quick-button{width:100%;min-height:clamp(30px,9cqh,40px);border:0;border-radius:99px;background:linear-gradient(180deg,#62c24f,#2f8f2f);color:#fff;font-family:var(--display);font-size:clamp(11px,3.4cqh,15px);box-shadow:0 3px 0 #1d6b1d,0 4px 6px rgba(0,0,0,.3);animation:buildHint 1.2s ease-in-out infinite}
+#gameView .build-quick-button[hidden]{display:none}
+#gameView .status-bar{width:min(54cqw,520px)}
+.property-row .build-reason{display:block;max-width:15em;font-size:11px;line-height:1.25;color:#8a4b00}
 
 /* Trạng thái xây nhà luôn hiển thị rõ lý do khi chưa đủ điều kiện. */
 #gameView .deed-status.build-status {

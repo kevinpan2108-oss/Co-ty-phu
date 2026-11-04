@@ -38,7 +38,7 @@ export function readCamera(el) {
 }
 
 export function createCamera({ stage, wrap, board, onChange, reduceMotion = false }) {
-  const state = { mode: "overview", seq: 0, enabled: !reduceMotion, measured: new Map(), manualUntilNextMove: false };
+  const state = { mode: "overview", seq: 0, enabled: !reduceMotion, measured: new Map(), manualUntilNextMove: false, tilt: null };
   let timers = [];
 
   const stageMatrix = () => new DOMMatrix(getComputedStyle(stage).transform);
@@ -94,6 +94,8 @@ export function createCamera({ stage, wrap, board, onChange, reduceMotion = fals
     return solveCamera({ focus, viewport: v, anchor: anchorFor(v, withPanel), scale, bounds: m.bounds });
   };
   const setTilt = (deg, ms, easing) => {
+    if (state.tilt === deg && ms > 0) return; // cùng độ nghiêng: không đụng vào style (tránh tính lại bố cục mỗi bước)
+    state.tilt = deg;
     board.style.transition = ms > 0 ? `transform ${ms}ms ${easing}` : "none";
     board.style.setProperty("--rx", deg + "deg");
   };
