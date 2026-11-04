@@ -113,3 +113,7 @@ npm run test:e2e
 - Cảnh giữa bàn vẽ lại thành làng quê Cửu Long nhìn từ trên: sông + chợ nổi (ghe, nón lá, cây bẹo), cầu khỉ, nhà ngói/nhà lá, chùa Việt, chùa Khmer, ao sen, dừa/tre, sân trống đồng Đông Sơn ở tâm. SVG sinh bằng `python3 tools/gen-center-scene.py` (ghi đè `<svg class="city">` trong index.html; sửa script rồi chạy lại, đừng sửa tay).
 - Thẻ/bảng: tông đỏ thẫm–vàng, hồi văn, thẻ Cơ hội (đỏ) / Khí vận (xanh lục) có hoa văn và ✿; banner "Đang bán" và thanh trạng thái đổi từ tím sang đỏ–vàng (CSS khối mm17).
 - Chưa làm: nhà/khách sạn trên ô (nhà ngói/đình), viền bàn hoạ tiết trống đồng.
+
+## Cập nhật: bỏ thanh thông báo đỏ + đổ bóng 3D (mm18)
+- `#statusBar` giờ ẩn về mặt hình ảnh (vẫn giữ trong DOM, `role=status`, cho trình đọc màn hình và E2E); thông tin lượt đã có ở bảng sự kiện và nhãn giữa bàn.
+- Ô cờ có cạnh dày xếp lớp bằng box-shadow, bàn cờ là khối gỗ dày có bóng đổ chéo, khu giữa lõm xuống, quân cờ có bóng tiếp đất và bóng đổ lệch.
