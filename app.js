@@ -11,7 +11,7 @@ import {
 import { cubeTransform } from "./dice-visuals.js?v=1";
 import { playDiceRoll, DICE_ANIM_MS } from "./dice-roll.js?v=2";
 import { playDiceSound, isMuted, setMuted } from "./dice-sound.js?v=2";
-import { createCamera, CAMERA } from "./camera.js?v=5";
+import { createCamera, CAMERA } from "./camera.js?v=6";
 import { getDatabase, ref, set, get, onValue, runTransaction } from "https://www.gstatic.com/firebasejs/13.1.0/firebase-database.js";
 
 // Public Firebase Web App configuration for this game.
@@ -661,7 +661,9 @@ function renderBoard() {
     const colorBar = space.color || (space.type === "property" ? "#9b8067" : "transparent");
     const price = space.price ? moneyShort(space.price) : space.amount ? moneyShort(space.amount) : "";
     const name = space.corner ? space.name : shortName(space.name);
-    const nameScale = Math.max(.58, Math.min(1, 16 / Math.max(16, name.length)));
+    // Co chữ theo từ dài nhất (mỗi từ phải lọt bề ngang ô) và theo tổng độ dài (tối đa 2 dòng).
+    const longestWord = Math.max(1, ...name.split(/\s+/).map((w) => w.length));
+    const nameScale = Math.max(.6, Math.min(1, 6 / longestWord, 14 / Math.max(14, name.length)));
     const description = describeSpace(index);
     const buildingMark = houseCount === 5 ? "🏨" : houseCount > 0 ? "🏠".repeat(houseCount) : "";
     div.dataset.index = String(index);

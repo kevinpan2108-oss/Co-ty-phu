@@ -127,3 +127,9 @@ npm run test:e2e
 - Nguyên nhân mờ: `will-change: transform` tĩnh trên `.board-wrap`/`.board` làm trình duyệt giữ ảnh đã vẽ rồi phóng to khi camera zoom. Giờ `camera.js` chỉ bật will-change trong lúc camera chạy và tắt sau khi dừng (hàm `hold`), nên chữ được vẽ lại sắc nét. Thêm `text-rendering: geometricPrecision`.
 - Hiệu ứng mới (`spawnFx` trong app.js, CSS mm20): sóng tròn vàng/trắng khi quân cờ đáp xuống ô; pháo tia 12 hạt khi mua đất; ô cờ có ánh bóng chéo.
 - Test độ nét cao: `E2E_DSF=2 node tests/e2e/two-player.cjs <thư-mục>` (có thể trễ nhịp hơn ở máy chậm).
+
+## Cập nhật: sửa mờ/vỡ hạt khi zoom + chữ ô cờ bị cắt (mm21–mm24)
+- Nguyên nhân thật của hình bị vỡ hạt: phóng to bằng `transform: scale` trên khối 3D (`preserve-3d` + `perspective`) khiến Chrome giữ ảnh vẽ ở độ phân giải gốc (kể cả sau khi camera dừng; will-change không liên quan). Đã bỏ hẳn will-change.
+- Cách sửa (camera.js `makeCrisp`/`unCrisp`): khi camera dừng ở mức zoom > 1, đổi sang phóng to bằng kích thước thật — `--zoom` nhân vào `--S` của bàn cờ (CSS cuối style.css), `perspective` nhân s, `perspective-origin` = s·o − (s−1)·c, transform về chỉ còn translate (t' = t + (s−1)c), `.scenery` giữ scale riêng. Công thức giữ nguyên vị trí hình nên không bị nhảy. Mọi chuyển động mới gọi `unCrisp()` trước; `measure()` cũng gọi để đo ở trạng thái gốc.
+- Chữ ô cờ: khối CSS mm22–mm24 (`#gameView #board .space ...`, độ ưu tiên cao để đè các lớp cũ). Thanh màu cao cố định .2em, tên tối đa 2 dòng (flex:none nên không còn bị co về 0), giá luôn hiện, ô có biểu tượng thu nhỏ để đủ chỗ; JS co chữ theo từ dài nhất (`nameScale`). Quân cờ nhỏ hơn và neo về mép ngoài của ô để ít che tên.
+- E2E có thêm công cụ chẩn đoán (chỉ chạy khi đặt biến môi trường): `E2E_DSF` (độ nét), `E2E_PRE_CSS` (chèn CSS thử trước khi test camera), `E2E_EXP`/`E2E_EXP_CSS`, `E2E_DUMP` (in kích thước ô).

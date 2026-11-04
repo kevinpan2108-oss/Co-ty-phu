@@ -483,6 +483,7 @@ let rules;
   // ===== Camera trên điện thoại ngang / dọc (stage xoay 90°) và nút Toàn cảnh =====
   for (const [label, vw, vh] of [["ngang 844x390", 844, 390], ["dọc 390x844 (xoay)", 390, 844], ["dọc 360x740 (xoay)", 360, 740], ["ngang 667x375", 667, 375]]) {
     await pa.page.setViewportSize({ width: vw, height: vh });
+    if (process.env.E2E_PRE_CSS && vw === 844) await pa.page.addStyleTag({ content: process.env.E2E_PRE_CSS });
     await pa.page.waitForTimeout(500);
     const r = store.rooms[code];
     const uid = r.creatorUid;
@@ -504,6 +505,23 @@ let rules;
     }, to);
     check(`camera ${label}: theo quân cờ rồi focus, quân cờ trong khung, bàn cờ không biến mất`, followed && focused && info.tokenIn && info.boardStillVisible && info.btn, JSON.stringify(info));
     if (OUT) await pa.page.screenshot({ path: `${OUT}/camera-${vw}x${vh}.png` });
+    if (process.env.E2E_DUMP && vw === 844) {
+      console.log(JSON.stringify(await pa.page.evaluate(() => [1, 12, 5].map((i) => {
+        const c = document.querySelector(`#board .space[data-index="${i}"]`);
+        const r = (el) => { if (!el) return null; const b = el.getBoundingClientRect(), cs = getComputedStyle(el); return [Math.round(b.width), Math.round(b.height), cs.fontSize, cs.overflow, cs.display]; };
+        return { i, cls: c.className, cell: r(c), face: r(c.querySelector(".sp-face")), text: r(c.querySelector(".space-text")), name: r(c.querySelector(".space-name")), price: r(c.querySelector(".space-price")), bar: r(c.querySelector(".space-color")) };
+      }))));
+    }
+    if (OUT && process.env.E2E_EXP && vw === 844) {
+      const variants = (process.env.E2E_EXP_CSS || "").split("||").filter(Boolean);
+      for (let k = 0; k < variants.length; k++) {
+        const h = await pa.page.evaluateHandle((css) => { const el = document.createElement("style"); el.textContent = css; document.head.appendChild(el); return el; }, variants[k]);
+        await pa.page.waitForTimeout(450);
+        console.log("EXP", k, variants[k], await pa.page.evaluate(() => document.getElementById("stage").dataset.camera));
+        await pa.page.screenshot({ path: `${OUT}/exp-${k}.png` });
+        await pa.page.evaluate((el) => el.remove(), h);
+      }
+    }
     await pa.page.click("#camOverviewButton");
     await pa.page.waitForTimeout(900);
     const back = await pa.page.evaluate(() => ({ mode: document.getElementById("stage").dataset.camera, tf: document.querySelector("#gameView .board-wrap").style.transform, btnHidden: document.getElementById("camOverviewButton").hidden }));

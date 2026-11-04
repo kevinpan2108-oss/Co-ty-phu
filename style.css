@@ -1292,3 +1292,32 @@ body:has(#gameView:not(.hidden)){overflow:hidden}
 #gameView .fx-burst b{position:absolute;left:50%;top:50%;width:.16em;height:.16em;margin:-.08em;border-radius:50%;background:var(--c);box-shadow:0 0 .1em var(--c);opacity:0;animation:fxSpark .9s ease-out var(--d) forwards}
 @keyframes fxSpark{0%{transform:rotate(var(--a)) translateX(0) scale(1.2);opacity:1}100%{transform:rotate(var(--a)) translateX(1.25em) scale(.2);opacity:0}}
 @media(prefers-reduced-motion:reduce){#gameView .fx{display:none}}
+
+/* mm21: --zoom do camera.js đặt khi dừng để vẽ sắc nét (phóng to bằng kích thước thật thay vì transform scale) */
+#gameView .board{--S:calc(min(80cqh,60cqw) * var(--zoom,1))}
+
+/* ===== mm22: ô cờ — bố cục chữ bền vững (thanh màu cố định, tên 2 dòng, giá luôn thấy), quân cờ nhỏ & lệch ra mép ngoài ===== */
+#gameView #board .space:not(.corner) .space-color{flex:none;height:.2em;width:100%;border-bottom:.025em solid rgba(0,0,0,.3);box-shadow:none}
+#gameView #board .space .space-text{display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1 1 auto;min-height:0;width:100%;gap:.04em;padding:.03em .05em .05em}
+#gameView #board .space .space-name{display:-webkit-box!important;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;max-height:none;flex:0 0 auto;padding-bottom:.02em;max-width:100%;font-size:calc(.27em * var(--name-scale,1));line-height:1.1;font-weight:800;text-align:center;text-transform:none;overflow-wrap:normal;word-break:normal;hyphens:none;color:#1f4025;text-wrap:balance}
+#gameView #board .space:not(.corner) .space-price{flex:none;margin:0;font-size:.22em;font-weight:900;line-height:1.1;padding:.06em .45em;border-radius:99em;background:#fff;color:#1f4025;white-space:nowrap;box-shadow:0 .03em 0 rgba(0,0,0,.2)}
+#gameView #board .space:not(.corner) .sp-icon{flex:none;margin:0;font-size:.5em;line-height:1}
+#gameView #board .space.corner .sp-icon{flex:none;font-size:.85em;line-height:1}
+#gameView #board .space.corner .space-name{font-size:.24em;text-transform:uppercase;letter-spacing:.01em}
+/* ô cờ bị cầm cố: chữ vẫn đọc được */
+#gameView #board .space.mortgaged .sp-face{filter:grayscale(.7) brightness(.95)}
+/* quân cờ: nhỏ hơn, nằm về phía mép ngoài của ô để không che tên và giá */
+#gameView #board .token .token-svg{width:1.05em;height:1.05em}
+#gameView #board .token:before{left:12%;right:12%}
+#gameView #board .space.side-bottom:not(.corner) .space-players{top:72%}
+#gameView #board .space.side-top:not(.corner) .space-players{top:40%}
+#gameView #board .space.side-left:not(.corner) .space-players{left:36%}
+#gameView #board .space.side-right:not(.corner) .space-players{left:64%}
+/* ô có biểu tượng (ga, điện nước, thuế, cơ hội...): thu nhỏ để đủ chỗ icon + tên + giá */
+#gameView #board .space:not(.corner):has(.sp-icon) .sp-icon{font-size:.36em}
+#gameView #board .space:not(.corner):has(.sp-icon) .space-name{font-size:calc(.2em * var(--name-scale,1));line-height:1.05}
+#gameView #board .space:not(.corner):has(.sp-icon) .space-text{gap:.02em;padding-top:.02em;padding-bottom:.03em}
+#gameView #board .space:not(.corner):has(.sp-icon) .space-price{font-size:.19em;padding:.05em .4em}
+#gameView #board .token .token-svg{width:.78em;height:.78em}
+#gameView #board .space.side-bottom:not(.corner) .space-players{top:90%}
+#gameView #board .space.side-top:not(.corner) .space-players{top:34%}

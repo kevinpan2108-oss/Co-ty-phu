@@ -44,7 +44,7 @@ export function readCamera(el) {
 }
 
 export function createCamera({ stage, wrap, board, onChange, reduceMotion = false }) {
-  const state = { mode: "overview", seq: 0, enabled: !reduceMotion, measured: new Map(), manualUntilNextMove: false, tilt: null, view: "chase" };
+  const state = { mode: "overview", seq: 0, enabled: !reduceMotion, measured: new Map(), manualUntilNextMove: false, tilt: null, view: "chase", crisp: null };
   let timers = [];
 
   const stageMatrix = () => new DOMMatrix(getComputedStyle(stage).transform);
@@ -56,22 +56,49 @@ export function createCamera({ stage, wrap, board, onChange, reduceMotion = fals
     stage.dataset.camera = mode;
     onChange?.(mode);
   };
-  // will-change giữ ảnh đã vẽ rồi phóng to => chữ bị mờ. Chỉ bật trong lúc camera chạy, tắt sau khi dừng để vẽ lại sắc nét.
-  let settleTimer = 0;
-  const hold = (ms) => {
-    wrap.style.willChange = "transform"; board.style.willChange = "transform";
-    clearTimeout(settleTimer);
-    settleTimer = setTimeout(() => { wrap.style.willChange = ""; board.style.willChange = ""; }, Math.max(0, ms) + 150);
+  // ----- Vẽ sắc nét khi zoom -----
+  // Phóng to bằng transform scale trên một khối 3D (preserve-3d + perspective) làm trình duyệt giữ ảnh vẽ ở độ phân giải gốc => chữ, ô cờ bị vỡ hạt.
+  // Khi camera dừng, ta đổi sang phóng to bằng kích thước thật (--zoom nhân vào --S, perspective và điểm nhìn nhân tương ứng) và đặt transform về scale 1.
+  // Công thức đảm bảo hình ảnh không xê dịch: t' = t + (s-1)c, perspective' = s·d, perspective-origin' = s·o − (s−1)c (c = tâm bàn, o = tâm khung).
+  const scenery = wrap.querySelector(".scenery");
+  const basePersp = () => parseFloat(getComputedStyle(wrap).perspective) || 1200;
+  const unCrisp = () => {
+    const c = state.crisp;
+    if (!c) return;
+    state.crisp = null;
+    board.style.removeProperty("--zoom");
+    wrap.style.perspective = ""; wrap.style.perspectiveOrigin = "";
+    if (scenery) scenery.style.transform = "";
+    wrap.style.transition = "none";
+    wrap.style.transform = `translate(${c.tx.toFixed(2)}px,${c.ty.toFixed(2)}px) scale(${c.scale.toFixed(4)})`;
+    void wrap.offsetWidth;
   };
+  const makeCrisp = (cam) => {
+    if (state.crisp || cam.scale <= 1.01 || state.mode === "overview") return;
+    const s = cam.scale, d = basePersp();
+    const cx = board.offsetLeft + board.offsetWidth / 2, cy = board.offsetTop + board.offsetHeight / 2;
+    const ox = wrap.clientWidth / 2, oy = wrap.clientHeight / 2;
+    state.crisp = { tx: cam.tx, ty: cam.ty, scale: s };
+    board.style.setProperty("--zoom", String(s));
+    wrap.style.perspective = `${(d * s).toFixed(1)}px`;
+    wrap.style.perspectiveOrigin = `${(s * ox - (s - 1) * cx).toFixed(2)}px ${(s * oy - (s - 1) * cy).toFixed(2)}px`;
+    if (scenery) scenery.style.transform = `translate(${(-(s - 1) * cx).toFixed(2)}px,${(-(s - 1) * cy).toFixed(2)}px) scale(${s})`;
+    wrap.style.transition = "none";
+    wrap.style.transform = `translate(${(cam.tx + (s - 1) * cx).toFixed(2)}px,${(cam.ty + (s - 1) * cy).toFixed(2)}px)`;
+  };
+  let settleTimer = 0;
   const apply = (cam, ms, easing) => {
-    hold(ms);
+    clearTimeout(settleTimer);
+    unCrisp();
     wrap.style.transition = ms > 0 ? `transform ${ms}ms ${easing}` : "none";
     wrap.style.transform = cam.scale === 1 && cam.tx === 0 && cam.ty === 0 ? "" : `translate(${cam.tx.toFixed(2)}px,${cam.ty.toFixed(2)}px) scale(${cam.scale.toFixed(4)})`;
     stage.dataset.cameraScale = cam.scale.toFixed(2);
+    if (cam.scale > 1.01) settleTimer = setTimeout(() => makeCrisp(cam), ms + 60);
   };
   // Đo vị trí gốc (trong hệ toạ độ của .board-wrap, chưa zoom/dịch) của mọi ô ở một độ nghiêng nhất định.
   // Tạm tắt transition + camera để đọc layout đồng bộ trong cùng một khung hình rồi khôi phục (không vẽ ra màn hình).
   const measure = (tilt) => {
+    unCrisp();
     const key = String(tilt);
     const saved = { wt: wrap.style.transition, wf: wrap.style.transform, bt: board.style.transition, rx: board.style.getPropertyValue("--rx") };
     wrap.style.transition = "none"; wrap.style.transform = "none";
@@ -110,7 +137,6 @@ export function createCamera({ stage, wrap, board, onChange, reduceMotion = fals
   const setTilt = (deg, ms, easing) => {
     if (state.tilt === deg && ms > 0) return; // cùng độ nghiêng: không đụng vào style (tránh tính lại bố cục mỗi bước)
     state.tilt = deg;
-    hold(ms);
     board.style.transition = ms > 0 ? `transform ${ms}ms ${easing}` : "none";
     board.style.setProperty("--rx", deg + "deg");
   };
