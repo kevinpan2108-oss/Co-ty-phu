@@ -11,7 +11,7 @@ import {
 import { cubeTransform } from "./dice-visuals.js?v=1";
 import { playDiceRoll, DICE_ANIM_MS } from "./dice-roll.js?v=2";
 import { playDiceSound, isMuted, setMuted } from "./dice-sound.js?v=2";
-import { createCamera, CAMERA } from "./camera.js?v=4";
+import { createCamera, CAMERA } from "./camera.js?v=5";
 import { getDatabase, ref, set, get, onValue, runTransaction } from "https://www.gstatic.com/firebasejs/13.1.0/firebase-database.js";
 
 // Public Firebase Web App configuration for this game.
@@ -964,6 +964,22 @@ function resetEffects() {
   const stage = $("diceStage");
   if (stage) stage.className = "dice-stage";
 }
+// Hiệu ứng nổi trên ô: "ripple" (sóng tròn khi quân cờ đáp xuống), "burst" (pháo tia khi mua đất).
+function spawnFx(index, kind) {
+  if (reduceMotion) return;
+  const cell = document.querySelector(`#board .space[data-index="${index}"]`);
+  if (!cell) return;
+  const wrapEl = document.createElement("i");
+  wrapEl.className = "fx fx-" + kind;
+  if (kind === "burst") {
+    const colors = ["#ffd24a", "#fff", "#ff6b4a", "#7be08a"];
+    wrapEl.innerHTML = Array.from({ length: 12 }, (_, k) => `<b style="--a:${k * 30}deg;--c:${colors[k % 4]};--d:${(k % 3) * 40}ms"></b>`).join("");
+  } else {
+    wrapEl.innerHTML = "<b></b><b></b>";
+  }
+  cell.appendChild(wrapEl);
+  setTimeout(() => wrapEl.remove(), 1100);
+}
 // Quân cờ nhảy từng ô tới đích. Đi quá xa (vào tù) thì dịch chuyển thẳng.
 function animateMove(uid, from, to, delay, expectedSteps = null, cam = null) {
   const distance = Number.isInteger(expectedSteps) ? expectedSteps : (to - from + 40) % 40;
@@ -983,6 +999,7 @@ function animateMove(uid, from, to, delay, expectedSteps = null, cam = null) {
       delete moveTimers[uid];
       movingUid = null;
       renderTokens();
+      spawnFx(to, "ripple");
       cam?.land(to);
       return;
     }
@@ -1149,7 +1166,7 @@ function runEffects(previous, next) {
   for (const key of Object.keys(next.propertyOwners || {})) {
     if (previous.propertyOwners?.[key]) continue;
     const index = Number(key.slice(1));
-    stampUntil[index] = Date.now() + 1000;
+    stampUntil[index] = Date.now() + 1000; setTimeout(() => spawnFx(index, "burst"), 90);
   }
   if (next.status === "finished" && previous.status !== "finished") confetti();
   if (next.status === "playing" && next.turnUid === currentUser?.uid && previous.turnUid !== currentUser?.uid) {

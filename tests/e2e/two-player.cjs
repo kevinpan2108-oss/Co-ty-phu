@@ -67,7 +67,7 @@ async function confirmTurn(p) {
   await p.page.waitForFunction((b) => document.getElementById("turnName").textContent !== b, before, { timeout: 12000 });
 }
 async function newPlayer(browser, uid, opts = {}) {
-  const context = await browser.newContext({ viewport: opts.viewport || { width: 1280, height: 900 }, deviceScaleFactor: 1, isMobile: !!opts.mobile, hasTouch: !!opts.mobile });
+  const context = await browser.newContext({ viewport: opts.viewport || { width: 1280, height: 900 }, deviceScaleFactor: Number(process.env.E2E_DSF) || 1, isMobile: !!opts.mobile, hasTouch: !!opts.mobile });
   const page = await context.newPage();
   const errors = [];
   page.on("pageerror", (e) => { errors.push(String(e)); console.log("PAGEERROR", String(e).slice(0, 300)); });
