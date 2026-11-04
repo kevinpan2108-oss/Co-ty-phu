@@ -429,7 +429,7 @@ let rules;
       return !stage?.classList.contains("show") && !result?.classList.contains("rolling");
     }, null, { timeout: 5000 });
     // Người chơi đến bến phà, bỏ mua; Máy Miền Tây tự cân nhắc trả giá.
-    await cpu.page.evaluate(() => { const q = [0.2, 0.4]; Math.random = () => q.length ? q.shift() : 0.5; });
+    await cpu.page.evaluate(() => { const q = [0.2, 0.4]; let i = 0; Math.random = () => q.length ? q.shift() : ([0.2, 0.4][i++ % 2]); });
     await cpu.page.click("#rollButton");
     await cpu.page.waitForFunction(() => /Mua/.test(document.querySelector("#pendingActions")?.textContent || ""), null, { timeout: 9000 });
     await cpu.page.locator("#pendingActions .secondary-button").click();
