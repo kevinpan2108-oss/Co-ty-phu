@@ -103,4 +103,4 @@ npm run test:e2e
 
 ## Cập nhật: thẻ mua đất gọn + chuyển lượt có nhịp nghỉ
 - Thẻ "Đang bán" gọn: bảng giá ở trên, hàng dưới là số tiền + nút Mua/Bỏ qua (CSS khối mm15, không còn bị cắt đáy).
-- Chuyển lượt: sau khi người chơi xong lượt (tung, di chuyển, mua/bỏ qua), có nhịp nghỉ `HANDOFF_MS = 1500` rồi mới bật nút tung xí ngầu của người tiếp theo (`handoffUntil`/`turnGateUntil` trong app.js); máy cũng chờ cổng này.
+- Chuyển lượt: khi quyền chơi chuyển sang người khác, có nhịp nghỉ `HANDOFF_MS = 1500` rồi mới bật nút tung xí ngầu của người tiếp theo (`handoffUntil`/`turnGateUntil` trong app.js); máy cũng chờ cổng này. Tung thêm do đôi vẫn thuộc lượt hiện tại nên không bị chèn nhịp nghỉ.
