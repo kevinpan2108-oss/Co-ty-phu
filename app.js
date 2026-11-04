@@ -884,7 +884,11 @@ function renderActions() {
     $("rollButton").disabled = busy || !playing || !!myOpeningRoll;
   } else {
     $("rollButton").textContent = canPayJail ? "🎲 Thử tung đôi (" + mine.jailTurns + "/" + JAIL_MAX_ATTEMPTS + ")" : roomState.extraRoll && isMyTurn ? "🎲 Tung thêm (được đôi)" : "🎲 Tung xúc xắc";
-    $("rollButton").disabled = busy || !playing || !isMyTurn || !!pending || !!auction || !!dice || roomState.status === "finished";
+    const gated = Date.now() < turnGateUntil();
+    $("rollButton").disabled = busy || gated || !playing || !isMyTurn || !!pending || !!auction || !!dice || roomState.status === "finished";
+    if (gated && playing && roomState.status === "playing" && !pending && !auction && !dice) {
+      $("actionMessage").textContent = "Đến lượt " + (roomState.players?.[roomState.turnUid]?.name || "người chơi") + "…";
+    }
   }
   document.title = roomState.status === "playing" && !openingPhase && isMyTurn ? "● Đến lượt bạn - Cờ Tỷ Phú Online" : "Cờ Tỷ Phú Online";
   if (roomState.status === "waiting") {
@@ -1114,6 +1118,11 @@ function runEffects(previous, next) {
   let holdMs = rolled ? DICE_MS : 0;
   // Qua lượt (hoặc tung thêm do được đôi): camera từ từ trở về toàn cảnh.
   if (Number(next.turnNumber) !== Number(previous.turnNumber) && !rolled) camera?.overview();
+  // Chỉ nghỉ khi quyền chơi chuyển sang người khác. Tung thêm do đôi vẫn là cùng lượt.
+  if (next.turnUid !== previous.turnUid) {
+    handoffUntil = Date.now() + HANDOFF_MS;
+    setTimeout(() => { if (roomState) { renderActions(); scheduleComputerTurn(); } }, HANDOFF_MS + 40);
+  }
   for (const [uid, now] of getPlayerEntries(next)) {
     const before = previous.players?.[uid];
     if (!before) continue;
@@ -1180,6 +1189,10 @@ function restoreCameraAfterReload() {
 let epMinimized = false;
 let epSeenId = 0;
 let eventHoldUntil = 0;
+// Sau khi một lượt xong, chờ hết hiệu ứng + một nhịp "Đến lượt X" rồi mới cho người kế tiếp tung xúc xắc.
+let handoffUntil = 0;
+const HANDOFF_MS = 1500;
+const turnGateUntil = () => Math.max(eventHoldUntil, handoffUntil);
 let holdTimer = null;
 function currentTurnEvent() {
   const e = roomState?.event;
@@ -2070,10 +2083,11 @@ async function resolveComputerDebt() {
 }
 function scheduleComputerTurn() {
   if (!computerGame || computerBusy || computerTimer || !isComputerActionDue(roomState)) return;
+  const wait = Math.max(750, turnGateUntil() - Date.now() + 350);
   computerTimer = setTimeout(() => {
     computerTimer = null;
     playComputerTurn().catch((error) => notify("Máy chưa đi được: " + (error?.message || error)));
-  }, 750);
+  }, wait);
 }
 
 async function playComputerTurn() {

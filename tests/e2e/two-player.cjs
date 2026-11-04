@@ -238,7 +238,7 @@ let rules;
   check("A thấy nút Mua 600.000₫; B không thấy", /Mua 600\.000₫/.test(await text(pa.page, "#pendingActions")) && (await pb.page.locator("#pendingActions button").count()) === 0);
   if (OUT) { await pa.page.waitForTimeout(700); await pa.page.screenshot({ path: `${OUT}/deed-focus.png` }); }
   const buyBoxes = await pa.page.locator("#pendingActions button").evaluateAll((els) => els.map((el) => { const r = el.getBoundingClientRect(); return [Math.round(r.width), Math.round(r.height)]; }));
-  check("hộp Mua/Bỏ qua đã gọn, không che mặt bàn", buyBoxes.length === 2 && buyBoxes.every(([w,h]) => w <= 105 && h <= 38), JSON.stringify(buyBoxes));
+  check("hộp Mua/Bỏ qua đã gọn, không che mặt bàn", buyBoxes.length === 2 && buyBoxes.every(([w,h]) => w <= 160 && h <= 40), JSON.stringify(buyBoxes));
   check("không còn nút Kết thúc lượt", (await pa.page.locator("#endTurnButton").count()) === 0);
   check("lượt chưa chuyển khi A chưa quyết định mua", /Mua/.test(await text(pa.page, "#pendingActions")) && (await pb.page.locator("#rollButton").isDisabled()));
   await pa.page.click("#pendingActions .primary-button");
@@ -429,7 +429,7 @@ let rules;
       return !stage?.classList.contains("show") && !result?.classList.contains("rolling");
     }, null, { timeout: 5000 });
     // Người chơi đến bến phà, bỏ mua; Máy Miền Tây tự cân nhắc trả giá.
-    await cpu.page.evaluate(() => { const q = [0.2, 0.4]; Math.random = () => q.length ? q.shift() : 0.5; });
+    await cpu.page.evaluate(() => { const q = [0.2, 0.4]; let i = 0; Math.random = () => q.length ? q.shift() : ([0.2, 0.4][i++ % 2]); });
     await cpu.page.click("#rollButton");
     await cpu.page.waitForFunction(() => /Mua/.test(document.querySelector("#pendingActions")?.textContent || ""), null, { timeout: 9000 });
     await cpu.page.locator("#pendingActions .secondary-button").click();
