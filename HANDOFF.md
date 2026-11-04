@@ -100,3 +100,7 @@ npm run test:e2e
 - Giữa bàn: thành phố 3D nhìn từ trên (SVG sinh bằng script, màu nhà khớp 8 nhóm), đường, ray, công viên, đài phun nước. Giữ SVG nhẹ (dùng pattern cửa sổ) vì SVG nặng làm camera E2E trễ.
 - Tường rào gỗ nâu quanh bàn, ô xanh bạc hà, thẻ người chơi ruy băng mũi tên, banner tím "Đang bán", thẻ địa danh khung đôi nghiêng, thẻ Cơ hội/Khí vận trắng khung đen + linh vật Bác Ba.
 - Chưa kiểm thử trên điện thoại thật.
+
+## Cập nhật: thẻ mua đất gọn + chuyển lượt có nhịp nghỉ
+- Thẻ "Đang bán" gọn: bảng giá ở trên, hàng dưới là số tiền + nút Mua/Bỏ qua (CSS khối mm15, không còn bị cắt đáy).
+- Chuyển lượt: sau khi người chơi xong lượt (tung, di chuyển, mua/bỏ qua), có nhịp nghỉ `HANDOFF_MS = 1500` rồi mới bật nút tung xí ngầu của người tiếp theo (`handoffUntil`/`turnGateUntil` trong app.js); máy cũng chờ cổng này.

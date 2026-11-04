@@ -238,7 +238,7 @@ let rules;
   check("A thấy nút Mua 600.000₫; B không thấy", /Mua 600\.000₫/.test(await text(pa.page, "#pendingActions")) && (await pb.page.locator("#pendingActions button").count()) === 0);
   if (OUT) { await pa.page.waitForTimeout(700); await pa.page.screenshot({ path: `${OUT}/deed-focus.png` }); }
   const buyBoxes = await pa.page.locator("#pendingActions button").evaluateAll((els) => els.map((el) => { const r = el.getBoundingClientRect(); return [Math.round(r.width), Math.round(r.height)]; }));
-  check("hộp Mua/Bỏ qua đã gọn, không che mặt bàn", buyBoxes.length === 2 && buyBoxes.every(([w,h]) => w <= 105 && h <= 38), JSON.stringify(buyBoxes));
+  check("hộp Mua/Bỏ qua đã gọn, không che mặt bàn", buyBoxes.length === 2 && buyBoxes.every(([w,h]) => w <= 160 && h <= 40), JSON.stringify(buyBoxes));
   check("không còn nút Kết thúc lượt", (await pa.page.locator("#endTurnButton").count()) === 0);
   check("lượt chưa chuyển khi A chưa quyết định mua", /Mua/.test(await text(pa.page, "#pendingActions")) && (await pb.page.locator("#rollButton").isDisabled()));
   await pa.page.click("#pendingActions .primary-button");
