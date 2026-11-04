@@ -1247,20 +1247,25 @@ function textColorFor(hex) {
 function deedHtml(index, banner) {
   const space = SPACE_DATA[index];
   if (!space || !space.price) return "";
-  const row = (k, v, hl) => `<div class="deed-row${hl ? " hl" : ""}"><span>${k}</span><b>${v}</b></div>`;
-  let rows = row("Giá mua", money(space.price), true) + row("Cầm cố", money(mortgageValue(space)));
+  // Giấy tờ đất như Monopoly Marmalade: khung đôi, ô tên theo màu nhóm, một cột "nhãn … giá", biểu tượng nhà xanh/khách sạn đỏ.
+  const row = (k, v, cls = "") => `<div class="deed-row${cls ? " " + cls : ""}"><span>${k}</span><b>${v}</b></div>`;
+  const house = (n) => `<i class="hico" aria-hidden="true">${n}</i>`;
+  const hotel = '<i class="hico hotel" aria-hidden="true"></i>';
+  let rows = row("Giá mua", money(space.price), "hl") + row("Cầm cố", money(mortgageValue(space)), "gap");
+  let foot = "";
   if (space.type === "property") {
-    rows += row("Thuê", money(space.rent)) + row("Cả nhóm màu", money(space.rent * 2));
-    HOUSE_RENT_MULTIPLIERS.forEach((m, i) => { rows += row(i < 4 ? `Với ${i + 1} nhà` : "Khách sạn", money(space.rent * m)); });
-    rows += row("Xây mỗi nhà", money(getHouseCost(SPACE_DATA, index)));
+    rows += row("Thuê", money(space.rent)) + row("Thuê cả bộ màu", money(space.rent * 2));
+    HOUSE_RENT_MULTIPLIERS.forEach((m, i) => { rows += row(i < 4 ? `Thuê với ${house(i + 1)}` : `Thuê với ${hotel}`, money(space.rent * m)); });
+    const cost = money(getHouseCost(SPACE_DATA, index));
+    foot = `<div class="deed-foot">${row(`${house("")}Xây nhà`, cost)}${row(`${hotel}Xây khách sạn`, cost)}</div>`;
   } else if (space.type === "station") {
     rows += [1, 2, 3, 4].map((n) => row(`Có ${n} bến`, money(40 * 2 ** (n - 1)))).join("");
   } else if (space.type === "utility") {
     rows += row("Có 1 công ty", "4× xúc xắc") + row("Có 2 công ty", "10× xúc xắc");
   }
-  const bg = space.color || "#9b8067";
-  return `${banner ? `<div class="deed-banner">${escapeHtml(banner)}</div>` : ""}<div class="deed">
-    <div class="deed-head" style="background:${safeColor(bg)};color:${textColorFor(bg)}">${escapeHtml(space.name)}</div>${rows}</div>`;
+  const bg = space.color || "#9dc6e6";
+  return `${banner ? `<div class="deed-banner">${escapeHtml(banner)}</div>` : ""}<div class="deed deed-paper"><div class="deed-frame">
+    <div class="deed-head" style="background:${safeColor(bg)};color:${textColorFor(bg)}"><span>${escapeHtml(space.name)}</span></div>${rows}${foot}</div></div>`;
 }
 // Bỏ câu "Bạn tung được x + y = n bước và đến ..." (đã có ở thanh trạng thái), chỉ giữ nội dung lá bài.
 function cardOnlyText(text) {
