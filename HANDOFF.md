@@ -108,3 +108,8 @@ npm run test:e2e
 ## Cập nhật: quân cờ SVG + góc quay thấp
 - Chim cánh cụt và cún con vẽ lại bằng SVG (hết emoji phụ thuộc máy), cùng phong cách với ghế nhựa/cà phê; đế màu người chơi to hơn (CSS mm16).
 - Góc quay mới "Góc thấp" (nút 🎥 ở HUD, lưu trong localStorage `coTyPhu.cameraView`): `CAMERA_VIEWS` trong camera.js (nghiêng 64–67°, zoom 2.05–2.2×, neo quân thấp hơn). Không xoay bàn quanh trục Z vì chữ trên ô sẽ bị ngược.
+
+## Cập nhật: đồ hoạ phong cách Việt Nam (mm17)
+- Cảnh giữa bàn vẽ lại thành làng quê Cửu Long nhìn từ trên: sông + chợ nổi (ghe, nón lá, cây bẹo), cầu khỉ, nhà ngói/nhà lá, chùa Việt, chùa Khmer, ao sen, dừa/tre, sân trống đồng Đông Sơn ở tâm. SVG sinh bằng `python3 tools/gen-center-scene.py` (ghi đè `<svg class="city">` trong index.html; sửa script rồi chạy lại, đừng sửa tay).
+- Thẻ/bảng: tông đỏ thẫm–vàng, hồi văn, thẻ Cơ hội (đỏ) / Khí vận (xanh lục) có hoa văn và ✿; banner "Đang bán" và thanh trạng thái đổi từ tím sang đỏ–vàng (CSS khối mm17).
+- Chưa làm: nhà/khách sạn trên ô (nhà ngói/đình), viền bàn hoạ tiết trống đồng.
