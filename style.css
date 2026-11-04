@@ -1244,3 +1244,36 @@ body:has(#gameView:not(.hidden)){overflow:hidden}
 /* Quân cờ: bóng tiếp đất + bóng đổ lệch */
 #gameView .token:after{content:"";position:absolute;left:4%;right:-14%;bottom:-.04em;height:.2em;border-radius:50%;background:radial-gradient(ellipse,rgba(0,0,0,.45),rgba(0,0,0,0) 70%);transform:skewX(-35deg);z-index:0;pointer-events:none}
 #gameView .token .token-svg{filter:drop-shadow(.05em .08em .04em rgba(0,0,0,.45))}
+
+/* ===== mm19: giấy tờ đất như Monopoly Marmalade — thẻ giấy trắng khung đôi nghiêng nhẹ, bong bóng giá, ruy băng "Đang bán" ===== */
+#gameView .event-panel:has(.deed.deed-paper:not(.card-event)){background:none;border:0;box-shadow:none;padding:0;width:min(60cqw,560px);top:50%;transform:translateY(-50%);overflow:visible;max-height:none}
+#gameView .event-panel:has(.deed.deed-paper:not(.card-event)):before{display:none}
+#gameView .event-panel:has(.deed.deed-paper:not(.card-event)) .ep-body{display:grid;grid-template-columns:max-content minmax(0,1fr);grid-template-rows:auto auto 1fr;grid-template-areas:"deed money" "deed actions" "deed .";gap:clamp(6px,2cqh,12px) clamp(10px,3cqw,22px);padding:clamp(10px,3cqh,18px) 4px 0;align-items:start;overflow:visible;max-height:none}
+#gameView .event-panel:has(.deed.deed-paper:not(.card-event)) .ep-deed{grid-area:deed;position:static}
+#gameView .event-panel:has(.deed.deed-paper:not(.card-event)) .ep-money{grid-area:money;margin:0;position:relative}
+#gameView .event-panel:has(.deed.deed-paper:not(.card-event)) .pending-actions{grid-area:actions;display:flex;flex-direction:column;gap:clamp(5px,1.6cqh,9px);padding:0;margin:0}
+#gameView .event-panel:has(.deed.deed-paper:not(.card-event)) .pending-actions button{width:100%;flex:none;height:clamp(34px,9.5cqh,44px);min-height:0;max-height:44px;border-radius:12px;font-size:clamp(11px,3.2cqh,14px);padding:0 8px;line-height:1.1;box-shadow:0 .2em 0 rgba(0,0,0,.28),0 .4em .6em rgba(0,0,0,.3)}
+/* bong bóng giá */
+#gameView .event-panel:has(.deed.deed-paper:not(.card-event)) .ep-money li{background:#fff;border:0;border-radius:1em;padding:clamp(5px,1.6cqh,9px) 12px;display:flex;flex-direction:column;align-items:center;gap:0;box-shadow:0 .25em .6em rgba(0,0,0,.35);position:relative}
+#gameView .event-panel:has(.deed.deed-paper:not(.card-event)) .ep-money li:after{content:"";position:absolute;left:18%;bottom:-.5em;border:.55em solid transparent;border-top-color:#fff;border-bottom:0;filter:drop-shadow(0 .15em .1em rgba(0,0,0,.2))}
+#gameView .event-panel:has(.deed.deed-paper:not(.card-event)) .ep-money li b{font-size:clamp(16px,6cqh,26px)}
+#gameView .event-panel:has(.deed.deed-paper:not(.card-event)) .ep-money li small{display:block;font-size:clamp(9px,2.6cqh,11px);font-weight:700;color:#556}
+/* ruy băng "Đang bán" cắt ngang mép trên */
+#gameView .event-panel:has(.deed.deed-paper:not(.card-event)) .deed-banner{position:absolute;left:50%;top:0;transform:translate(-50%,-62%);z-index:6;margin:0;padding:clamp(3px,1cqh,6px) clamp(24px,6cqw,46px);font-size:clamp(14px,4.6cqh,22px);letter-spacing:.02em;clip-path:polygon(0 0,100% 0,95% 50%,100% 100%,0 100%,5% 50%);border:0;border-radius:0;filter:none;background:linear-gradient(180deg,#d6372c,#8e1b14);color:#ffe7a1;text-shadow:0 1px 1px rgba(0,0,0,.5)}
+#gameView .event-panel:has(.deed.deed-paper:not(.card-event)) .deed-bubble,#gameView .event-panel:has(.deed.deed-paper:not(.card-event)) .ep-balances,#gameView .event-panel:has(.deed.deed-paper:not(.card-event)) .ep-confirm-row{display:none}
+#gameView .event-panel:has(.deed.deed-paper:not(.card-event)) .deed-mascot{position:absolute;right:2%;bottom:0;top:auto;width:clamp(40px,13cqh,74px);transform:none}
+/* thẻ giấy */
+#gameView .deed.deed-paper:not(.card-event){width:clamp(150px,28cqw,220px);padding:clamp(4px,1.2cqh,7px);background:#fff;border:1px solid #1b1b1b;outline:0;border-radius:2px;color:#111;display:block;transform:rotate(-3deg) skewY(1.5deg);transform-origin:50% 60%;box-shadow:.2em .5em .9em rgba(0,0,0,.42),0 0 0 1px rgba(255,255,255,.4)}
+#gameView .deed.deed-paper:not(.card-event) .deed-frame{border:clamp(1.5px,.5cqh,3px) solid #111;padding:clamp(3px,1cqh,6px) clamp(3px,1cqh,6px) clamp(3px,1cqh,6px)}
+#gameView .deed.deed-paper:not(.card-event) .deed-head{display:flex;align-items:center;justify-content:center;min-height:clamp(30px,10cqh,50px);margin:0 0 clamp(3px,1cqh,6px);padding:3px 6px;border:1px solid #111;text-align:center;text-transform:uppercase;font-family:var(--display);font-weight:900;font-size:clamp(10px,3.3cqh,15px);line-height:1.15;letter-spacing:.02em;grid-column:auto}
+#gameView .deed.deed-paper:not(.card-event) .deed-head span{display:block}
+#gameView .deed.deed-paper:not(.card-event) .deed-row{display:flex;align-items:center;justify-content:space-between;gap:6px;padding:clamp(1px,.4cqh,3px) clamp(2px,.8cqh,5px);font-size:clamp(8px,2.55cqh,12px);line-height:1.2;white-space:nowrap;min-width:0;font-weight:500}
+#gameView .deed.deed-paper:not(.card-event) .deed-row span{display:flex;align-items:center;gap:.35em;min-width:0;overflow:hidden;text-overflow:ellipsis}
+#gameView .deed.deed-paper:not(.card-event) .deed-row b{font-weight:800;flex:none}
+#gameView .deed.deed-paper:not(.card-event) .deed-row.hl{background:#e3ecfb;font-weight:800}
+#gameView .deed.deed-paper:not(.card-event) .deed-row.gap{margin-bottom:clamp(2px,.7cqh,5px)}
+#gameView .deed.deed-paper:not(.card-event) .deed-foot{margin-top:clamp(3px,1cqh,6px);padding-top:clamp(2px,.6cqh,4px);border-top:1px solid #111}
+/* biểu tượng nhà xanh (có số) và khách sạn đỏ */
+#gameView .deed.deed-paper:not(.card-event) .hico{display:inline-grid;place-items:center;flex:none;width:1.5em;height:1.55em;background:#3fb86a;color:#fff;font:900 .8em/1 var(--display,inherit);font-style:normal;clip-path:polygon(50% 0,100% 28%,100% 100%,0 100%,0 28%);padding-top:.25em}
+#gameView .deed.deed-paper:not(.card-event) .hico.hotel{background:#d6372c}
+#gameView .deed.deed-paper:not(.card-event) .hico:empty{padding:0}

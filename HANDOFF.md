@@ -117,3 +117,8 @@ npm run test:e2e
 ## Cập nhật: bỏ thanh thông báo đỏ + đổ bóng 3D (mm18)
 - `#statusBar` giờ ẩn về mặt hình ảnh (vẫn giữ trong DOM, `role=status`, cho trình đọc màn hình và E2E); thông tin lượt đã có ở bảng sự kiện và nhãn giữa bàn.
 - Ô cờ có cạnh dày xếp lớp bằng box-shadow, bàn cờ là khối gỗ dày có bóng đổ chéo, khu giữa lõm xuống, quân cờ có bóng tiếp đất và bóng đổ lệch.
+
+## Cập nhật: giấy tờ đất kiểu Monopoly Marmalade (mm19)
+- `deedHtml` (app.js) dựng thẻ giấy trắng khung đôi (`.deed.deed-paper` > `.deed-frame`): ô tên theo màu nhóm, một cột nhãn–giá, dòng "Giá mua" nổi xanh nhạt, biểu tượng nhà xanh có số và khách sạn đỏ, dòng "Xây nhà / Xây khách sạn" dưới đường kẻ.
+- Panel mua/đấu giá không còn nền: thẻ nghiêng nhẹ bên trái, bong bóng giá (số tiền trừ + còn lại) và nút Mua/Bỏ qua xếp dọc bên phải, linh vật Bác Ba đứng góc dưới, ruy băng "Đang bán/Đấu giá" cắt ngang mép trên.
+- Lưu ý CSS: các luật mm15 dùng `:has(.deed:not(.card-event))` nên khối mm19 phải dùng cùng độ ưu tiên (`.deed.deed-paper:not(.card-event)`).
