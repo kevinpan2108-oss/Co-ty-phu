@@ -1231,3 +1231,16 @@ body:has(#gameView:not(.hidden)){overflow:hidden}
 /* Ô tiền cộng/trừ: khung vàng */
 #gameView .ep-money li{box-shadow:0 0 0 1.5px var(--vn-gold)}
 #gameView .status-bar .action-message{background:linear-gradient(180deg,#c92f25,var(--vn-red-d))!important;color:#fff3cf;border:1.5px solid var(--vn-gold);box-shadow:0 2px 6px rgba(0,0,0,.35)}
+
+/* ===== mm18: bỏ thanh thông báo đỏ; thêm độ dày & đổ bóng 3D như Monopoly Marmalade ===== */
+#gameView .status-bar{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap;opacity:0;pointer-events:none}
+/* Ô cờ nổi khỏi mặt bàn: cạnh dày xếp lớp + bóng đổ xuống thảm cỏ */
+#gameView .space{box-shadow:0 .025em 0 #a9c7a5,0 .05em 0 #8fb08b,0 .075em 0 #789a75,0 .1em 0 #62835f,0 .16em .09em rgba(20,40,20,.38)}
+#gameView .space.corner{box-shadow:0 .03em 0 #b4cdb0,0 .06em 0 #96b692,0 .09em 0 #7c9e78,0 .12em 0 #648562,0 .2em .12em rgba(20,40,20,.4)}
+/* Bàn cờ là một khối gỗ dày đặt trên mặt đất, bóng đổ chéo xuống nền */
+#gameView .board{box-shadow:0 .06em 0 #5a3d1f,0 .12em 0 #4b3119,0 .18em 0 #3d2713,0 .24em 0 #2f1d0d,.12em .4em .5em rgba(0,0,0,.45),.35em .8em 1.2em rgba(0,0,0,.28)}
+/* Khu giữa lõm xuống như sân cỏ bên trong lan can */
+#gameView .board-center{box-shadow:inset 0 .07em .12em rgba(0,0,0,.4),inset .04em .04em .1em rgba(0,0,0,.2)}
+/* Quân cờ: bóng tiếp đất + bóng đổ lệch */
+#gameView .token:after{content:"";position:absolute;left:4%;right:-14%;bottom:-.04em;height:.2em;border-radius:50%;background:radial-gradient(ellipse,rgba(0,0,0,.45),rgba(0,0,0,0) 70%);transform:skewX(-35deg);z-index:0;pointer-events:none}
+#gameView .token .token-svg{filter:drop-shadow(.05em .08em .04em rgba(0,0,0,.45))}
