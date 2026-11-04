@@ -1162,3 +1162,27 @@ body:has(#gameView:not(.hidden)){overflow:hidden}
   box-shadow:0 2px 0 rgba(137,92,18,.16);
 }
 #gameView .deed-action.build-house:active { transform:translateY(1px); box-shadow:none; }
+
+/* ===== mm14: thẻ sự kiện — số tiền cộng/trừ là điểm nhấn, thông tin khác đọc lướt ===== */
+#gameView .ep-body{display:flex;flex-direction:column}
+#gameView .ep-money{order:-1;gap:6px;margin:0 0 8px}
+#gameView .ep-money li{padding:6px 12px;border-radius:14px;border:3px solid #62c24f;background:#e9fbe4;align-items:center;animation:moneyPop .45s cubic-bezier(.2,1.5,.4,1) both}
+#gameView .ep-money li.loss{border-color:#e0453a;background:#fdeceb}
+#gameView .ep-money li span{font-size:clamp(11px,3.1cqh,14px);font-weight:800;color:#26352a}
+#gameView .ep-money li small{display:block;font-size:.82em;font-weight:600;color:#667}
+#gameView .ep-money li b{font-family:var(--display);font-size:clamp(20px,8cqh,34px);line-height:1;white-space:nowrap;letter-spacing:.01em;text-shadow:0 1px 0 rgba(255,255,255,.8)}
+#gameView .ep-money li b.gain{color:#15802a}
+#gameView .ep-money li b.loss{color:#c1272d}
+#gameView .ep-money li.ep-flow-row{border:0;background:none;padding:0 4px;animation:none}
+#gameView .ep-money li.ep-flow-row .ep-flow{font-size:clamp(10px,2.8cqh,12px);font-weight:600;color:#667}
+@keyframes moneyPop{0%{transform:scale(.6);opacity:0}100%{transform:scale(1);opacity:1}}
+/* Nội dung thẻ Cơ hội / Khí vận và bảng giá địa danh: nhỏ, nhạt hơn */
+#gameView .card-event .deed-head{font-size:clamp(11px,3.6cqh,15px);color:#667!important;letter-spacing:.08em;padding-bottom:2px}
+#gameView .card-event .deed-info{font-size:clamp(10px,3cqh,13px);font-weight:600;color:#445}
+#gameView .deed.card-event{min-height:0;border-width:1px;border-color:#ccd}
+/* Ô tiền của người chơi nhấp nháy khi cộng/trừ */
+#gameView .player-cash.flash-gain{animation:cashGain 1.4s ease-out}
+#gameView .player-cash.flash-loss{animation:cashLoss 1.4s ease-out}
+@keyframes cashGain{0%,40%{background:#7be08a;color:#0d5a1c;transform:scale(1.12)}100%{background:#fff;transform:scale(1)}}
+@keyframes cashLoss{0%,40%{background:#ff8f86;color:#7d1209;transform:scale(1.12)}100%{background:#fff;transform:scale(1)}}
+@media(prefers-reduced-motion:reduce){#gameView .ep-money li,#gameView .player-cash.flash-gain,#gameView .player-cash.flash-loss{animation:none}}
