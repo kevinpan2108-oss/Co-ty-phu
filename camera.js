@@ -56,7 +56,15 @@ export function createCamera({ stage, wrap, board, onChange, reduceMotion = fals
     stage.dataset.camera = mode;
     onChange?.(mode);
   };
+  // will-change giữ ảnh đã vẽ rồi phóng to => chữ bị mờ. Chỉ bật trong lúc camera chạy, tắt sau khi dừng để vẽ lại sắc nét.
+  let settleTimer = 0;
+  const hold = (ms) => {
+    wrap.style.willChange = "transform"; board.style.willChange = "transform";
+    clearTimeout(settleTimer);
+    settleTimer = setTimeout(() => { wrap.style.willChange = ""; board.style.willChange = ""; }, Math.max(0, ms) + 150);
+  };
   const apply = (cam, ms, easing) => {
+    hold(ms);
     wrap.style.transition = ms > 0 ? `transform ${ms}ms ${easing}` : "none";
     wrap.style.transform = cam.scale === 1 && cam.tx === 0 && cam.ty === 0 ? "" : `translate(${cam.tx.toFixed(2)}px,${cam.ty.toFixed(2)}px) scale(${cam.scale.toFixed(4)})`;
     stage.dataset.cameraScale = cam.scale.toFixed(2);
@@ -102,6 +110,7 @@ export function createCamera({ stage, wrap, board, onChange, reduceMotion = fals
   const setTilt = (deg, ms, easing) => {
     if (state.tilt === deg && ms > 0) return; // cùng độ nghiêng: không đụng vào style (tránh tính lại bố cục mỗi bước)
     state.tilt = deg;
+    hold(ms);
     board.style.transition = ms > 0 ? `transform ${ms}ms ${easing}` : "none";
     board.style.setProperty("--rx", deg + "deg");
   };

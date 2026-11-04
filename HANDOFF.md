@@ -122,3 +122,8 @@ npm run test:e2e
 - `deedHtml` (app.js) dựng thẻ giấy trắng khung đôi (`.deed.deed-paper` > `.deed-frame`): ô tên theo màu nhóm, một cột nhãn–giá, dòng "Giá mua" nổi xanh nhạt, biểu tượng nhà xanh có số và khách sạn đỏ, dòng "Xây nhà / Xây khách sạn" dưới đường kẻ.
 - Panel mua/đấu giá không còn nền: thẻ nghiêng nhẹ bên trái, bong bóng giá (số tiền trừ + còn lại) và nút Mua/Bỏ qua xếp dọc bên phải, linh vật Bác Ba đứng góc dưới, ruy băng "Đang bán/Đấu giá" cắt ngang mép trên.
 - Lưu ý CSS: các luật mm15 dùng `:has(.deed:not(.card-event))` nên khối mm19 phải dùng cùng độ ưu tiên (`.deed.deed-paper:not(.card-event)`).
+
+## Cập nhật: hết mờ + hiệu ứng đáp xuống / mua đất (mm20)
+- Nguyên nhân mờ: `will-change: transform` tĩnh trên `.board-wrap`/`.board` làm trình duyệt giữ ảnh đã vẽ rồi phóng to khi camera zoom. Giờ `camera.js` chỉ bật will-change trong lúc camera chạy và tắt sau khi dừng (hàm `hold`), nên chữ được vẽ lại sắc nét. Thêm `text-rendering: geometricPrecision`.
+- Hiệu ứng mới (`spawnFx` trong app.js, CSS mm20): sóng tròn vàng/trắng khi quân cờ đáp xuống ô; pháo tia 12 hạt khi mua đất; ô cờ có ánh bóng chéo.
+- Test độ nét cao: `E2E_DSF=2 node tests/e2e/two-player.cjs <thư-mục>` (có thể trễ nhịp hơn ở máy chậm).

@@ -803,7 +803,7 @@ body:has(#gameView:not(.hidden)){overflow:hidden}
 /* ===================================================================
    Bảng sự kiện (Event Panel) + camera theo quân cờ
    =================================================================== */
-#gameView .board-wrap{transform-origin:0 0;backface-visibility:hidden}
+#gameView .board-wrap{transform-origin:0 0}
 #gameView #camOverviewButton[hidden]{display:none}
 #gameView .cam-button{background:#e5f4ff}
 #gameView .event-panel{position:absolute;right:8px;top:calc(10px + 20cqh);bottom:auto;width:min(37cqw,360px);max-height:calc(100cqh - 20cqh - 16cqh - 28px);z-index:46;display:flex;flex-direction:column;background:#fffdf4;color:#1d2b53;border:3px solid #1d2b53;border-radius:16px;box-shadow:0 4px 0 rgba(29,43,83,.35);overflow:hidden;transition:opacity .25s,transform .25s}
@@ -1118,7 +1118,6 @@ body:has(#gameView:not(.hidden)){overflow:hidden}
 @media(prefers-reduced-motion:reduce){#gameView #propsButton.has-build:after{animation:none}}
 
 /* ===== mm12: mượt hơn, nút tung xúc xắc dời sang cột phải, nút xây nhà ===== */
-#gameView .board-wrap,#gameView .board{will-change:transform}
 #gameView .sc-cloud{filter:none}
 /* Hiệu ứng ô đi qua / dừng: chỉ đổi độ trong suốt của lớp phủ (nhẹ hơn nhiều so với box-shadow + scale) */
 #gameView .space.pass,#gameView .space.pass2,#gameView .space.land{animation:none}
@@ -1277,3 +1276,19 @@ body:has(#gameView:not(.hidden)){overflow:hidden}
 #gameView .deed.deed-paper:not(.card-event) .hico{display:inline-grid;place-items:center;flex:none;width:1.5em;height:1.55em;background:#3fb86a;color:#fff;font:900 .8em/1 var(--display,inherit);font-style:normal;clip-path:polygon(50% 0,100% 28%,100% 100%,0 100%,0 28%);padding-top:.25em}
 #gameView .deed.deed-paper:not(.card-event) .hico.hotel{background:#d6372c}
 #gameView .deed.deed-paper:not(.card-event) .hico:empty{padding:0}
+
+/* ===== mm20: nét sắc hơn + hiệu ứng đáp xuống / mua đất ===== */
+#gameView .board,#gameView .board *{text-rendering:geometricPrecision;-webkit-font-smoothing:antialiased}
+#gameView .board-center .city{shape-rendering:geometricPrecision}
+/* ô cờ bóng nhẹ từ góc trên-trái */
+#gameView .space{background-image:linear-gradient(155deg,rgba(255,255,255,.5),rgba(255,255,255,0) 42%,rgba(0,60,20,.07))}
+#gameView .space.owned{background-image:linear-gradient(155deg,rgba(255,255,255,.4),rgba(255,255,255,0) 42%,rgba(0,60,20,.07))}
+/* sóng tròn khi quân cờ đáp xuống */
+#gameView .fx{position:absolute;inset:0;pointer-events:none;z-index:9;display:block}
+#gameView .fx-ripple b{position:absolute;left:50%;top:50%;width:.45em;height:.45em;margin:-.225em 0 0 -.225em;border-radius:50%;border:.07em solid rgba(255,214,90,.95);box-shadow:0 0 .12em rgba(255,200,60,.8);opacity:0;animation:fxRipple .85s ease-out forwards}
+#gameView .fx-ripple b:nth-child(2){animation-delay:.18s;border-color:rgba(255,255,255,.9)}
+@keyframes fxRipple{0%{transform:scale(.4);opacity:.95}100%{transform:scale(4.2);opacity:0}}
+/* pháo tia khi mua đất */
+#gameView .fx-burst b{position:absolute;left:50%;top:50%;width:.16em;height:.16em;margin:-.08em;border-radius:50%;background:var(--c);box-shadow:0 0 .1em var(--c);opacity:0;animation:fxSpark .9s ease-out var(--d) forwards}
+@keyframes fxSpark{0%{transform:rotate(var(--a)) translateX(0) scale(1.2);opacity:1}100%{transform:rotate(var(--a)) translateX(1.25em) scale(.2);opacity:0}}
+@media(prefers-reduced-motion:reduce){#gameView .fx{display:none}}
