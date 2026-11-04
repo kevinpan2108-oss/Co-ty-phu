@@ -1074,6 +1074,8 @@ function floatDelta(uid, delta, delay) {
     if (!card) return;
     const rect = card.getBoundingClientRect();
     const el = document.createElement("span");
+    const cashEl = card.querySelector(".player-cash");
+    if (cashEl) { cashEl.classList.remove("flash-gain", "flash-loss"); cashEl.classList.add(delta > 0 ? "flash-gain" : "flash-loss"); setTimeout(() => cashEl.classList.remove("flash-gain", "flash-loss"), 1600); }
     el.className = "float-delta " + (delta > 0 ? "gain" : "loss");
     el.textContent = (delta > 0 ? "+" : "−") + money(Math.abs(delta));
     el.style.left = Math.max(8, rect.right - 12) + "px";
@@ -1286,10 +1288,15 @@ function renderEventPanel() {
   } else if (e && (e.kind === "chance" || e.kind === "fortune")) {
     deed.innerHTML = `<div class="deed card-event ${e.kind === "chance" ? "is-chance" : "is-chest"}"><div class="deed-head">${e.kind === "chance" ? "Cơ hội" : "Khí vận"}</div><div class="deed-info">${escapeHtml(cardOnlyText(e.text))}</div></div>` + MASCOT_SVG;
   }
+  // Đang quyết định mua: nêu bật số tiền sẽ bị trừ và số dư còn lại.
+  if (roomState.pending && !roomState.auction && roomState.turnUid === uid && SPACE_DATA[deedIndex]?.price) {
+    const price = SPACE_DATA[deedIndex].price, cash = Number(players[uid]?.cash || 0);
+    money$.innerHTML = `<li class="loss pv"><span>Giá mua<small>Còn lại ${money(cash - price)}</small></span><b class="loss">−${money(price)}</b></li>`;
+  }
   // Tiền cộng/trừ, lý do, người trả và người nhận.
   if (e?.deltas) {
     const rows = Object.entries(e.deltas).filter(([, d]) => Number(d) !== 0);
-    money$.innerHTML = rows.map(([id, d]) => {
+    money$.innerHTML += rows.map(([id, d]) => {
       const cls = d > 0 ? "gain" : "loss";
       const why = eventReason(e, id, d);
       return `<li class="${cls === "loss" ? "loss" : ""}"><span>${escapeHtml(nameOf(id))}${why ? ` <small>· ${escapeHtml(why)}</small>` : ""}</span><b class="${cls}">${d > 0 ? "+" : "−"}${money(Math.abs(d))}</b></li>`;
