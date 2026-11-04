@@ -718,36 +718,64 @@ function renderProperties() {
     const player = roomState.players?.[uid];
     const houses = Number(roomState.houses?.[id] || 0);
     const mortgage = Number(roomState.mortgages?.[id] || 0);
-    const canManage = uid === currentUser.uid && (!debt || debt.uid === uid) &&
+    const isMine = uid === currentUser.uid;
+    const canManage = isMine && (!debt || debt.uid === uid) &&
       (debt?.uid === uid || (roomState.turnUid === uid && !roomState.pending && !roomState.auction));
-    // Xây được ở lượt của mình cả trước lẫn sau khi tung (sau khi sự kiện đã xử lý xong), như Monopoly thật.
-    const canBuildNow = canManage && !debt && roomState.turnUid === uid;
+    const canBuildNow = isMine && roomState.status === "playing" &&
+      roomState.turnUid === uid && !debt && !roomState.pending && !roomState.auction;
     const controls = [];
+
     if (canManage && houses > 0) {
       const sell = sellHouseEligibility(SPACE_DATA, ownerMap, roomState.houses || {}, uid, index);
-      if (sell.ok) controls.push(`<button class="deed-action sell-house" data-deed-action="sell-house" data-index="${index}">Bán ${houses === 5 ? "khách sạn" : "nhà"} +${money(sell.refund)}</button>`);
+      if (sell.ok) controls.push(`<button type="button" class="deed-action sell-house" data-deed-action="sell-house" data-index="${index}">Bán ${houses === 5 ? "khách sạn" : "nhà"} +${money(sell.refund)}</button>`);
     }
-    if (canBuildNow && space.type === "property") {
+
+    // Luôn giải thích trạng thái xây nhà trên đất của mình; chỉ bật nút khi đủ điều kiện.
+    if (isMine && space.type === "property") {
       const build = buildEligibility(SPACE_DATA, ownerMap, roomState.houses || {}, roomState.mortgages || {}, uid, index, player?.cash);
-      if (build.ok) canBuildAny = true;
-      else controls.push(`<span class="deed-status build-reason">${escapeHtml(reasonOf(build.reason))}${build.cost && Number(player?.cash) < build.cost ? ` (thiếu ${money(build.cost - Number(player?.cash || 0))})` : ""}</span>`);
-      if (build.ok) controls.push(`<button class="deed-action build-house" data-deed-action="build-house" data-index="${index}">Xây ${houses === 4 ? "khách sạn" : "nhà"} · ${money(build.cost)}</button>`);
+      if (canBuildNow && build.ok) {
+        canBuildAny = true;
+        controls.push(`<button type="button" class="deed-action build-house" data-deed-action="build-house" data-build-index="${index}" data-index="${index}" title="Xây nhà tại ${escapeHtml(space.name)} với chi phí ${money(build.cost)}">🏠 Xây ${houses === 4 ? "khách sạn" : "nhà"} · ${money(build.cost)}</button>`);
+      } else {
+        let reason = build.reason || "Chưa đủ điều kiện xây nhà.";
+        let label = reason;
+        if (!canBuildNow) {
+          if (roomState.status !== "playing") label = "Chỉ xây khi ván đang diễn ra";
+          else if (debt) label = debt.uid === uid ? "Thanh toán nợ trước khi xây" : "Chờ xử lý khoản nợ hiện tại";
+          else if (roomState.pending || roomState.auction) label = "Hoàn tất mua/đấu giá trước khi xây";
+          else if (roomState.turnUid !== uid) label = "Chờ lượt của bạn để xây";
+          else label = "Chưa thể xây lúc này";
+        } else if (/sở hữu toàn bộ đất|trọn bộ/i.test(reason)) {
+          label = "🏠 Cần sở hữu đủ bộ màu";
+        } else if (/giải chấp/i.test(reason)) {
+          label = "🔓 Giải chấp cả bộ trước";
+        } else if (/xây đều/i.test(reason)) {
+          label = "⚖️ Xây đều: chọn ô ít nhà nhất";
+        } else if (/đủ tiền/i.test(reason)) {
+          label = "💰 Chưa đủ tiền xây";
+        } else if (/khách sạn tối đa/i.test(reason)) {
+          label = "🏨 Đã đạt tối đa công trình";
+        }
+        controls.push(`<span class="deed-status build-status" data-build-status="${index}" title="${escapeHtml(reason)}">${escapeHtml(label)}</span>`);
+      }
     }
+
     if (canManage && mortgage > 0) {
       const redeem = redemptionCost(mortgage);
       if (!debt && roomState.turnUid === uid && !roomState.pending && !roomState.auction && Number(player?.cash || 0) >= redeem) {
-        controls.push(`<button class="deed-action redeem-asset" data-deed-action="redeem-asset" data-index="${index}">Giải chấp · ${money(redeem)}</button>`);
+        controls.push(`<button type="button" class="deed-action redeem-asset" data-deed-action="redeem-asset" data-index="${index}">Giải chấp · ${money(redeem)}</button>`);
       } else {
         controls.push(`<span class="deed-status mortgage-status">Đang cầm cố · ${money(mortgage)}</span>`);
       }
     } else if (canManage) {
       const mort = mortgageEligibility(SPACE_DATA, ownerMap, roomState.houses || {}, roomState.mortgages || {}, uid, index);
-      if (mort.ok) controls.push(`<button class="deed-action mortgage-asset" data-deed-action="mortgage-asset" data-index="${index}">Cầm cố +${money(mort.amount)}</button>`);
+      if (mort.ok) controls.push(`<button type="button" class="deed-action mortgage-asset" data-deed-action="mortgage-asset" data-index="${index}">Cầm cố +${money(mort.amount)}</button>`);
     }
+
     const buildingText = houses === 5 ? "Khách sạn" : houses > 0 ? houses + " căn nhà" : "Chưa xây";
     const mortgageText = mortgage > 0 ? " · Đang cầm cố" : "";
     const detail = `${space.group ? escapeHtml(space.group) + " · " : ""}${escapeHtml(player?.name || "Người chơi")} · ${buildingText}${mortgageText}`;
-    return `<div class="property-row ${uid === currentUser.uid ? "mine" : "opponent"}" style="--owner:${safeColor(player?.color)}">
+    return `<div class="property-row ${isMine ? "mine" : "opponent"}" style="--owner:${safeColor(player?.color)}">
       <i class="property-swatch" style="background:${safeColor(space.color || player?.color)}"></i>
       <div class="property-row-main"><strong>${escapeHtml(space.name)}</strong><small>${detail}</small></div>
       <div class="property-row-actions">${controls.join("")}</div>
@@ -1637,26 +1665,41 @@ async function buyProperty() {
 async function buildHouse(index) {
   if (busy) return;
   setBusy(true);
+  let failureReason = "Không thể xây nhà ở thời điểm này.";
+  let successMessage = "";
   try {
     const uid = currentUser.uid;
     const result = await updateCurrentRoom((room) => {
       if (room === null) return room;
-      if (!room || room.status !== "playing" || room.turnUid !== uid || room.pending || room.auction || room.debt) return;
+      if (!room) { failureReason = "Không tìm thấy phòng chơi."; return; }
+      if (room.status !== "playing") { failureReason = "Ván chơi chưa bắt đầu hoặc đã kết thúc."; return; }
+      if (room.turnUid !== uid) { failureReason = "Chỉ được xây nhà trong lượt của bạn."; return; }
+      if (room.pending) { failureReason = "Hãy xử lý giao dịch mua đất trước khi xây nhà."; return; }
+      if (room.auction) { failureReason = "Hãy hoàn tất đấu giá trước khi xây nhà."; return; }
+      if (room.debt) { failureReason = "Hãy thanh toán khoản nợ trước khi xây nhà."; return; }
+
       const player = room.players?.[uid];
-      const check = buildEligibility(SPACE_DATA, room.propertyOwners, room.houses || {}, room.mortgages || {}, uid, index, player?.cash);
-      if (!check.ok || !player) return;
+      if (!player) { failureReason = "Không tìm thấy thông tin người chơi."; return; }
+      const check = buildEligibility(SPACE_DATA, room.propertyOwners, room.houses || {}, room.mortgages || {}, uid, index, player.cash);
+      if (!check.ok) { failureReason = check.reason; return; }
+
       player.cash -= check.cost;
       room.houses = room.houses || {};
       const key = getSpaceId(index);
       room.houses[key] = Number(room.houses[key] || 0) + 1;
       const label = room.houses[key] === 5 ? "khách sạn" : "căn nhà";
+      successMessage = "Đã xây " + label + " tại " + SPACE_DATA[index].name + " với chi phí " + money(check.cost) + ".";
       room.message = player.name + " xây " + label + " tại " + SPACE_DATA[index].name + " với chi phí " + money(check.cost) + ".";
       room.updatedAt = Date.now();
       return room;
     });
-    if (result?.committed === false) notify("Chưa thể xây: cần sở hữu trọn nhóm màu, xây đều và đủ tiền.");
-  } catch (error) { notify("Không xây được nhà: " + explainFirebaseError(error)); }
-  finally { setBusy(false); }
+    if (result?.committed === false) notify("Chưa thể xây: " + failureReason);
+    else if (result?.committed) notify(successMessage || "Xây nhà thành công.");
+  } catch (error) {
+    notify("Không xây được nhà: " + explainFirebaseError(error));
+  } finally {
+    setBusy(false);
+  }
 }
 async function sellHouse(index) {
   if (busy) return;
@@ -2099,7 +2142,7 @@ $("epHistoryButton").addEventListener("click", () => { renderHistory(); $("histo
 $("historyClose").addEventListener("click", () => { $("historyModal").hidden = true; });
 $("historyModal").addEventListener("click", (event) => { if (event.target === $("historyModal")) $("historyModal").hidden = true; });
 $("cellInfo").addEventListener("click", (event) => { if (event.target.closest(".cell-info-close")) $("cellInfo").classList.remove("show"); });
-$("propsButton").addEventListener("click", () => { $("propsModal").hidden = false; });
+$("propsButton").addEventListener("click", () => { cancelAutoAdvance(); $("propsModal").hidden = false; });
 $("propertyList").addEventListener("click", handleDeedAction);
 $("propsClose").addEventListener("click", () => { $("propsModal").hidden = true; renderEventPanel(); });
 $("propsModal").addEventListener("click", (event) => { if (event.target === $("propsModal")) { $("propsModal").hidden = true; renderEventPanel(); } });

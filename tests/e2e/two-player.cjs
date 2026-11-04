@@ -319,16 +319,18 @@ let rules;
     const room = store.rooms[code];
     const uidA = room.creatorUid;
     const uidB = room.joinerUid;
+    const incompleteOwners = {...room.propertyOwners,s1:uidA};
+    delete incompleteOwners.s3;
     store.rooms[code] = {
       ...room,
       status:"playing",
       turnUid:uidA,
       turnNumber:Number(room.turnNumber || 1) + 1,
-      lastRoll:null,
+      lastRoll:[2,3],
       pending:null,
       auction:null,
       debt:null,
-      propertyOwners:{...room.propertyOwners,s1:uidA,s3:uidA},
+      propertyOwners:incompleteOwners,
       houses:{},
       mortgages:{},
       players:{
@@ -339,7 +341,15 @@ let rules;
     };
     await pa.page.waitForSelector("#board .space[data-index='1'].owned", { timeout:8000 });
     await pa.page.click("#propsButton");
+    await pa.page.waitForSelector('#propertyList [data-build-status="1"]', { timeout:8000 });
+    check("sổ đất giải thích phải sở hữu đủ bộ màu mới xây được", /Cần sở hữu đủ bộ màu/.test(await text(pa.page, "#propertyList")));
+    store.rooms[code] = {
+      ...store.rooms[code],
+      propertyOwners:{...store.rooms[code].propertyOwners,s3:uidA}
+    };
     await pa.page.waitForSelector('#propertyList [data-deed-action="build-house"][data-index="3"]', { timeout:8000 });
+    await pa.page.waitForTimeout(3600);
+    check("mở Sổ đất giữ nguyên lượt sau khi thời gian tự chuyển lượt đã trôi qua", store.rooms[code].turnUid === uidA && await pa.page.locator("#propsModal").isVisible());
     check("sổ đất hiển thị nút xây khi đã sở hữu trọn bộ tỉnh", await pa.page.locator('#propertyList [data-deed-action="build-house"][data-index="3"]').count() === 1);
     await pa.page.locator('#propertyList [data-deed-action="build-house"][data-index="3"]').click();
     await pa.page.waitForSelector('#board .space[data-index="3"].built', { timeout:8000 });
