@@ -1207,3 +1207,27 @@ body:has(#gameView:not(.hidden)){overflow:hidden}
 #gameView .token:before{left:8%;right:8%;height:24%;bottom:.02em;background:radial-gradient(ellipse at 50% 35%,rgba(255,255,255,.55),rgba(255,255,255,0) 60%),var(--tc,#fff);box-shadow:0 .05em .08em rgba(0,0,0,.5),inset 0 0 0 .04em rgba(255,255,255,.9)}
 #gameView .token{padding-bottom:.12em}
 #gameView .hud-button.cam-button[aria-pressed="true"]{background:rgba(232,140,30,.92)}
+
+/* ===== mm17: thẻ & bảng thông tin phong cách Việt (đỏ–vàng, hồi văn, trống đồng) ===== */
+#gameView{--vn-red:#b3261e;--vn-red-d:#7d1712;--vn-gold:#e8b53a;--vn-gold-d:#9b6c13;--vn-cream:#fff6dc;--vn-hoivan:repeating-linear-gradient(90deg,var(--vn-gold) 0 5px,var(--vn-red-d) 5px 7px,var(--vn-gold) 7px 12px,transparent 12px 14px)}
+/* Bảng sự kiện: viền đỏ thẫm, nẹp vàng, hồi văn trên đầu */
+#gameView .event-panel{border:3px solid var(--vn-red-d);box-shadow:0 0 0 2px var(--vn-gold),0 8px 18px rgba(0,0,0,.4);background:var(--vn-cream)}
+#gameView .event-panel:before{content:"";position:absolute;left:8px;right:8px;top:-2px;height:5px;background:var(--vn-hoivan);border-radius:0 0 4px 4px;pointer-events:none}
+/* Banner "Đang bán": đỏ–vàng thay cho tím */
+#gameView .deed-banner{background:linear-gradient(180deg,#d6372c,var(--vn-red-d))!important;color:#ffe7a1!important;border:1.5px solid var(--vn-gold);text-shadow:0 1px 1px rgba(0,0,0,.5)}
+/* Thẻ đất: khung nâu–vàng, đầu thẻ đỏ thẫm */
+#gameView .deed:not(.card-event){background:var(--vn-cream);border-color:var(--vn-red-d);outline:1px solid var(--vn-gold-d);outline-offset:-4px}
+#gameView .deed:not(.card-event) .deed-head{border-color:var(--vn-red-d)}
+/* Thẻ Cơ hội / Khí vận: giấy điều đỏ, khung vàng, 4 góc hoa văn, dải hồi văn trên-dưới */
+#gameView .deed.card-event{background:radial-gradient(circle at 50% 42%,#fffdf2 0 55%,#ffefc0 100%);border:3px solid var(--vn-red);outline:2px solid var(--vn-gold);outline-offset:-7px;box-shadow:inset 0 0 0 1px rgba(125,23,18,.3)}
+#gameView .deed.card-event:before,#gameView .deed.card-event:after{content:"";position:absolute;left:12px;right:12px;height:5px;background:var(--vn-hoivan);opacity:.9}
+#gameView .deed.card-event:before{top:11px}#gameView .deed.card-event:after{bottom:11px}
+#gameView .deed.card-event.is-chance .deed-head{color:var(--vn-red)!important}
+#gameView .deed.card-event.is-chest .deed-head{color:#1d6b4a!important}
+#gameView .deed.card-event.is-chest{border-color:#1d6b4a}
+#gameView .deed.card-event .deed-head{margin-top:8px;font-family:var(--display);text-shadow:0 1px 0 rgba(232,181,58,.8)}
+#gameView .deed.card-event .deed-head:before,#gameView .deed.card-event .deed-head:after{content:"✿";margin:0 .4em;font-size:.7em;color:var(--vn-gold-d);vertical-align:middle}
+#gameView .deed.card-event .deed-info{color:#3a2412!important;margin-bottom:6px}
+/* Ô tiền cộng/trừ: khung vàng */
+#gameView .ep-money li{box-shadow:0 0 0 1.5px var(--vn-gold)}
+#gameView .status-bar .action-message{background:linear-gradient(180deg,#c92f25,var(--vn-red-d))!important;color:#fff3cf;border:1.5px solid var(--vn-gold);box-shadow:0 2px 6px rgba(0,0,0,.35)}
