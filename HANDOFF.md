@@ -104,3 +104,7 @@ npm run test:e2e
 ## Cập nhật: thẻ mua đất gọn + chuyển lượt có nhịp nghỉ
 - Thẻ "Đang bán" gọn: bảng giá ở trên, hàng dưới là số tiền + nút Mua/Bỏ qua (CSS khối mm15, không còn bị cắt đáy).
 - Chuyển lượt: khi quyền chơi chuyển sang người khác, có nhịp nghỉ `HANDOFF_MS = 1500` rồi mới bật nút tung xí ngầu của người tiếp theo (`handoffUntil`/`turnGateUntil` trong app.js); máy cũng chờ cổng này. Tung thêm do đôi vẫn thuộc lượt hiện tại nên không bị chèn nhịp nghỉ.
+
+## Cập nhật: quân cờ SVG + góc quay thấp
+- Chim cánh cụt và cún con vẽ lại bằng SVG (hết emoji phụ thuộc máy), cùng phong cách với ghế nhựa/cà phê; đế màu người chơi to hơn (CSS mm16).
+- Góc quay mới "Góc thấp" (nút 🎥 ở HUD, lưu trong localStorage `coTyPhu.cameraView`): `CAMERA_VIEWS` trong camera.js (nghiêng 64–67°, zoom 2.05–2.2×, neo quân thấp hơn). Không xoay bàn quanh trục Z vì chữ trên ô sẽ bị ngược.

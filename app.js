@@ -1,5 +1,5 @@
 import { initializeApp, deleteApp } from "https://www.gstatic.com/firebasejs/13.1.0/firebase-app.js";
-import { animalFor, shortName, TOKEN_OPTIONS, tokenMarkup, tokenLabel } from "./board-art.js?v=2";
+import { animalFor, shortName, TOKEN_OPTIONS, tokenMarkup, tokenLabel } from "./board-art.js?v=3";
 import { shouldComputerBuy } from "./computer-player.js?v=1";
 import { CHANCE_CARDS, FORTUNE_CARDS, drawCard } from "./cards.js?v=1";
 import {
@@ -11,7 +11,7 @@ import {
 import { cubeTransform } from "./dice-visuals.js?v=1";
 import { playDiceRoll, DICE_ANIM_MS } from "./dice-roll.js?v=2";
 import { playDiceSound, isMuted, setMuted } from "./dice-sound.js?v=2";
-import { createCamera, CAMERA } from "./camera.js?v=3";
+import { createCamera, CAMERA } from "./camera.js?v=4";
 import { getDatabase, ref, set, get, onValue, runTransaction } from "https://www.gstatic.com/firebasejs/13.1.0/firebase-database.js";
 
 // Public Firebase Web App configuration for this game.
@@ -2156,6 +2156,22 @@ camera = createCamera({
   onChange: (mode) => { $("camOverviewButton").hidden = mode === "overview"; }
 });
 $("camOverviewButton").addEventListener("click", () => camera.manualOverview());
+const CAM_VIEW_KEY = "coTyPhu.cameraView";
+function applyCameraView(view, { save = true } = {}) {
+  camera.setView(view);
+  const low = camera.view === "low";
+  const btn = $("camViewButton");
+  btn.setAttribute("aria-pressed", String(low));
+  btn.querySelector("small").textContent = low ? "Góc chuẩn" : "Góc thấp";
+  if (save) store("set", CAM_VIEW_KEY, camera.view);
+}
+applyCameraView(store("get", CAM_VIEW_KEY) === "low" ? "low" : "chase", { save: false });
+$("camViewButton").addEventListener("click", () => {
+  applyCameraView(camera.view === "low" ? "chase" : "low");
+  // Đang xem cận: chuyển góc ngay tại ô của quân đang chơi, không cần chờ lượt sau.
+  const pos = roomState?.players?.[roomState.turnUid]?.position;
+  if (camera.mode !== "overview" && pos != null) camera.focus(pos, { ms: 700 });
+});
 window.addEventListener("resize", () => camera.invalidate());
 window.addEventListener("orientationchange", () => camera.invalidate());
 $("epMinButton").addEventListener("click", () => { epMinimized = !epMinimized; renderEventPanel(); });

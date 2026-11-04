@@ -108,8 +108,31 @@ export const TOKEN_OPTIONS = Object.freeze([
   { id: "vietnamese-coffee", label: "Cà phê sữa đá" }
 ]);
 const TOKEN_MARKUP = {
-  penguin: '<span class="token-emoji" aria-hidden="true">🐧</span>',
-  puppy: '<span class="token-emoji" aria-hidden="true">🐶</span>',
+  penguin: `<svg class="token-svg" viewBox="0 0 64 64" aria-hidden="true" focusable="false">
+    <ellipse cx="32" cy="59" rx="17" ry="4" fill="#000" opacity=".18"/>
+    <path d="M22 54 Q18 57 24 58 H30 Q31 55 29 53Z M42 54 Q46 57 40 58 H34 Q33 55 35 53Z" fill="#ff9d1f" stroke="#a85a00" stroke-width="2" stroke-linejoin="round"/>
+    <path d="M32 5 C19 5 13 17 13 32 C13 46 19 55 32 55 C45 55 51 46 51 32 C51 17 45 5 32 5Z" fill="#26364f" stroke="#101a2b" stroke-width="3"/>
+    <path d="M32 21 C23 21 19 31 20 41 C21 50 26 53 32 53 C38 53 43 50 44 41 C45 31 41 21 32 21Z" fill="#fff"/>
+    <path d="M12 30 Q5 38 10 47 Q16 44 17 34Z M52 30 Q59 38 54 47 Q48 44 47 34Z" fill="#26364f" stroke="#101a2b" stroke-width="2.5" stroke-linejoin="round"/>
+    <circle cx="25" cy="17" r="4.2" fill="#fff"/><circle cx="39" cy="17" r="4.2" fill="#fff"/>
+    <circle cx="26" cy="17.5" r="2" fill="#101a2b"/><circle cx="38" cy="17.5" r="2" fill="#101a2b"/>
+    <path d="M27 22 L32 28 L37 22 Q32 19 27 22Z" fill="#ffa726" stroke="#b45f00" stroke-width="1.8" stroke-linejoin="round"/>
+    <path d="M19 12 Q22 7 28 6" fill="none" stroke="#6f86a8" stroke-width="2.5" stroke-linecap="round" opacity=".8"/>
+  </svg>`,
+  puppy: `<svg class="token-svg" viewBox="0 0 64 64" aria-hidden="true" focusable="false">
+    <ellipse cx="32" cy="59" rx="18" ry="4" fill="#000" opacity=".18"/>
+    <path d="M16 38 Q11 56 22 57 H42 Q53 56 48 38Z" fill="#f2a649" stroke="#8a4a14" stroke-width="3" stroke-linejoin="round"/>
+    <path d="M25 44 Q32 41 39 44 V57 H25Z" fill="#fff4de"/>
+    <path d="M12 10 Q4 14 7 31 Q15 31 20 20Z M52 10 Q60 14 57 31 Q49 31 44 20Z" fill="#c9742a" stroke="#8a4a14" stroke-width="3" stroke-linejoin="round"/>
+    <path d="M32 8 C18 8 11 18 11 29 C11 41 20 46 32 46 C44 46 53 41 53 29 C53 18 46 8 32 8Z" fill="#f6b85c" stroke="#8a4a14" stroke-width="3"/>
+    <path d="M32 27 C23 27 18 33 19 38 C21 44 27 46 32 46 C37 46 43 44 45 38 C46 33 41 27 32 27Z" fill="#fff4de"/>
+    <circle cx="23" cy="25" r="3.4" fill="#2a1608"/><circle cx="41" cy="25" r="3.4" fill="#2a1608"/>
+    <circle cx="24.2" cy="23.8" r="1.1" fill="#fff"/><circle cx="42.2" cy="23.8" r="1.1" fill="#fff"/>
+    <path d="M27 32 Q32 30 37 32 Q36 37 32 37 Q28 37 27 32Z" fill="#2a1608"/>
+    <path d="M32 37 V40 M26 41 Q32 46 38 41" fill="none" stroke="#2a1608" stroke-width="2" stroke-linecap="round"/>
+    <path d="M29 42.5 Q32 49 35 42.5Z" fill="#ff7b8a"/>
+    <path d="M18 14 Q23 10 29 10" fill="none" stroke="#ffe0a3" stroke-width="2.5" stroke-linecap="round" opacity=".9"/>
+  </svg>`,
   "plastic-chair": `<svg class="token-svg" viewBox="0 0 64 64" aria-hidden="true" focusable="false">
     <path d="M20 8 Q18 7 17 12 L17 31 Q17 34 21 35 L45 35 Q49 34 48 30 L46 12 Q45 7 41 8Z" fill="#ed493d" stroke="#8e2725" stroke-width="3" stroke-linejoin="round"/>
     <path d="M13 32 Q12 29 17 29 H47 Q52 29 51 34 L48 42 H17Z" fill="#f15a49" stroke="#8e2725" stroke-width="3" stroke-linejoin="round"/>
